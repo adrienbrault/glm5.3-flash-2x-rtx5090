@@ -1,0 +1,6 @@
+GPU lock held; results /srv/qwen5090/results/2026-10-06-r858-glm53-233400-2023872
+template: always-think, sanity arms = reasoning_effort low/high
+A-r0-split-104-mtp1 TRY: A split N=104 MTP=1 cache=65536 @ 8,8 split=31,31
+A-r0-split-104-mtp1 FAILED rc=1 (boot/sanity/measurement/resource logs archived)
+A-r1-layers-16-mtp1 TRY: A layers N=16 MTP=1 cache=65536 @ 8,8 split=31,31
+RESTORE: /srv/qwen5090/launch-flashnext.sh (LIVE Flash-Next)

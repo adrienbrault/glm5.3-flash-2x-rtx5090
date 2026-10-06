@@ -1,0 +1,13 @@
+test_begin_snapshots_cpu_starts_and_labels_calls (test_route_trace.Tests.test_begin_snapshots_cpu_starts_and_labels_calls) ... ok
+test_error_is_reported_no_clean_marker (test_route_trace.Tests.test_error_is_reported_no_clean_marker) ... ok
+test_hook_precedes_inplace_mapping (test_route_trace.Tests.test_hook_precedes_inplace_mapping) ... ok
+test_off_ast_preserves_every_original_statement (test_route_trace.Tests.test_off_ast_preserves_every_original_statement) ... ok
+test_off_has_no_numpy_torch_or_worker (test_route_trace.Tests.test_off_has_no_numpy_torch_or_worker) ... ok
+test_queue_full_fails_instead_of_silent_loss (test_route_trace.Tests.test_queue_full_fails_instead_of_silent_loss) ... ok
+test_row_positions_requests_and_unknown (test_route_trace.Tests.test_row_positions_requests_and_unknown) ... ok
+test_writer_waits_before_serializing_and_restores_ids (test_route_trace.Tests.test_writer_waits_before_serializing_and_restores_ids) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.206s
+
+OK

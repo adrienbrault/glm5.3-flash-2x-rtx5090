@@ -1,0 +1,72 @@
+# One line per LIVE EXL3 selector decision (including historical/optional mentions).
+# DROP means absent from the launch environment; image-baked EXL3 selectors are removed too.
+EXL3_AUTOSPLIT_MARGIN_MB: DROP — not proven for GLM5Next; use source defaults for the initial audition; model/model_ls.py:163
+EXL3_AUTOSPLIT_REPORT: DROP — not proven for GLM5Next; use source defaults for the initial audition; no matching selector in supplied source
+EXL3_BATCH_VERIFY: DROP — shared machinery may apply but daily tuned selector is unvalidated for GLM; omit; generator/generator.py:41
+EXL3_CACHE_TRACE: DROP — not proven for GLM5Next; use source defaults for the initial audition; cache_trace.py:10
+EXL3_DENSE_ROWS32: DROP — shared machinery may apply but daily tuned selector is unvalidated for GLM; omit; exllamav3_ext/bindings.cpp:112, exllamav3_ext/quant/exl3_dense_v2.cu:32
+EXL3_DENSE_V2: DROP — shared machinery may apply but daily tuned selector is unvalidated for GLM; omit; exllamav3_ext/bindings.cpp:181, exllamav3_ext/quant/exl3_gemv.cu:169
+EXL3_DRAFT_CONFIDENCE: DROP — shared machinery may apply but daily tuned selector is unvalidated for GLM; omit; no matching selector in supplied source
+EXL3_DRAFT_PINNED_STAGING: DROP — shared machinery may apply but daily tuned selector is unvalidated for GLM; omit; generator/generator.py:40
+EXL3_EMBED_GPU: DROP — shared machinery may apply but daily tuned selector is unvalidated for GLM; omit; generator/generator.py:44, architecture/qwen4_exp_mtp.py:226
+EXL3_EMBED_GPU_PRUNED: DROP — shared machinery may apply but daily tuned selector is unvalidated for GLM; omit; generator/generator.py:45, architecture/qwen4_exp_mtp.py:226
+EXL3_GDN_BA_WARP1: DROP — Flash-Next GDN tuning; GLM KDA differs (BF16 explicitly excludes KDA); exllamav3_ext/gdn.cu:1993
+EXL3_GDN_STATE_BF16: DROP — Flash-Next GDN tuning; GLM KDA differs (BF16 explicitly excludes KDA); modules/gated_delta_net.py:47, modules/gated_delta_net_fn/gated_delta_rule.py:212
+EXL3_GR_MIX_TILED: DROP — Flash-Next HC/recurrent mixer tuning; GLM uses mHC HyperConnection, no validated carry-over; modules/hyperconnections.py:16
+EXL3_GR_STATE_IN_UP: DROP — Flash-Next HC/recurrent mixer tuning; GLM uses mHC HyperConnection, no validated carry-over; modules/hyperconnections.py:297, exllamav3_ext/hc_mix.cu:1599
+EXL3_GR_STATE_REGRID: DROP — Flash-Next HC/recurrent mixer tuning; GLM uses mHC HyperConnection, no validated carry-over; modules/hyperconnections.py:296
+EXL3_HC_APPLY_WARP1: DROP — Flash-Next HC/recurrent mixer tuning; GLM uses mHC HyperConnection, no validated carry-over; exllamav3_ext/hc_mix.cu:47
+EXL3_HC_MIX_V2: DROP — Flash-Next HC/recurrent mixer tuning; GLM uses mHC HyperConnection, no validated carry-over; modules/hyperconnections.py:290
+EXL3_HC_MIX_V2_INT8: DROP — Flash-Next HC/recurrent mixer tuning; GLM uses mHC HyperConnection, no validated carry-over; modules/hyperconnections.py:295
+EXL3_HC_MIX_V2_MIN_R: DROP — Flash-Next HC/recurrent mixer tuning; GLM uses mHC HyperConnection, no validated carry-over; modules/hyperconnections.py:293
+EXL3_HC_MIX_V3: DROP — Flash-Next HC/recurrent mixer tuning; GLM uses mHC HyperConnection, no validated carry-over; modules/hyperconnections.py:18, exllamav3_ext/hc_mix_v3.cu:15
+EXL3_HC_MIX_V3_DOTS_B: DROP — Flash-Next HC/recurrent mixer tuning; GLM uses mHC HyperConnection, no validated carry-over; modules/hyperconnections.py:305
+EXL3_HC_MIX_V3_DOTS_J: DROP — Flash-Next HC/recurrent mixer tuning; GLM uses mHC HyperConnection, no validated carry-over; modules/hyperconnections.py:307
+EXL3_HC_MIX_V3_DOTS_PF: DROP — Flash-Next HC/recurrent mixer tuning; GLM uses mHC HyperConnection, no validated carry-over; modules/hyperconnections.py:310
+EXL3_HC_MIX_V3_PDL: DROP — Flash-Next HC/recurrent mixer tuning; GLM uses mHC HyperConnection, no validated carry-over; modules/hyperconnections.py:301
+EXL3_HC_MIX_V3_UP_B: DROP — Flash-Next HC/recurrent mixer tuning; GLM uses mHC HyperConnection, no validated carry-over; modules/hyperconnections.py:306
+EXL3_HC_MIX_V3_UP_Q: DROP — Flash-Next HC/recurrent mixer tuning; GLM uses mHC HyperConnection, no validated carry-over; modules/hyperconnections.py:313
+EXL3_HOST_GAP_REWIND: DROP — not proven for GLM5Next; use source defaults for the initial audition; modules/gated_delta_net.py:45
+EXL3_LC_GDN_RR: DROP — Flash-Next GDN tuning; GLM KDA differs (BF16 explicitly excludes KDA); exllamav3_ext/bindings.cpp:311, exllamav3_ext/gdn.cu:865
+EXL3_LC_QSA_COMBINE_STAGES: DROP — Flash-Next QSA/PLE/hot-vocabulary path; GLM uses KDA+MLA/DSA; modules/attention_fn/bc_attn.py:63
+EXL3_LC_QSA_DIV16: DROP — Flash-Next QSA/PLE/hot-vocabulary path; GLM uses KDA+MLA/DSA; modules/attention_fn/bc_attn.py:64
+EXL3_LC_QSA_FORK: DROP — Flash-Next QSA/PLE/hot-vocabulary path; GLM uses KDA+MLA/DSA; exllamav3_ext/libtorch/attention.cpp:440, exllamav3_ext/quant/exl3_dense_v2.cu:38
+EXL3_LC_QSA_SPLIT_STAGES: DROP — Flash-Next QSA/PLE/hot-vocabulary path; GLM uses KDA+MLA/DSA; modules/attention_fn/bc_attn.py:62
+EXL3_LS_PREFILL_PIPELINE: DROP — daily prompt/cache policy; omit unvalidated GLM performance policy; generator/generator.py:726
+EXL3_MOE_COOP_ROWS32: DROP — shared machinery may apply but daily tuned selector is unvalidated for GLM; omit; modules/block_sparse_mlp.py:63, exllamav3_ext/bindings.cpp:111
+EXL3_MOE_COOP_V2: DROP — shared machinery may apply but daily tuned selector is unvalidated for GLM; omit; exllamav3_ext/quant/exl3_moe_coop.cu:149
+EXL3_MOE_COOP_V3: DROP — shared machinery may apply but daily tuned selector is unvalidated for GLM; omit; exllamav3_ext/bindings.cpp:304, exllamav3_ext/quant/exl3_moe_coop.cu:133
+EXL3_MOE_COOP_V3_MAP: DROP — shared machinery may apply but daily tuned selector is unvalidated for GLM; omit; exllamav3_ext/quant/exl3_moe_coop.cu:136
+EXL3_MOE_PREFILL_E3: DROP — shared machinery may apply but daily tuned selector is unvalidated for GLM; omit; modules/block_sparse_mlp.py:53, exllamav3_ext/quant/exl3_moe_prefill_e3.cpp:142
+EXL3_MOE_PREFILL_E3_DET: DROP — shared machinery may apply but daily tuned selector is unvalidated for GLM; omit; modules/block_sparse_mlp.py:61, exllamav3_ext/quant/exl3_moe_prefill_e3.cpp:142
+EXL3_MOE_ROUTE_PACKED: DROP — shared machinery may apply but daily tuned selector is unvalidated for GLM; omit; no matching selector in supplied source
+EXL3_MTP_DEVICE_DRAFT: DROP — shared machinery may apply but daily tuned selector is unvalidated for GLM; omit; generator/generator.py:42, modules/embedding_pruned.py:7
+EXL3_MTP_HEAD_N: DROP — shared machinery may apply but daily tuned selector is unvalidated for GLM; omit; generator/generator.py:44, architecture/qwen4_exp_mtp.py:17
+EXL3_MTP_HOT_BLOCKS: DROP — Flash-Next QSA/PLE/hot-vocabulary path; GLM uses KDA+MLA/DSA; no matching selector in supplied source
+EXL3_MTP_HOT_EMBED_DTYPE: DROP — Flash-Next QSA/PLE/hot-vocabulary path; GLM uses KDA+MLA/DSA; no matching selector in supplied source
+EXL3_MTP_KV_WINDOW: DROP — shared machinery may apply but daily tuned selector is unvalidated for GLM; omit; cache/mtp_window.py:6, cache/cache.py:154
+EXL3_MTP_VALIDATE_SUBHEAD: DROP — shared machinery may apply but daily tuned selector is unvalidated for GLM; omit; no matching selector in supplied source
+EXL3_NGRAM_PREFETCH2: DROP — Flash-Next QSA/PLE/hot-vocabulary path; GLM uses KDA+MLA/DSA; generator/generator.py:47, generator/prefill_pipeline.py:341
+EXL3_NVME_TIER: DROP — daily prompt/cache policy; omit unvalidated GLM performance policy; cache/recurrent.py:35, generator/disk_cache.py:5
+EXL3_NVME_TIER_GB: DROP — daily prompt/cache policy; omit unvalidated GLM performance policy; generator/disk_cache.py:1471
+EXL3_PREFILL_MERGE: DROP — not proven for GLM5Next; use source defaults for the initial audition; cache/prefill_merge.py:4, generator/job.py:1333
+EXL3_PREFILL_RESUMABLE: DROP — daily prompt/cache policy; omit unvalidated GLM performance policy; generator/prefill_pipeline.py:65
+EXL3_PREFILL_WHOLE_PROMPT: DROP — daily prompt/cache policy; omit unvalidated GLM performance policy; generator/prefill_pipeline.py:44
+EXL3_PROMPT_LOOKUP: DROP — daily prompt/cache policy; omit unvalidated GLM performance policy; generator/prompt_lookup.py:181, generator/generator.py:405
+EXL3_QSA_RAWK_RING: DROP — Flash-Next QSA/PLE/hot-vocabulary path; GLM uses KDA+MLA/DSA; cache/qsa.py:11, modules/qsa_indexer.py:532
+EXL3_RECURRENT_CHECKPOINT_INFORWARD: DROP — daily prompt/cache policy; omit unvalidated GLM performance policy; cache_trace.py:137, cache/prefill_merge.py:527
+EXL3_RECURRENT_CHECKPOINT_INTERVAL_PP: DROP — daily prompt/cache policy; omit unvalidated GLM performance policy; cache/checkpoint_policy.py:15, generator/generator.py:362
+EXL3_RECURRENT_CHECKPOINT_TAIL_PP: DROP — daily prompt/cache policy; omit unvalidated GLM performance policy; cache/checkpoint_policy.py:6
+EXL3_SHARED_EXPERT_EARLY: DROP — shared machinery may apply but daily tuned selector is unvalidated for GLM; omit; modules/block_sparse_mlp.py:1007, exllamav3_ext/bindings.cpp:304
+EXL3_SHARED_EXPERT_OVERLAP: DROP — shared machinery may apply but daily tuned selector is unvalidated for GLM; omit; modules/block_sparse_mlp.py:48, exllamav3_ext/libtorch/blocksparse_mlp.cpp:21
+EXL3_SHARED_EXPERT_ROWS32: DROP — shared machinery may apply but daily tuned selector is unvalidated for GLM; omit; modules/block_sparse_mlp.py:65, modules/mlp.py:25
+EXL3_STASH_ASYNC: DROP — daily prompt/cache policy; omit unvalidated GLM performance policy; cache/prefill_merge.py:12, generator/disk_cache.py:1167
+EXL3_TOKENIZE_OFFLOOP: DROP — not proven for GLM5Next; use source defaults for the initial audition; tokenizer/tokenizer.py:18
+EXL3_TOKENIZE_OFFLOOP_MIN_CHARS: DROP — not proven for GLM5Next; use source defaults for the initial audition; no matching selector in supplied source
+EXL3_TP: DROP — not proven for GLM5Next; use source defaults for the initial audition; model/model_tp_fn.py:16, model/model_tp_backend.py:21
+EXL3_MOE_CPU_THREADS: KEEP/ADD=8 — shared CPU worker applies to GLM BlockSparseMLP; model/moe_cpu_host.py:83,587-625.
+EXL3_MOE_PINNED_ARENA: KEEP/ADD=0 — explicitly choose ordinary expert arena in both modes; model/moe_cpu_host.py:105-118.
+EXLLAMAV3_TUNE_CACHE: KEEP=/exl3-cache — generic persistent autotuning cache, separate directory from daily.
+TRITON_CACHE_DIR: KEEP=/exl3-cache — generic compilation cache, separate directory from daily.
+FASTWARM: DROP — R818 strings/token counts and persistent HC row classes were calibrated only for Flash-Next; use generic warmup + unmeasured c1/c2/c4 warmup.
+TABBY_OUTPUT_CHUNK_TOKENS: DROP — remove image-baked override; restored daily must also have no such variable.

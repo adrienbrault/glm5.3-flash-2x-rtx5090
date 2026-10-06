@@ -1,0 +1,14 @@
+route-trace base assert OK
+patching file 'exllamav3/generator/generator.py'
+patching file 'exllamav3/generator/job.py'
+patching file 'exllamav3/generator/prefill_pipeline.py'
+patching file 'exllamav3/model/model.py'
+patching file 'exllamav3/modules/block_sparse_mlp.py'
+patching file 'exllamav3/route_trace.py'
+patching file 'exllamav3/generator/generator.py'
+patching file 'exllamav3/generator/job.py'
+patching file 'exllamav3/generator/prefill_pipeline.py'
+patching file 'exllamav3/model/model.py'
+patching file 'exllamav3/modules/block_sparse_mlp.py'
+patching file 'exllamav3/route_trace.py'
+route-trace landed assert OK

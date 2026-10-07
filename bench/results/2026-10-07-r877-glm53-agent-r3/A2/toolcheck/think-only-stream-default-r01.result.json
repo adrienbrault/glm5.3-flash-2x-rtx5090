@@ -1,0 +1,54 @@
+{
+  "tag": "think-only-stream-default-r01",
+  "case": "think-only",
+  "finish": "tool_calls",
+  "eos_reason": null,
+  "stop_str": null,
+  "passed": false,
+  "calls": [
+    {
+      "index": 0,
+      "tool": "write_file",
+      "args_len": 9728,
+      "args_json_ok": true,
+      "args_json_error": null,
+      "body_len": 7492,
+      "line_count": 200,
+      "exact_body": false,
+      "first_mismatch_line": 1,
+      "path": "/tmp/y.py",
+      "think_count": 0,
+      "close_think_count": 0,
+      "args_head": "{\"content\": \"row_1 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> \\\\\\\\mock\\\"\\nrow_2 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> \\\\\\\\mock\\\"\\nrow_3 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> \\\\\\\\mock\\\"\\nrow_4 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> \\\\\\\\mock\\\"\\",
+      "args_tail": "\\\\\\\"q\\\\\\\" </fake> \\\\\\\\mock\\\"\\nrow_198 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> \\\\\\\\mock\\\"\\nrow_199 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> \\\\\\\\mock\\\"\\nrow_200 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> \\\\\\\\mock\\\"\\n\", \"path\": \"/tmp/y.py\"}"
+    }
+  ],
+  "content_len": 0,
+  "reasoning_len": 710,
+  "completion_tokens": 3609,
+  "usage": {
+    "prompt_tokens": 221,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "prompt_time": 0.8,
+    "prompt_tokens_per_sec": 276.25,
+    "completion_tokens": 3609,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    },
+    "completion_time": 84.86,
+    "completion_tokens_per_sec": 42.53,
+    "total_tokens": 3830,
+    "total_time": 85.66
+  },
+  "reasoning_think_count": 0,
+  "reasoning_close_think_count": 0,
+  "reasoning_tail": "ces one backslash. I'll generate the content string. But \"do not use a loop\" — must write all 200 lines literally. That's tedious but required. I'll emit the whole string.\n\nContent lines should literally contain one backslash before b and before mock, and \\\\\" inside? The line is `row_i = \"a\\b \\\"q\\\" </fake> \\mock\"` — literally backslash before b, backslash before quote before q, backslash before mock. So JSON: `row_1 = \"a\\\\b \\\\\"q\\\\\" </fake> \\\\mock\"`.\n\nI'll write 200 lines. That's long but doable.",
+  "content_tail": "",
+  "raw_line_count": 7198,
+  "saw_done": true,
+  "temperature": "server-default",
+  "elapsed_seconds": 85.727
+}

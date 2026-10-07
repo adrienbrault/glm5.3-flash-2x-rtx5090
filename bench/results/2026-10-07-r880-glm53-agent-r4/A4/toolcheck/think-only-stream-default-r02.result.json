@@ -1,0 +1,61 @@
+{
+  "tag": "think-only-stream-default-r02",
+  "case": "think-only",
+  "finish": "tool_calls",
+  "eos_reason": null,
+  "stop_str": null,
+  "passed": false,
+  "calls": [
+    {
+      "index": 0,
+      "tool": "write_file",
+      "args_len": 9928,
+      "args_json_ok": true,
+      "args_json_error": null,
+      "body_len": 8092,
+      "line_count": 200,
+      "exact_body": false,
+      "byte_diff": {
+        "offset_zero_based": 20,
+        "actual_byte": 32,
+        "expected_byte": 60,
+        "actual_context_hex": "31203d2022615c5c62205c22715c2220203c2f66616b653e20203c7468696e6b3e220a726f775f32203d2022615c5c62205c22715c2220203c2f66616b653e20",
+        "expected_context_hex": "31203d2022615c5c62205c22715c22203c2f66616b653e203c7468696e6b3e220a726f775f32203d2022615c5c62205c22715c22203c2f66616b653e203c7468"
+      },
+      "first_mismatch_line": 1,
+      "path": "/tmp/y.py",
+      "think_count": 200,
+      "close_think_count": 0,
+      "args_head": "{\"content\": \"row_1 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\"  </fake>  <think>\\\"\\nrow_2 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\"  </fake>  <think>\\\"\\nrow_3 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\"  </fake>  <think>\\\"\\nrow_4 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\"  </fake>  <think",
+      "args_tail": "q\\\\\\\"  </fake>  <think>\\\"\\nrow_198 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\"  </fake>  <think>\\\"\\nrow_199 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\"  </fake>  <think>\\\"\\nrow_200 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\"  </fake>  <think>\\\"\\n\", \"path\": \"/tmp/y.py\"}"
+    }
+  ],
+  "content_len": 0,
+  "reasoning_len": 473,
+  "completion_tokens": 3965,
+  "usage": {
+    "prompt_tokens": 238,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "prompt_time": 0.84,
+    "prompt_tokens_per_sec": 283.33,
+    "completion_tokens": 3965,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    },
+    "completion_time": 94.26,
+    "completion_tokens_per_sec": 42.07,
+    "total_tokens": 4203,
+    "total_time": 95.11
+  },
+  "reasoning_think_count": 3,
+  "reasoning_close_think_count": 0,
+  "reasoning_tail": "Generate 200 lines. Content: `row_i = \"a\\\\b \\\"q\\\"  </fake>  <think>\"` — wait literal: `row_N = \"a\\\\b \\\"q\\\"  </fake>  <think>\"`. Actually in file, `\\\\` should be two chars? The spec: line i is `row_i = \"a\\\\b \\\"q\\\"  </fake>  <think>\"`. Literally means file contains backslash backslash and quote escaped... The line content shown contains `\\\\` and `\\\"` — write literally, so file has those chars. Use a Python script? Tool writes content. I must produce 200 lines in content.",
+  "content_tail": "",
+  "raw_line_count": 7910,
+  "saw_done": true,
+  "temperature": "server-default",
+  "elapsed_seconds": 95.188
+}

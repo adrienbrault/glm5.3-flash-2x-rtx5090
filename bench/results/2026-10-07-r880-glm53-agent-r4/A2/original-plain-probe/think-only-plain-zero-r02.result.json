@@ -1,0 +1,38 @@
+{
+  "tag": "think-only-plain-zero-r02",
+  "case": "think-only",
+  "finish": "tool_calls",
+  "eos_reason": "stop_token",
+  "stop_str": "<|observation|>",
+  "passed": false,
+  "calls": [
+    {
+      "index": 0,
+      "tool": "write_file",
+      "args_len": 8128,
+      "args_json_ok": true,
+      "args_json_error": null,
+      "body_len": 6292,
+      "line_count": 200,
+      "exact_body": false,
+      "first_mismatch_line": 1,
+      "path": "/tmp/y.py",
+      "think_count": 0,
+      "close_think_count": 0,
+      "args_head": "{\"content\": \"row_1 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> \\t\\\"\\nrow_2 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> \\t\\\"\\nrow_3 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> \\t\\\"\\nrow_4 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> \\t\\\"\\nrow_5 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake",
+      "args_tail": "/fake> \\t\\\"\\nrow_197 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> \\t\\\"\\nrow_198 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> \\t\\\"\\nrow_199 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> \\t\\\"\\nrow_200 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> \\t\\\"\\n\", \"path\": \"/tmp/y.py\"}"
+    }
+  ],
+  "content_len": 0,
+  "reasoning_len": 378,
+  "completion_tokens": null,
+  "usage": null,
+  "reasoning_think_count": 0,
+  "reasoning_close_think_count": 0,
+  "reasoning_tail": "Need to write 200 lines literally. Each line: `row_i = \"a\\b \\\"q\\\" </fake> \t\"` — wait, the content includes a literal tab? The user wrote `\t` which appears to be a tab character in the prompt. The line is: row_i = \"a\\b \\\"q\\\" </fake> \t\" — with backslash-b, escaped quotes, and a tab inside quotes. I'll reproduce literally.\n\nThat's 200 lines — long but doable. I'll generate them.",
+  "content_tail": "",
+  "raw_line_count": 1,
+  "saw_done": null,
+  "temperature": 0,
+  "elapsed_seconds": 79.896
+}

@@ -1,0 +1,10 @@
+{"phase": "c1-decode", "kind": "code", "run": 0, "tokens": 1024, "tps": 41.68935219105363, "ttft_s": 0.46618109999690205, "finish_reason": "length", "accepted": 0, "rejected": 0, "accept_rate": null}
+{"phase": "c1-decode", "kind": "prose", "run": 0, "tokens": 1024, "tps": 44.38749976675981, "ttft_s": 0.4607246480882168, "finish_reason": "length", "accepted": 0, "rejected": 0, "accept_rate": null}
+{"phase": "c1-decode", "kind": "chat", "run": 0, "tokens": 1024, "tps": 43.42118113319319, "ttft_s": 0.5103658849839121, "finish_reason": "length", "accepted": 0, "rejected": 0, "accept_rate": null}
+{"phase": "c1-decode", "kind": "html", "run": 0, "tokens": 2048, "tps": 45.9589759966474, "ttft_s": 0.6673676050268114, "finish_reason": "length", "accepted": 0, "rejected": 0, "accept_rate": null}
+{"phase": "c1-decode", "kind": "edit", "run": 0, "tokens": 1024, "tps": 49.643316040119934, "ttft_s": 1.8233802489703521, "finish_reason": "length", "accepted": 0, "rejected": 0, "accept_rate": null}
+{"phase": "c1-decode", "kind": "code", "run": 1, "tokens": 1024, "tps": 52.045137378550024, "ttft_s": 0.44517808698583394, "finish_reason": "length", "accepted": 0, "rejected": 0, "accept_rate": null}
+{"phase": "c1-decode", "kind": "prose", "run": 1, "tokens": 1024, "tps": 52.87632753413321, "ttft_s": 0.44694019202142954, "finish_reason": "length", "accepted": 0, "rejected": 0, "accept_rate": null}
+{"phase": "c1-decode", "kind": "chat", "run": 1, "tokens": 1024, "tps": 54.4485177780521, "ttft_s": 0.5110415660310537, "finish_reason": "length", "accepted": 0, "rejected": 0, "accept_rate": null}
+{"phase": "c1-decode", "kind": "html", "run": 1, "tokens": 2048, "tps": 50.6646617488473, "ttft_s": 0.6518799100304022, "finish_reason": "length", "accepted": 0, "rejected": 0, "accept_rate": null}
+{"phase": "c1-decode", "kind": "edit", "run": 1, "tokens": 1024, "tps": 50.389887024818485, "ttft_s": 1.80223668506369, "finish_reason": "length", "accepted": 0, "rejected": 0, "accept_rate": null}

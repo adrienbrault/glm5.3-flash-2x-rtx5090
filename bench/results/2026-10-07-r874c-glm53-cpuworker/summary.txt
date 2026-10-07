@@ -1,0 +1,40 @@
+GPU lock held; results /srv/qwen5090/results/2026-10-07-r874c-glm53-cpuworker-161052
+build cpuworker-r1 rc=0: Successfully built ae44dbde522f Successfully tagged tabbyapi:cpuworker-r1 
+r1 rc=0
+  | Trial | N | cold GEMV us | hot GEMV us | cold GB/s | read GB/s | job us |
+  |---|---:|---:|---:|---:|---:|---:|
+  | 8-physical-affinity | 3 | 281.16 | 205.31 | 61.54 | 63.08 | 292.67 |
+  | 8-physical-baseline | 3 | 281.23 | 204.66 | 61.52 | 62.98 | 291.96 |
+  | 8-physical-pf2 | 3 | 278.98 | 206.04 | 62.02 | 63.18 | 289.78 |
+  | 8-physical-pf4 | 3 | 279.33 | 212.41 | 61.94 | 63.06 | 290.26 |
+  | 8-physical-pf8 | 3 | 279.76 | 208.10 | 61.84 | 63.07 | 290.79 |
+  | 8-physical-spin | 3 | 280.89 | 204.48 | 61.60 | 63.02 | 291.83 |
+  
+  Each value is the median of trial means. Compare matching CPUs/pages/source, then inspect phase p95 and repetition spread in JSON. Installed job timing includes Python-call overhead.
+detail100 rc=0
+  | Trial | N | cold GEMV us | hot GEMV us | cold GB/s | read GB/s | job us |
+  |---|---:|---:|---:|---:|---:|---:|
+  | 8-physical-baseline | 3 | 281.50 | 206.20 | 61.46 | 63.01 | 293.09 |
+  | 8-physical-spin | 3 | 280.77 | 204.27 | 61.62 | 63.05 | 292.57 |
+  
+  Each value is the median of trial means. Compare matching CPUs/pages/source, then inspect phase p95 and repetition spread in JSON. Installed job timing includes Python-call overhead.
+detailparked rc=0
+  | Trial | N | cold GEMV us | hot GEMV us | cold GB/s | read GB/s | job us |
+  |---|---:|---:|---:|---:|---:|---:|
+  | 8-physical-baseline | 3 | 381.98 | 360.56 | 45.29 | 63.02 | 517.88 |
+  | 8-physical-spin | 3 | 290.93 | 218.30 | 59.47 | 63.05 | 303.76 |
+  
+  Each value is the median of trial means. Compare matching CPUs/pages/source, then inspect phase p95 and repetition spread in JSON. Installed job timing includes Python-call overhead.
+pages4k rc=0
+  | Trial | N | cold GEMV us | hot GEMV us | cold GB/s | read GB/s | job us |
+  |---|---:|---:|---:|---:|---:|---:|
+  | 8-physical-baseline | 3 | 280.91 | 208.40 | 61.59 | 63.05 | 291.69 |
+  
+  Each value is the median of trial means. Compare matching CPUs/pages/source, then inspect phase p95 and repetition spread in JSON. Installed job timing includes Python-call overhead.
+pagesthp rc=0
+  | Trial | N | cold GEMV us | hot GEMV us | cold GB/s | read GB/s | job us |
+  |---|---:|---:|---:|---:|---:|---:|
+  | 8-physical-baseline | 3 | 281.13 | 203.30 | 61.54 | 63.18 | 292.07 |
+  
+  Each value is the median of trial means. Compare matching CPUs/pages/source, then inspect phase p95 and repetition spread in JSON. Installed job timing includes Python-call overhead.
+SERVING on :8029: static N=96 + agent overlay

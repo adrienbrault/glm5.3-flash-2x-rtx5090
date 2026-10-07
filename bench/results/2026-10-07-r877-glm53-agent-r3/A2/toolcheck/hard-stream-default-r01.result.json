@@ -1,0 +1,54 @@
+{
+  "tag": "hard-stream-default-r01",
+  "case": "hard",
+  "finish": "tool_calls",
+  "eos_reason": null,
+  "stop_str": null,
+  "passed": false,
+  "calls": [
+    {
+      "index": 0,
+      "tool": "write_file",
+      "args_len": 7528,
+      "args_json_ok": true,
+      "args_json_error": null,
+      "body_len": 6092,
+      "line_count": 200,
+      "exact_body": false,
+      "first_mismatch_line": 1,
+      "path": "/tmp/y.py",
+      "think_count": 0,
+      "close_think_count": 0,
+      "args_head": "{\"content\": \"row_1 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> ǭ\\nrow_2 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> ǭ\\nrow_3 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> ǭ\\nrow_4 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> ǭ\\nrow_5 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> ǭ\\nrow_6 =",
+      "args_tail": "\\\\b \\\\\\\"q\\\\\\\" </fake> ǭ\\nrow_197 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> ǭ\\nrow_198 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> ǭ\\nrow_199 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> ǭ\\nrow_200 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> ǭ\\n\", \"path\": \"/tmp/y.py\"}"
+    }
+  ],
+  "content_len": 0,
+  "reasoning_len": 523,
+  "completion_tokens": 3355,
+  "usage": {
+    "prompt_tokens": 223,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "prompt_time": 0.8,
+    "prompt_tokens_per_sec": 278.75,
+    "completion_tokens": 3355,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    },
+    "completion_time": 78.58,
+    "completion_tokens_per_sec": 42.7,
+    "total_tokens": 3578,
+    "total_time": 79.38
+  },
+  "reasoning_think_count": 0,
+  "reasoning_close_think_count": 0,
+  "reasoning_tail": "itten literally. That's a lot but I should do it. The content includes backslash sequences. Line i: `row_i = \"a\\b \\\"q\\\" </fake> ǭ` — literally with backslash before b, escaped quotes, XML tags, and an emoji. Actually the string itself contains `\\` characters. I need to write them literally.\n\nGenerating 200 lines manually is tedious but required. Let me do it.\n\nEach line: row_1 = \"a\\b \\\"q\\\" </fake> ǭ\n\nNote in write_file content, the literal text includes backslash characters — I write them as-is.",
+  "content_tail": "",
+  "raw_line_count": 6690,
+  "saw_done": true,
+  "temperature": "server-default",
+  "elapsed_seconds": 79.432
+}

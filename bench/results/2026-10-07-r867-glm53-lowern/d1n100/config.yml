@@ -1,0 +1,33 @@
+model:
+  model_dir: /models
+  model_name: glm53-flash-exl3-2.05bpw-turboderp
+  backend: exllamav3
+  max_seq_len: 262144
+  cache_size: 262144
+  cache_mode: 8,8
+  max_batch_size: 2
+  tensor_parallel: false
+  gpu_split: [31.0, 31.8]
+  gpu_split_auto: false
+  cpu_moe_offload_layers: 0
+  cpu_moe_split_experts: 100
+  chunk_size: 1024
+  output_chunking: true
+  vision: true
+  vision_offload: false
+  # GLM-5.3 emits <tool_call>NAME<arg_key>K</arg_key><arg_value>V</arg_value></tool_call>; without tool_format
+  # TabbyAPI returns it as plain content (2026-10-07, DeepSeek Harness bring-up). glm4_5 parses that layout.
+  tool_format: glm4_5
+  reasoning: true
+  reasoning_start_token: <think>
+  reasoning_end_token: </think>
+  start_in_reasoning: auto
+draft_model:
+  draft_mode: mtp
+  draft_num_tokens: 1
+  draft_cache_mode: Q8
+  dynamic_draft: false
+memory:
+  sysmem_recurrent_cache: 1024
+  sysmem_kv_cache: 0
+

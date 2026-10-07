@@ -1,0 +1,23 @@
+{
+  "tag": "hard-stream-default-r01",
+  "case": "hard",
+  "finish": null,
+  "eos_reason": null,
+  "stop_str": null,
+  "passed": false,
+  "calls": [],
+  "content_len": 0,
+  "reasoning_len": 0,
+  "completion_tokens": null,
+  "usage": null,
+  "reasoning_think_count": 0,
+  "reasoning_close_think_count": 0,
+  "reasoning_tail": "",
+  "content_tail": "",
+  "raw_line_count": 0,
+  "saw_done": false,
+  "temperature": "server-default",
+  "elapsed_seconds": 0.04,
+  "transport_error": "HTTPError: 500 Internal Server Error",
+  "error_response": "Internal Server Error"
+}

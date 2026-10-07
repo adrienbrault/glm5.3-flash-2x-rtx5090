@@ -1,0 +1,37 @@
+{
+  "tag": "hard-stream-default-r02",
+  "case": "hard",
+  "finish": "stop",
+  "eos_reason": null,
+  "stop_str": null,
+  "passed": false,
+  "calls": [],
+  "content_len": 0,
+  "reasoning_len": 76,
+  "completion_tokens": 27,
+  "usage": {
+    "prompt_tokens": 237,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "prompt_time": 0.82,
+    "prompt_tokens_per_sec": 289.02,
+    "completion_tokens": 27,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    },
+    "completion_time": 0.42,
+    "completion_tokens_per_sec": 63.86,
+    "total_tokens": 264,
+    "total_time": 1.24
+  },
+  "reasoning_think_count": 0,
+  "reasoning_close_think_count": 0,
+  "reasoning_tail": "User wants literal content, no loop. Line i is `row_i = \"a\\\\b \\\"q\\\" </fake> ",
+  "content_tail": "",
+  "raw_line_count": 56,
+  "saw_done": true,
+  "temperature": "server-default",
+  "elapsed_seconds": 1.251
+}

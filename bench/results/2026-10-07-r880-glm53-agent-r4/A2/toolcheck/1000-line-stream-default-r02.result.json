@@ -1,0 +1,37 @@
+{
+  "tag": "1000-line-stream-default-r02",
+  "case": "1000-line",
+  "finish": "stop",
+  "eos_reason": null,
+  "stop_str": null,
+  "passed": false,
+  "calls": [],
+  "content_len": 12,
+  "reasoning_len": 795,
+  "completion_tokens": 202,
+  "usage": {
+    "prompt_tokens": 240,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "prompt_time": 0.84,
+    "prompt_tokens_per_sec": 285.71,
+    "completion_tokens": 202,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    },
+    "completion_time": 3.05,
+    "completion_tokens_per_sec": 66.19,
+    "total_tokens": 442,
+    "total_time": 3.89
+  },
+  "reasoning_think_count": 0,
+  "reasoning_close_think_count": 0,
+  "reasoning_tail": " 30k chars total. That's a lot but acceptable? It would blow context. Better: use write_file with content generated... but content must be literal. 30k characters is manageable-ish. But tokens: ~10k tokens. That's borderline.\n\nAlternative: interpret as needing to write the file; I could write a script? User explicitly said no loop. But 1000 lines literal — I could comply. Let me estimate: line i is `row_i = \"a\\\\b \\\"q\\\" </fake> \trow_i = \"a\\b \\\"q\\\" </fake> \tx.draw(empty_axes=None)\t\t\t\t␀</arg_value>",
+  "content_tail": "</tool_call>",
+  "raw_line_count": 402,
+  "saw_done": true,
+  "temperature": "server-default",
+  "elapsed_seconds": 3.904
+}

@@ -1,0 +1,20 @@
+GPU lock held; results /srv/qwen5090/results/2026-10-07-r864-glm53-levers-013012; base CPU_THREADS=8 
+A TRY: DRAFT=0 OFFLOAD_N=104
+A c1 score 46.2 t/s: code 43.8; prose 46.9; chat 46.7; html 46.1; edit 47.3
+B-n96 TRY: DRAFT=0 OFFLOAD_N=96
+B-n96 c1 score 48.4 t/s: code 47.2; prose 48.7; chat 48.1; html 48.3; edit 49.6
+C-n88 TRY: DRAFT=0 OFFLOAD_N=88
+C-n88 NO BOOT rc=1 (Insufficient VRAM)
+C-n92 TRY: DRAFT=0 OFFLOAD_N=92
+C-n92 NO BOOT rc=1 (Insufficient VRAM)
+D TRY: DRAFT=1 DRAFT_N=1 PLOOKUP=1 OFFLOAD_N=104
+D c1 score 49.6 t/s: edit 48.1 (acc 0.85); code 51.0 (acc 0.86)
+E TRY: DRAFT=1 DRAFT_N=1 OFFLOAD_N=104
+E c1 score 50.3 t/s: edit 50.5 (acc 0.95); code 50.1 (acc 0.85)
+A2 TRY: DRAFT=0 OFFLOAD_N=104
+A2 c1 score 46.8 t/s: code 45.2; prose 46.8; chat 47.1; html 47.1; edit 47.8
+best MTP-off arm: B-n96 (OFFLOAD_N=96)
+S TRY: DRAFT=0 OFFLOAD_N=96 GLM_IMG=tabbyapi:r861-glm-agent-r2 AGENT=1
+vision check PASS
+live tool-streaming probe (direct) FAILED:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ AssertionError: {0: 'stop'} 
+SERVING on :8029: MTP off, OFFLOAD_N=96, agent overlay, vision on, 256k

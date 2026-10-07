@@ -1,0 +1,61 @@
+{
+  "tag": "close-only-stream-zero-r01",
+  "case": "close-only",
+  "finish": "tool_calls",
+  "eos_reason": null,
+  "stop_str": null,
+  "passed": false,
+  "calls": [
+    {
+      "index": 0,
+      "tool": "write_file",
+      "args_len": 7928,
+      "args_json_ok": true,
+      "args_json_error": null,
+      "body_len": 6292,
+      "line_count": 200,
+      "exact_body": false,
+      "byte_diff": {
+        "offset_zero_based": 11,
+        "actual_byte": 98,
+        "expected_byte": 92,
+        "actual_context_hex": "726f775f31203d2022615c62205c22715c22203c2f66616b653e2020220a726f775f32203d2022615c62205c22715c22203c2f66616b653e202022",
+        "expected_context_hex": "726f775f31203d2022615c5c62205c22715c22203c2f66616b653e203c2f7468696e6b3e220a726f775f32203d2022615c5c62205c22715c22203c"
+      },
+      "first_mismatch_line": 1,
+      "path": "/tmp/y.py",
+      "think_count": 0,
+      "close_think_count": 0,
+      "args_head": "{\"content\": \"row_1 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake>  \\\"\\nrow_2 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake>  \\\"\\nrow_3 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake>  \\\"\\nrow_4 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake>  \\\"\\nrow_5 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake>  \\",
+      "args_tail": "\\\\\" </fake>  \\\"\\nrow_197 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake>  \\\"\\nrow_198 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake>  \\\"\\nrow_199 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake>  \\\"\\nrow_200 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake>  \\\"\\n\", \"path\": \"/tmp/y.py\"}"
+    }
+  ],
+  "content_len": 0,
+  "reasoning_len": 1090,
+  "completion_tokens": 3330,
+  "usage": {
+    "prompt_tokens": 235,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "prompt_time": 0.82,
+    "prompt_tokens_per_sec": 286.59,
+    "completion_tokens": 3330,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    },
+    "completion_time": 77.87,
+    "completion_tokens_per_sec": 42.76,
+    "total_tokens": 3565,
+    "total_time": 78.69
+  },
+  "reasoning_think_count": 0,
+  "reasoning_close_think_count": 0,
+  "reasoning_tail": "line literally\". So line i: `row_i = \"a\\b \\\"q\\\" </fake>  \"` — with backslash-b and backslash-quote-q-backslash-quote inside the string, ending with two spaces before closing quote? Actually the prompt ends `</fake>  ` then a quote character. So content: `a\\b \\\"q\\\" </fake>  `.\n\nWriting 200 lines literally is huge but doable. Each line: row_N = \"a\\b \\\"q\\\" </fake>  \"\n\nI'll generate them. That's 200 write calls of content... one write_file with full content. Let me produce content with lines 1..200.",
+  "content_tail": "",
+  "raw_line_count": 6636,
+  "saw_done": true,
+  "temperature": 0,
+  "elapsed_seconds": 78.742
+}

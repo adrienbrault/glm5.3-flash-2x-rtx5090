@@ -1,0 +1,4 @@
+GPU lock held; results /srv/qwen5090/results/2026-10-07-r860b-glm53-trace-013158
+predict c1 score 23.4 t/s: code 23.5; prose 23.6; chat 22.9; html 23.8 | 32k pf 1812 t/s dec 15.2
+trace files: 456639, 2.1G
+restoring the base GLM config

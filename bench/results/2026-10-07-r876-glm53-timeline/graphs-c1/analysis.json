@@ -1,0 +1,27 @@
+{
+  "steps": 32,
+  "rows": 1,
+  "wall_mean_ms": 26.71341875,
+  "wall_median_ms": 26.687961,
+  "visible_gpu_events": 44192,
+  "visible_kernels": 44000,
+  "graph_launches": 1536,
+  "device_activity_visible": {
+    "0": true,
+    "1": true
+  },
+  "device_kernels_visible": {
+    "0": true,
+    "1": true
+  },
+  "unknown_kernel_time_fraction": 0.0233835347040217,
+  "unassigned_layer_kernel_time_fraction": 0.024164246671312437,
+  "cpu_worker_spin_per_layer_available": false,
+  "warnings": [
+    "CPU ranges measure enqueue wall time, not completed GPU time.",
+    "Idle means no visible GPU activity; stream memop waits and missing graph children can be invisible.",
+    "Graph launches are host API events, not substitute device durations.",
+    "Kernel sums can exceed busy union under overlap; GPU totals cannot be added into token wall.",
+    "Per-layer native worker spin is unavailable with the required Python-only overlay."
+  ]
+}

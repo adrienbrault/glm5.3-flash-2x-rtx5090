@@ -1,0 +1,21 @@
+{
+  "tag": "hard-plain-zero-r01",
+  "case": "hard",
+  "finish": "stop",
+  "eos_reason": "stop_token",
+  "stop_str": "<|user|>",
+  "passed": false,
+  "calls": [],
+  "content_len": 0,
+  "reasoning_len": 81,
+  "completion_tokens": null,
+  "usage": null,
+  "reasoning_think_count": 0,
+  "reasoning_close_think_count": 0,
+  "reasoning_tail": "The user wants a file with 200 lines, each line like `row_i = \"a\\b \\\"q\\\" </fake> ",
+  "content_tail": "",
+  "raw_line_count": 1,
+  "saw_done": null,
+  "temperature": 0,
+  "elapsed_seconds": 1.257
+}

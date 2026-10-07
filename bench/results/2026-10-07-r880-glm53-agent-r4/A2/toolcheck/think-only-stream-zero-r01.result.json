@@ -1,0 +1,61 @@
+{
+  "tag": "think-only-stream-zero-r01",
+  "case": "think-only",
+  "finish": "tool_calls",
+  "eos_reason": null,
+  "stop_str": null,
+  "passed": false,
+  "calls": [
+    {
+      "index": 0,
+      "tool": "write_file",
+      "args_len": 7728,
+      "args_json_ok": true,
+      "args_json_error": null,
+      "body_len": 6292,
+      "line_count": 200,
+      "exact_body": false,
+      "byte_diff": {
+        "offset_zero_based": 11,
+        "actual_byte": 98,
+        "expected_byte": 92,
+        "actual_context_hex": "726f775f31203d2022615c6220227122203c2f66616b653e20096162220a726f775f32203d2022615c6220227122203c2f66616b653e2009616222",
+        "expected_context_hex": "726f775f31203d2022615c5c62205c22715c22203c2f66616b653e203c7468696e6b3e220a726f775f32203d2022615c5c62205c22715c22203c2f"
+      },
+      "first_mismatch_line": 1,
+      "path": "/tmp/y.py",
+      "think_count": 0,
+      "close_think_count": 0,
+      "args_head": "{\"content\": \"row_1 = \\\"a\\\\b \\\"q\\\" </fake> \\tab\\\"\\nrow_2 = \\\"a\\\\b \\\"q\\\" </fake> \\tab\\\"\\nrow_3 = \\\"a\\\\b \\\"q\\\" </fake> \\tab\\\"\\nrow_4 = \\\"a\\\\b \\\"q\\\" </fake> \\tab\\\"\\nrow_5 = \\\"a\\\\b \\\"q\\\" </fake> \\tab\\\"\\nro",
+      "args_tail": "\"q\\\" </fake> \\tab\\\"\\nrow_197 = \\\"a\\\\b \\\"q\\\" </fake> \\tab\\\"\\nrow_198 = \\\"a\\\\b \\\"q\\\" </fake> \\tab\\\"\\nrow_199 = \\\"a\\\\b \\\"q\\\" </fake> \\tab\\\"\\nrow_200 = \\\"a\\\\b \\\"q\\\" </fake> \\tab\\\"\\n\", \"path\": \"/tmp/y.py\"}"
+    }
+  ],
+  "content_len": 0,
+  "reasoning_len": 587,
+  "completion_tokens": 3595,
+  "usage": {
+    "prompt_tokens": 235,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "prompt_time": 0.81,
+    "prompt_tokens_per_sec": 290.12,
+    "completion_tokens": 3595,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    },
+    "completion_time": 84.31,
+    "completion_tokens_per_sec": 42.64,
+    "total_tokens": 3830,
+    "total_time": 85.12
+  },
+  "reasoning_think_count": 0,
+  "reasoning_close_think_count": 0,
+  "reasoning_tail": " line content is `row_i = \"a\\b \"q\" </fake> <TAB>ab\"`? The user wrote: `row_i = \"a\\b \"q\" </fake> \tab\"` — with a tab between </fake> and ab. Inside quotes: a\\b, \"q\", </fake>, tab, ab. Since it's Python string literal in the file, quotes inside would need escaping... but user says write literally. The line as shown contains unescaped quotes — that's what they want literally. I'll write exactly that text.\n\nThat's 200 lines, each ~40 chars. I must generate them all literally. That's a lot but doable.",
+  "content_tail": "",
+  "raw_line_count": 7170,
+  "saw_done": true,
+  "temperature": 0,
+  "elapsed_seconds": 85.183
+}

@@ -1,0 +1,25 @@
+GPU lock held; results /srv/qwen5090/results/2026-10-07-r872-glm53-cheapswap-073653; base OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/r872-tools/split-stats-broad-r869.json
+selftest cpu_native rc=0: Native CPU PASS: K2/K8, native/band layout, 1/4/8 rows, fixed arena pointers.
+selftest gpu0 rc=0: {"pass_test": true, "swaps": 96, "max_abs_error": 0.00023492088075727224, "swizzle": true, "rows": [1, 4, 8]}
+selftest gpu0_nosw rc=0: {"pass_test": true, "swaps": 96, "max_abs_error": 0.00023492088075727224, "swizzle": false, "rows": [1, 4, 8]}
+selftest gpu1 rc=0: {"pass_test": true, "swaps": 96, "max_abs_error": 0.00023492088075727224, "swizzle": true, "rows": [1, 4, 8]}
+selftest ring rc=0: {"pass_test": true, "swaps": 96, "rows": [1, 4, 8, 128], "devices": ["cuda:0", "cuda:1"], "folded": "1", "fused": "1"}
+selftest dma rc=0: }
+SB TRY: DRAFT=0 OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/r872-tools/split-stats-broad-r869.json
+SB c1 score 57.4 t/s: code 57.7; prose 63.1; chat 60.4; html 54.3; edit 51.6
+XS TRY: DRAFT=0 OFFLOAD_N=96 GLM_IMG=tabbyapi:cheapswap-r2 PINNED_ARENA=1 SWAP_MODE=exchange SWAP_CADENCE=exact SWAP_INTERVAL=64 SWAP_MAX=64 SWAP_SCOPE=global SWAP_FLOOR=4 SWAP_HYST=2.0
+XS c1 score 56.9 t/s: code 56.4; prose 59.2; chat 56.9; html 60.9; edit 51.2
+XF TRY: DRAFT=0 OFFLOAD_N=96 GLM_IMG=tabbyapi:cheapswap-r2 PINNED_ARENA=1 SWAP_MODE=exchange SWAP_CADENCE=served SWAP_INTERVAL=16 SWAP_MAX=64 SWAP_SCOPE=layer SWAP_FLOOR=2 SWAP_HYST=1.2
+XF c1 score 60.1 t/s: code 57.2; prose 61.0; chat 64.9; html 63.2; edit 54.2
+XS engine: 0 swap/exchange log lines; 
+XF engine: 0 swap/exchange log lines; 
+SB2 TRY: DRAFT=0 OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/r872-tools/split-stats-broad-r869.json
+SB2 c1 score 56.9 t/s: code 57.1; prose 62.3; chat 60.2; html 54.9; edit 49.9
+D TRY: DRAFT=0 OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/r872-tools/split-stats-broad-r869.json PROFILE=1
+D 4k: prefill 1808 t/s, decode 42.4 t/s
+D 3k: prefill 1554 t/s, decode 60.8 t/s
+D 31k: prefill 1886 t/s, decode 53.8 t/s
+D 128k: prefill 1907 t/s, decode 43.9 t/s
+S TRY: DRAFT=0 OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/r872-tools/split-stats-broad-r869.json GLM_IMG=tabbyapi:r861-glm-agent-r2 AGENT=1
+vision check FAILED: ValueError: vision check failed: expected blue, got 'Teal'
+SERVING on :8029: static broad placement N=96, MTP off, agent overlay, vision on, 256k

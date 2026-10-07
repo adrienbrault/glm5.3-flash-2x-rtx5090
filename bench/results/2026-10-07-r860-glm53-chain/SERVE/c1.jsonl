@@ -1,0 +1,1 @@
+{"phase": "c1-decode", "kind": "code", "run": 0, "tokens": 1024, "tps": 38.49490917109244, "ttft_s": 0.49287101498339325, "finish_reason": "length", "accepted": 0, "rejected": 0, "accept_rate": null}

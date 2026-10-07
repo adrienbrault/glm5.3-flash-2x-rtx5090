@@ -1,0 +1,11 @@
+GPU lock held; results /srv/qwen5090/results/2026-10-07-r877-glm53-agent-r3-095516; base OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/r877-tools/split-stats-broad-r869.json
+A2 TRY: DRAFT=0 OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/r877-tools/split-stats-broad-r869.json GLM_IMG=tabbyapi:r861-glm-agent-r2 AGENT=1
+A2 vision PASS
+A2 toolcheck rc=1: RESULT {"tag": "close-only-stream-zero-r02", "case": "close-only", "finish": "tool_calls", "eos_reason": null, "stop_str": null, "passed": false, "calls": [{"index": 0, "tool": "write_file", "args_len": 7928, "args_json_ok": true, "args_json_error": null, "body_len": 6292, "line_count": 200, "exact_
+A3 TRY: DRAFT=0 OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/r877-tools/split-stats-broad-r869.json GLM_IMG=tabbyapi:r861-glm-agent-r3 AGENT=1 TAG_TRACE=1
+A3 vision PASS
+A3 toolcheck rc=1: RESULT {"tag": "close-only-stream-zero-r02", "case": "close-only", "finish": null, "eos_reason": null, "stop_str": null, "passed": false, "calls": [], "content_len": 0, "reasoning_len": 0, "completion_tokens": null, "usage": null, "reasoning_think_count": 0, "reasoning_close_think_count": 0, "reason
+A3 1000-line rc=1: RESULT {"tag": "1000-line-stream-zero-r01", "case": "1000-line", "finish": null, "eos_reason": null, "stop_str": null, "passed": false, "calls": [], "content_len": 0, "reasoning_len": 0, "completion_tokens": null, "usage": null, "reasoning_think_count": 0, "reasoning_close_think_count": 0, "reasonin
+A3 tag-trace lines: 41
+S TRY: DRAFT=0 OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/r877-tools/split-stats-broad-r869.json GLM_IMG=tabbyapi:r861-glm-agent-r2 AGENT=1
+SERVING on :8029: static N=96, MTP off, agent overlay tabbyapi:r861-glm-agent-r2, vision on, 256k

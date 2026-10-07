@@ -1,0 +1,54 @@
+{
+  "tag": "close-only-stream-zero-r01",
+  "case": "close-only",
+  "finish": "tool_calls",
+  "eos_reason": null,
+  "stop_str": null,
+  "passed": false,
+  "calls": [
+    {
+      "index": 0,
+      "tool": "write_file",
+      "args_len": 8328,
+      "args_json_ok": true,
+      "args_json_error": null,
+      "body_len": 6492,
+      "line_count": 200,
+      "exact_body": false,
+      "first_mismatch_line": 1,
+      "path": "/tmp/y.py",
+      "think_count": 0,
+      "close_think_count": 0,
+      "args_head": "{\"content\": \"row_1 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake>  \\\"\\nrow_2 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake>  \\\"\\nrow_3 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake>  \\\"\\nrow_4 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake>  \\\"\\nrow_5 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" ",
+      "args_tail": "ke>  \\\"\\nrow_197 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake>  \\\"\\nrow_198 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake>  \\\"\\nrow_199 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake>  \\\"\\nrow_200 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake>  \\\"\\n\", \"path\": \"/tmp/y.py\"}"
+    }
+  ],
+  "content_len": 0,
+  "reasoning_len": 449,
+  "completion_tokens": 3355,
+  "usage": {
+    "prompt_tokens": 221,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "prompt_time": 0.79,
+    "prompt_tokens_per_sec": 279.75,
+    "completion_tokens": 3355,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    },
+    "completion_time": 80.08,
+    "completion_tokens_per_sec": 41.9,
+    "total_tokens": 3576,
+    "total_time": 80.87
+  },
+  "reasoning_think_count": 0,
+  "reasoning_close_think_count": 0,
+  "reasoning_tail": "Need to write 200 lines literally. Line i: `row_i = \"a\\\\b \\\"q\\\" </fake>  \"`? The user's string got cut: `row_i = \"a\\\\b \\\"q\\\" </fake>  ` — trailing spaces? The prompt shows `</fake>  ` with two spaces then quote. I'll reproduce: row_i = \"a\\\\b \\\"q\\\" </fake>  \" — with two spaces before closing quote. Actually the message ends `</fake>  ` then quote. I'll include two spaces.\n\nWriting 200 lines literally is long but required. I'll generate all lines.",
+  "content_tail": "",
+  "raw_line_count": 6686,
+  "saw_done": true,
+  "temperature": 0,
+  "elapsed_seconds": 80.928
+}

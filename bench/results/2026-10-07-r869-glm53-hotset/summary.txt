@@ -1,0 +1,12 @@
+GPU lock held; results /srv/qwen5090/results/2026-10-07-r869-glm53-hotset-055219; base OFFLOAD_N=96
+trace TRY: DRAFT=0 OFFLOAD_N=96 GLM_IMG=tabbyapi:r859-route-trace-r1 ROUTE_TRACE_DIR=/srv/qwen5090/results/2026-10-07-r869-glm53-hotset-055219/trace/route-traces
+workload: 32 prompts done
+counts: 42 layers, 3177888 selections -> /out/split-stats-broad.json
+SB TRY: DRAFT=0 OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/results/2026-10-07-r869-glm53-hotset-055219/split-stats-broad.json
+SB c1 score 57.5 t/s: code 55.6; prose 63.4; chat 62.8; html 49.8; edit 55.8
+A TRY: DRAFT=0 OFFLOAD_N=96
+A c1 score 48.6 t/s: code 47.0; prose 48.1; chat 48.6; html 49.3; edit 50.2
+best: SB 57.484532519315124 vs A 48.646915269505044 -> serve PLACEMENT=static SPLIT_STATS=/srv/qwen5090/results/2026-10-07-r869-glm53-hotset-055219/split-stats-broad.json
+S TRY: DRAFT=0 OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/results/2026-10-07-r869-glm53-hotset-055219/split-stats-broad.json
+vision check FAILED: ValueError: vision check failed: expected blue, got 'White'
+SERVING on :8029: MTP off, OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/results/2026-10-07-r869-glm53-hotset-055219/split-stats-broad.json, plain image, vision on, 256k

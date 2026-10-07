@@ -1,0 +1,61 @@
+{
+  "tag": "close-only-stream-default-r02",
+  "case": "close-only",
+  "finish": "tool_calls",
+  "eos_reason": null,
+  "stop_str": null,
+  "passed": false,
+  "calls": [
+    {
+      "index": 0,
+      "tool": "write_file",
+      "args_len": 7128,
+      "args_json_ok": true,
+      "args_json_error": null,
+      "body_len": 5892,
+      "line_count": 200,
+      "exact_body": false,
+      "byte_diff": {
+        "offset_zero_based": 11,
+        "actual_byte": 98,
+        "expected_byte": 92,
+        "actual_context_hex": "726f775f31203d2022615c6220227122203c2f66616b653e2020220a726f775f32203d2022615c6220227122203c2f66616b653e2020220a726f77",
+        "expected_context_hex": "726f775f31203d2022615c5c62205c22715c22203c2f66616b653e203c2f7468696e6b3e220a726f775f32203d2022615c5c62205c22715c22203c"
+      },
+      "first_mismatch_line": 1,
+      "path": "/tmp/y.py",
+      "think_count": 0,
+      "close_think_count": 0,
+      "args_head": "{\"content\": \"row_1 = \\\"a\\\\b \\\"q\\\" </fake>  \\\"\\nrow_2 = \\\"a\\\\b \\\"q\\\" </fake>  \\\"\\nrow_3 = \\\"a\\\\b \\\"q\\\" </fake>  \\\"\\nrow_4 = \\\"a\\\\b \\\"q\\\" </fake>  \\\"\\nrow_5 = \\\"a\\\\b \\\"q\\\" </fake>  \\\"\\nrow_6 = \\\"a\\\\b \\\"",
+      "args_tail": "_196 = \\\"a\\\\b \\\"q\\\" </fake>  \\\"\\nrow_197 = \\\"a\\\\b \\\"q\\\" </fake>  \\\"\\nrow_198 = \\\"a\\\\b \\\"q\\\" </fake>  \\\"\\nrow_199 = \\\"a\\\\b \\\"q\\\" </fake>  \\\"\\nrow_200 = \\\"a\\\\b \\\"q\\\" </fake>  \\\"\\n\", \"path\": \"/tmp/y.py\"}"
+    }
+  ],
+  "content_len": 0,
+  "reasoning_len": 1252,
+  "completion_tokens": 3382,
+  "usage": {
+    "prompt_tokens": 235,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "prompt_time": 0.82,
+    "prompt_tokens_per_sec": 286.59,
+    "completion_tokens": 3382,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    },
+    "completion_time": 77.98,
+    "completion_tokens_per_sec": 43.37,
+    "total_tokens": 3617,
+    "total_time": 78.8
+  },
+  "reasoning_think_count": 0,
+  "reasoning_close_think_count": 0,
+  "reasoning_tail": "\\` → `\\`, `\\\"` → `\"` twice, `  ` two spaces then `\"`? The raw string shown: `\"a\\\\b \\\"q\\\" </fake>  \"` — trailing `\"` after two spaces, inside the outer display quotes. So line = `row_i = \"a\\b \"q\" </fake>  \"`.\n\nThat's 200 lines each ~29 chars → ~6000 chars. I must write them manually, no loop. Tedious but I'll generate. I need 200 unique lines with varying i: row_1 through row_200. I'll write them out.\n\nLet me produce the file content. Each line: `row_N = \"a\\b \"q\" </fake>  \"`.\n\nI'll number groups.",
+  "content_tail": "",
+  "raw_line_count": 6742,
+  "saw_done": true,
+  "temperature": "server-default",
+  "elapsed_seconds": 78.856
+}

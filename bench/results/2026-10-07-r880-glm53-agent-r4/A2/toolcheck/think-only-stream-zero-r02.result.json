@@ -1,0 +1,61 @@
+{
+  "tag": "think-only-stream-zero-r02",
+  "case": "think-only",
+  "finish": "tool_calls",
+  "eos_reason": null,
+  "stop_str": null,
+  "passed": false,
+  "calls": [
+    {
+      "index": 0,
+      "tool": "write_file",
+      "args_len": 8928,
+      "args_json_ok": true,
+      "args_json_error": null,
+      "body_len": 6892,
+      "line_count": 200,
+      "exact_body": false,
+      "byte_diff": {
+        "offset_zero_based": 28,
+        "actual_byte": 9,
+        "expected_byte": 60,
+        "actual_context_hex": "62205c22715c22203c2f66616b653e20096162220a726f775f32203d2022615c5c62205c22715c22203c2f66616b653e20096162220a726f775f33203d202261",
+        "expected_context_hex": "62205c22715c22203c2f66616b653e203c7468696e6b3e220a726f775f32203d2022615c5c62205c22715c22203c2f66616b653e203c7468696e6b3e220a726f"
+      },
+      "first_mismatch_line": 1,
+      "path": "/tmp/y.py",
+      "think_count": 0,
+      "close_think_count": 0,
+      "args_head": "{\"content\": \"row_1 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> \\tab\\\"\\nrow_2 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> \\tab\\\"\\nrow_3 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> \\tab\\\"\\nrow_4 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> \\tab\\\"\\nrow_5 = \\\"a\\\\\\\\",
+      "args_tail": "_197 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> \\tab\\\"\\nrow_198 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> \\tab\\\"\\nrow_199 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> \\tab\\\"\\nrow_200 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> \\tab\\\"\\n\", \"path\": \"/tmp/y.py\"}"
+    }
+  ],
+  "content_len": 0,
+  "reasoning_len": 1189,
+  "completion_tokens": 3988,
+  "usage": {
+    "prompt_tokens": 235,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "prompt_time": 0.81,
+    "prompt_tokens_per_sec": 290.12,
+    "completion_tokens": 3988,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    },
+    "completion_time": 96.47,
+    "completion_tokens_per_sec": 41.34,
+    "total_tokens": 4223,
+    "total_time": 97.3
+  },
+  "reasoning_think_count": 0,
+  "reasoning_close_think_count": 0,
+  "reasoning_tail": "ackslash backslash b, backslash q). Hmm ambiguous. The instruction \"Write every line literally\" suggests take the string as displayed: `row_i = \"a\\\\b \\\"q\\\" </fake> \tab\"` with literal double backslash and literal \\\" sequences. I'll write literally as shown.\n\nWriting 200 lines literally is huge but required. Each line ~40 chars. I must produce all 200 lines. That's a lot of tokens (~200*~45 = 9000 chars). Doable.\n\nLine format: row_N = \"a\\\\b \\\"q\\\" </fake> \tab\"\n\nI'll generate content with all lines.",
+  "content_tail": "",
+  "raw_line_count": 7956,
+  "saw_done": true,
+  "temperature": 0,
+  "elapsed_seconds": 97.394
+}

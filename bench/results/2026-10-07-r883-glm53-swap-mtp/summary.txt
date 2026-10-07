@@ -1,0 +1,19 @@
+GPU lock held; results /srv/qwen5090/results/2026-10-07-r883-glm53-swap-mtp-221219; base OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/r883-tools/split-stats-broad-r869.json
+C TRY: DRAFT=0 OFFLOAD_N=96 GLM_IMG=tabbyapi:cheapswap-r3-agent-r2 PINNED_ARENA=1 SWAP_MODE=exchange SWAP_POLICY=histogram SWAP_INIT_STATS=/srv/qwen5090/r883-tools/split-stats-broad-r869.json SWAP_CADENCE=exact SWAP_INTERVAL=64 SWAP_MAX=64 SWAP_SCOPE=global SWAP_FLOOR=4 SWAP_HYST=2.0 AGENT=1
+C c1 score 61.1 t/s: code 58.9; prose 64.5; chat 65.7; html 64.7; edit 51.8
+M1 TRY: DRAFT=1 DRAFT_N=1 OFFLOAD_N=104 GLM_IMG=tabbyapi:cheapswap-r3-agent-r2 PINNED_ARENA=1 SWAP_MODE=exchange SWAP_POLICY=histogram SWAP_INIT_STATS=/srv/qwen5090/r883-tools/split-stats-broad-r869.json SWAP_CADENCE=exact SWAP_INTERVAL=64 SWAP_MAX=64 SWAP_SCOPE=global SWAP_FLOOR=4 SWAP_HYST=2.0 AGENT=1
+M1 c1 score 59.8 t/s: code 58.5 (acc 0.84); prose 59.1 (acc 0.65); chat 66.7 (acc 0.67); html 62.2 (acc 0.60); edit 52.4 (acc 0.91)
+M1 c1: aggregate 61.2 tok/s, per stream 61.2
+M1 c2: aggregate 73.7 tok/s, per stream 36.8
+M1 c4: aggregate 92.5 tok/s, per stream 23.1
+M1 prefill prefill-8192 engine_prefill_tps 1931.764705882353
+M1 prefill prefill-32768 engine_prefill_tps 2012.4539877300613
+M2 TRY: DRAFT=1 DRAFT_N=2 OFFLOAD_N=112 GLM_IMG=tabbyapi:cheapswap-r3-agent-r2 PINNED_ARENA=1 SWAP_MODE=exchange SWAP_POLICY=histogram SWAP_INIT_STATS=/srv/qwen5090/r883-tools/split-stats-broad-r869.json SWAP_CADENCE=exact SWAP_INTERVAL=64 SWAP_MAX=64 SWAP_SCOPE=global SWAP_FLOOR=4 SWAP_HYST=2.0 AGENT=1
+M2 c1 score 53.6 t/s: code 52.9 (acc 0.68); prose 56.0 (acc 0.45); chat 61.4 (acc 0.49); html 50.4 (acc 0.37); edit 47.2 (acc 0.81)
+M2 c1: aggregate 45.0 tok/s, per stream 45.0
+M2 c2: aggregate 62.8 tok/s, per stream 31.4
+M2 c4: aggregate 71.7 tok/s, per stream 17.9
+M2 prefill prefill-8192 engine_prefill_tps 1758.189655172414
+M2 prefill prefill-32768 engine_prefill_tps 1963.3093525179856
+control C c1 61.1; winner: none 0
+S2 TRY: DRAFT=0 OFFLOAD_N=96 GLM_IMG=tabbyapi:cheapswap-r3-agent-r2 PINNED_ARENA=1 SWAP_MODE=exchange SWAP_POLICY=histogram SWAP_INIT_STATS=/srv/qwen5090/r883-tools/split-stats-broad-r869.json SWAP_CADENCE=exact SWAP_INTERVAL=64 SWAP_MAX=64 SWAP_SCOPE=global SWAP_FLOOR=4 SWAP_HYST=2.0 AGENT=1

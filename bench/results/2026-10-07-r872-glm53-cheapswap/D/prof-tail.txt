@@ -1,0 +1,3 @@
+ -- moe_cpu prof (44544 jobs, us/job): prep_gu 57.2 | gemv_gu 586.6 | act+prep_d 50.4 | gemv_d 297.8 | tf_d/finish 25.6 | accum 6.9
+ -- moe_cpu prof (45056 jobs, us/job): prep_gu 56.6 | gemv_gu 582.7 | act+prep_d 49.9 | gemv_d 295.8 | tf_d/finish 25.3 | accum 6.9
+ -- moe_cpu prof (45568 jobs, us/job): prep_gu 56.1 | gemv_gu 578.8 | act+prep_d 49.4 | gemv_d 293.8 | tf_d/finish 25.1 | accum 6.8

@@ -1,0 +1,13 @@
+GPU lock held; results /srv/qwen5090/results/2026-10-07-r866-glm53-placement-030039; base OFFLOAD_N=96
+A TRY: DRAFT=0 OFFLOAD_N=96
+A c1 score 48.9 t/s: code 47.3; prose 48.7; chat 48.9; html 49.6; edit 50.2
+B TRY: DRAFT=0 OFFLOAD_N=96 SWAP_INTERVAL=64 SWAP_FLOOR=4
+B c1 score 39.1 t/s: code 34.4; prose 39.8; chat 41.3; html 38.3; edit 41.8
+C TRY: DRAFT=0 OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/r866-tools/split-stats-r860b.json
+C c1 score 63.2 t/s: code 61.2; prose 69.3; chat 69.1; html 67.0; edit 49.3
+A2 TRY: DRAFT=0 OFFLOAD_N=96
+A2 c1 score 48.6 t/s: code 46.9; prose 48.6; chat 48.9; html 48.3; edit 50.0
+best: C (OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/r866-tools/split-stats-r860b.json)
+S TRY: DRAFT=0 OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/r866-tools/split-stats-r860b.json
+vision check FAILED: ValueError: vision check failed: expected blue, got 'White'
+SERVING on :8029: MTP off, OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/r866-tools/split-stats-r860b.json, plain image, vision on, 256k

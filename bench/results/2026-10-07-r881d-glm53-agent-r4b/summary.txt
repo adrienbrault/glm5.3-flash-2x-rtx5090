@@ -1,0 +1,6 @@
+GPU lock held; results /srv/qwen5090/results/2026-10-07-r881d-glm53-agent-r4b-220355; base OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/r881d-tools/split-stats-broad-r869.json
+A4B TRY: DRAFT=0 OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/r881d-tools/split-stats-broad-r869.json GLM_IMG=tabbyapi:r861-glm-agent-r4b AGENT=1 TAG_TRACE=1
+A4B NO BOOT rc=1 ()
+restoring daily: DRAFT=0 OFFLOAD_N=96 GLM_IMG=tabbyapi:cheapswap-r3-agent-r2 PINNED_ARENA=1 SWAP_MODE=exchange SWAP_POLICY=histogram SWAP_INIT_STATS=/srv/qwen5090/r882c-tools/split-stats-broad-r869.json SWAP_CADENCE=exact SWAP_INTERVAL=64 SWAP_MAX=64 SWAP_SCOPE=global SWAP_FLOOR=4 SWAP_HYST=2.0 AGENT=1
+S TRY: DRAFT=0 OFFLOAD_N=96 GLM_IMG=tabbyapi:cheapswap-r3-agent-r2 PINNED_ARENA=1 SWAP_MODE=exchange SWAP_POLICY=histogram SWAP_INIT_STATS=/srv/qwen5090/r882c-tools/split-stats-broad-r869.json SWAP_CADENCE=exact SWAP_INTERVAL=64 SWAP_MAX=64 SWAP_SCOPE=global SWAP_FLOOR=4 SWAP_HYST=2.0 AGENT=1
+SERVING on :8029: DRAFT=0 OFFLOAD_N=96 GLM_IMG=tabbyapi:cheapswap-r3-agent-r2 PINNED_ARENA=1 SWAP_MODE=exchange SWAP_POLICY=histogram SWAP_INIT_STATS=/srv/qwen5090/r882c-tools/split-stats-broad-r869.json SWAP_CADENCE=exact SWAP_INTERVAL=64 SWAP_MAX=64 SWAP_SCOPE=global SWAP_FLOOR=4 SWAP_HYST=2.0 AGENT=1

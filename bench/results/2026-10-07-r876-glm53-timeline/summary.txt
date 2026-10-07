@@ -1,0 +1,7 @@
+GPU lock held; results /srv/qwen5090/results/2026-10-07-r876-glm53-timeline-090330
+base-c1 rc=0: 
+graphs-c1 rc=0: 
+waits-c1 rc=0: 
+graphs-c4 rc=0: 
+graphs-32k-c1 rc=0: 
+SERVING on :8029: static N=96 + agent overlay

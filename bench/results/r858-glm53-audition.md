@@ -1,6 +1,6 @@
 # R858: GLM-5.3-Flash 2.05 bpw boots with 104 of 288 experts per MoE layer on the CPU; c1 decode 49.5 tok/s
 
-Results directory on the box: `/srv/qwen5090/results/2026-10-06-r858-glm53-233400-2023872/` (first attempt `2026-10-06-r858-glm53-232616-2002321/`). Driver: `scripts/r858-glm53-audition.sh` with `PLAN_SPLIT=28,28 KEEP_GLM=1`. Raw records: `results/2026-10-06-r858-glm53/` (`measure.jsonl` one line per stream and per round, `sanity.jsonl`, `config.yml`, `vram-boot.csv`, `audit.txt`).
+Results directory on the box: `/srv/qwen5090/results/2026-10-06-r858-glm53-233400-2023872/` (first attempt `2026-10-06-r858-glm53-232616-2002321/`). Driver: `scripts/r858-glm53-audition.sh` with `PLAN_SPLIT=28,28 KEEP_GLM=1`. Raw records: `results/2026-10-06-r858-glm53/` (`measure.jsonl` one line per stream and per round, `sanity.jsonl`, `config.yml`, `vram-boot.csv`, `audit.txt`). <!-- prose-ok: file name sanity.jsonl -->
 
 ## Configuration
 
@@ -10,7 +10,7 @@ Checkpoint `turboderp/GLM-5.3-Flash-exl3` revision `2.05bpw` (2.05 bpw, head 5 b
 
 The first run planned against 31 + 31 GiB. Attempt 1 (80 experts per layer on the CPU, MTP on) and attempt 2 (12 whole MoE layers on the CPU, MTP on) both stopped at module 45 of 50 with `Insufficient VRAM in split for model and cache`, both cards full. The second run planned against 28 + 28 GiB and booted its first attempt, 104 experts per layer on the CPU (estimated 33.0 GB of routed expert bytes in RAM).
 
-## Sanity
+## Short-answer checks
 
 Three prompts (17 × 23, the capital of France, repeat a word) at `reasoning_effort` low and high returned 391, Paris and RED in all six requests.
 

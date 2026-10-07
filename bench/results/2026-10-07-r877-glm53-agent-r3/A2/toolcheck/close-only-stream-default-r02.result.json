@@ -1,0 +1,54 @@
+{
+  "tag": "close-only-stream-default-r02",
+  "case": "close-only",
+  "finish": "tool_calls",
+  "eos_reason": null,
+  "stop_str": null,
+  "passed": false,
+  "calls": [
+    {
+      "index": 0,
+      "tool": "write_file",
+      "args_len": 8328,
+      "args_json_ok": true,
+      "args_json_error": null,
+      "body_len": 6692,
+      "line_count": 200,
+      "exact_body": false,
+      "first_mismatch_line": 1,
+      "path": "/tmp/y.py",
+      "think_count": 0,
+      "close_think_count": 0,
+      "args_head": "{\"content\": \"row_1 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> ...\\\"\\nrow_2 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> ...\\\"\\nrow_3 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> ...\\\"\\nrow_4 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> ...\\\"\\nrow_5 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </",
+      "args_tail": "> ...\\\"\\nrow_197 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> ...\\\"\\nrow_198 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> ...\\\"\\nrow_199 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> ...\\\"\\nrow_200 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> ...\\\"\\n\", \"path\": \"/tmp/y.py\"}"
+    }
+  ],
+  "content_len": 43,
+  "reasoning_len": 655,
+  "completion_tokens": 3046,
+  "usage": {
+    "prompt_tokens": 221,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "prompt_time": 0.8,
+    "prompt_tokens_per_sec": 276.25,
+    "completion_tokens": 3046,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    },
+    "completion_time": 70.05,
+    "completion_tokens_per_sec": 43.48,
+    "total_tokens": 3267,
+    "total_time": 70.85
+  },
+  "reasoning_think_count": 0,
+  "reasoning_close_think_count": 0,
+  "reasoning_tail": "\\b\" which in raw text... hmm the prompt says line i is `row_i = \"a\\b \"q\" </fake> ...\"`? The original: `row_i = \"a\\b \\\"q\\\" </fake>  ...\"` — probably literal: row_i = \"a\\b \\\"q\\\" </fake> …\". I'll interpret as literal text: row_i = \"a\\b \\\"q\\\" </fake> \"...\". Ambiguous; safest: a\\b (backslash b), escaped quotes \\\"q\\\", then </fake> then more escaped quote? The trailing `\"...\"` seems truncated. I'll write: row_i = \"a\\b \\\"q\\\" </fake> ...线? Let's pick: `row_i = \"a\\b \\\"q\\\" </fake> ...\"`. 200 lines of that.",
+  "content_tail": "I'll write each of the 200 lines literally.",
+  "raw_line_count": 6072,
+  "saw_done": true,
+  "temperature": "server-default",
+  "elapsed_seconds": 70.904
+}

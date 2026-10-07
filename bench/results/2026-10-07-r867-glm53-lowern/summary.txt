@@ -1,0 +1,19 @@
+GPU lock held; results /srv/qwen5090/results/2026-10-07-r867-glm53-lowern-030858; base 
+n92 TRY: DRAFT=0 OFFLOAD_N=92 CHUNK=1024 MAX_BATCH=2 GPU_SPLIT=31,31.8
+n92 c1 score 49.5 t/s: code 48.8; prose 49.3; chat 49.8; html 48.7; edit 50.9
+n88 TRY: DRAFT=0 OFFLOAD_N=88 CHUNK=1024 MAX_BATCH=2 GPU_SPLIT=31,31.8
+n88 NO BOOT rc=1 (Insufficient VRAM)
+d1n96 TRY: DRAFT=1 DRAFT_N=1 OFFLOAD_N=96 CHUNK=1024 MAX_BATCH=2 GPU_SPLIT=31,31.8
+d1n96 NO BOOT rc=1 (Insufficient VRAM)
+d1n100 TRY: DRAFT=1 DRAFT_N=1 OFFLOAD_N=100 CHUNK=1024 MAX_BATCH=2 GPU_SPLIT=31,31.8
+d1n100 c1 score 47.0 t/s: code 49.8 (acc 0.89); prose 44.6 (acc 0.62); chat 46.5 (acc 0.67); html 42.1 (acc 0.60); edit 52.1 (acc 0.95)
+ref TRY: DRAFT=0 OFFLOAD_N=96
+ref c1 score 48.4 t/s: code 47.0; prose 48.0; chat 49.0; html 48.6; edit 49.4
+best: n92 ( DRAFT=0 OFFLOAD_N=92 CHUNK=1024 MAX_BATCH=2 GPU_SPLIT=31,31.8)
+pf-ref TRY: DRAFT=0 OFFLOAD_N=96
+pf-ref: 
+pf-n92 TRY: DRAFT=0 OFFLOAD_N=92 CHUNK=1024 MAX_BATCH=2 GPU_SPLIT=31,31.8
+pf-n92 NO BOOT rc=1 ()
+S TRY: DRAFT=0 OFFLOAD_N=92 CHUNK=1024 MAX_BATCH=2 GPU_SPLIT=31,31.8
+vision check FAILED: ValueError: vision check failed: expected blue, got 'White'
+SERVING on :8029:  DRAFT=0 OFFLOAD_N=92 CHUNK=1024 MAX_BATCH=2 GPU_SPLIT=31,31.8, plain image, vision on, 256k

@@ -1,0 +1,4 @@
+GPU lock held; results /srv/qwen5090/results/2026-10-06-r859-glm53-c1-234732
+A TRY: N=104 DRAFT=1 CPU_THREADS=8
+terminated
+KEEP_GLM=1: GLM stays on :8029, daily not restored; results /srv/qwen5090/results/2026-10-06-r859-glm53-c1-234732

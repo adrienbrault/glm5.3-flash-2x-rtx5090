@@ -1,0 +1,61 @@
+{
+  "tag": "1000-line-stream-default-r02",
+  "case": "1000-line",
+  "finish": "tool_calls",
+  "eos_reason": null,
+  "stop_str": null,
+  "passed": false,
+  "calls": [
+    {
+      "index": 0,
+      "tool": "write_file",
+      "args_len": 54912,
+      "args_json_ok": true,
+      "args_json_error": null,
+      "body_len": 46889,
+      "line_count": 1000,
+      "exact_body": false,
+      "byte_diff": {
+        "offset_zero_based": 11,
+        "actual_byte": 98,
+        "expected_byte": 92,
+        "actual_context_hex": "726f775f31203d2022615c62205c22715c22203c2f66616b653e203c7468696e6b3e783c2f7468696e6b3e220a726f775f32203d2022615c62205c",
+        "expected_context_hex": "726f775f31203d2022615c5c62205c22715c22203c2f66616b653e203c7468696e6b3e783c2f7468696e6b3e220a726f775f32203d2022615c5c62"
+      },
+      "first_mismatch_line": 1,
+      "path": "/tmp/long.py",
+      "think_count": 1000,
+      "close_think_count": 1000,
+      "args_head": "{\"content\": \"row_1 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> <think>x</think>\\\"\\nrow_2 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> <think>x</think>\\\"\\nrow_3 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> <think>x</think>\\\"\\nrow_4 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </f",
+      "args_tail": "ink>\\\"\\nrow_998 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> <think>x</think>\\\"\\nrow_999 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> <think>x</think>\\\"\\nrow_1000 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> <think>x</think>\\\"\\n\", \"path\": \"/tmp/long.py\"}"
+    }
+  ],
+  "content_len": 0,
+  "reasoning_len": 667,
+  "completion_tokens": 19937,
+  "usage": {
+    "prompt_tokens": 246,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "prompt_time": 0.83,
+    "prompt_tokens_per_sec": 296.39,
+    "completion_tokens": 19937,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    },
+    "completion_time": 489.26,
+    "completion_tokens_per_sec": 40.75,
+    "total_tokens": 20183,
+    "total_time": 490.17
+  },
+  "reasoning_think_count": 2,
+  "reasoning_close_think_count": 2,
+  "reasoning_tail": "`\\b` literal backslash-b, and `\\\"` literal backslash-quote? The spec: `row_i = \"a\\b \\\"q\\\" ...\"` — the Python source line literally contains `row_i = \"a\\b \\\"q\\\" </fake> <think>x</think>\"`. So in the file content, write backslash-escaped quotes. In JSON tool call, backslashes need escaping.\n\nThat's huge; 1000 lines each ~45 chars. I'll generate. I must write it literally by hand... That's tedious but I'll produce. Actually I can't loop, but I can just write out the 1000 lines. Let me compose them.",
+  "content_tail": "",
+  "raw_line_count": 37850,
+  "saw_done": true,
+  "temperature": "server-default",
+  "elapsed_seconds": 490.591
+}

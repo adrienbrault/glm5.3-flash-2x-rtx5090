@@ -1,0 +1,28 @@
+waiting for GLM to be idle for 0 min (no request start, no open gateway connection)
+GLM idle; taking the GPUs
+GPU lock held; results /srv/qwen5090/results/2026-10-07-r860-glm53-chain-010840
+d1 TRY: DRAFT=1 DRAFT_N=1 CPU_THREADS=8
+d1 c1 score 45.7 t/s: code 48.5 (acc 0.84); prose 43.7 (acc 0.61); chat 46.2 (acc 0.65); html 44.2 (acc 0.59)
+d2 TRY: DRAFT=1 DRAFT_N=2 CPU_THREADS=8
+d2 NO BOOT rc=1 (Insufficient VRAM)
+d3 TRY: DRAFT=1 DRAFT_N=3 CPU_THREADS=8
+d3 NO BOOT rc=1 (Insufficient VRAM)
+d3dyn TRY: DRAFT=1 DRAFT_N=3 DYN_DRAFT=1 CPU_THREADS=8
+d3dyn NO BOOT rc=1 (Insufficient VRAM)
+off TRY: DRAFT=0 CPU_THREADS=8
+off c1 score 46.2 t/s: code 45.4; prose 45.4; chat 47.2; html 47.0
+phase 1 winner: off
+h2d probe: {"devices": [1], "experts": 8, "staged": true, "bytes_per_expert": 6485606, "aggregate_wall_gbs": 23.082793848600527, "last_dma_per_link_gbs": [28.856722844479734]} {"devices": [0, 1], "experts": 8, "staged": true, "bytes_per_expert": 6485606, "aggregate_wall_gbs": 19.912719740519027, "last_dma_per_
+predict TRY: DRAFT=0 CPU_THREADS=8 GLM_IMG=tabbyapi:r859-predict-trace-r2 PROFILE=1 PREDICT=1 CPU_SWAP=0 ROUTE_TRACE_DIR=/srv/qwen5090/results/2026-10-07-r860-glm53-chain-010840/predict/route-traces
+predict NO BOOT rc=1 ()
+predict trace files: 0
+t16 TRY: DRAFT=0 CPU_THREADS=16
+t16 c1 score 20.2 t/s: code 19.6; prose 20.2; chat 20.4; html 20.7
+t7 TRY: DRAFT=0 CPU_THREADS=7
+t7 c1 score 45.0 t/s: code 43.2; prose 45.0; chat 45.6; html 45.9
+pinned TRY: DRAFT=0 CPU_THREADS=8 PINNED_ARENA=1
+pinned c1 score 45.6 t/s: code 43.8; prose 45.8; chat 47.5; html 45.3
+overall winner: off (DRAFT=0 CPU_THREADS=8)
+SERVE TRY: DRAFT=0 CPU_THREADS=8
+SERVE c1 score 38.5 t/s: code 38.5
+SERVING on :8029: off (DRAFT=0 CPU_THREADS=8), 256k context

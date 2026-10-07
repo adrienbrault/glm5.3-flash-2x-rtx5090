@@ -1,0 +1,54 @@
+{
+  "tag": "close-only-stream-zero-r02",
+  "case": "close-only",
+  "finish": "tool_calls",
+  "eos_reason": null,
+  "stop_str": null,
+  "passed": false,
+  "calls": [
+    {
+      "index": 0,
+      "tool": "write_file",
+      "args_len": 7928,
+      "args_json_ok": true,
+      "args_json_error": null,
+      "body_len": 6292,
+      "line_count": 200,
+      "exact_body": false,
+      "first_mismatch_line": 1,
+      "path": "/tmp/y.py",
+      "think_count": 0,
+      "close_think_count": 0,
+      "args_head": "{\"content\": \"row_1 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake>  \\nrow_2 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake>  \\nrow_3 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake>  \\nrow_4 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake>  \\nrow_5 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> ",
+      "args_tail": "q\\\\\\\" </fake>  \\nrow_197 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake>  \\nrow_198 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake>  \\nrow_199 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake>  \\nrow_200 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake>  \\n\", \"path\": \"/tmp/y.py\"}"
+    }
+  ],
+  "content_len": 0,
+  "reasoning_len": 969,
+  "completion_tokens": 3340,
+  "usage": {
+    "prompt_tokens": 221,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "prompt_time": 0.8,
+    "prompt_tokens_per_sec": 276.25,
+    "completion_tokens": 3340,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    },
+    "completion_time": 76.21,
+    "completion_tokens_per_sec": 43.83,
+    "total_tokens": 3561,
+    "total_time": 77.01
+  },
+  "reasoning_think_count": 0,
+  "reasoning_close_think_count": 0,
+  "reasoning_tail": "rite every line literally\" — so the file contains `row_i = \"a\\b \\\"q\\\" </fake>  `? Actually the user's message shows `\\\\b` and `\\\"q\\\"` — those are literal characters in the file presumably: `row_i = \"a\\\\b \\\"q\\\" </fake>  `. I'll take the literal string as given: `row_i = \"a\\\\b \\\"q\\\" </fake>  ` with trailing two spaces.\n\nWriting 200 lines manually is huge but required. I must produce all 200 lines. That's a lot of tokens (~200 × ~30 chars). Doable.\n\nLine format: `row_1 = \"a\\\\b \\\"q\\\" </fake>  ` etc.",
+  "content_tail": "",
+  "raw_line_count": 6658,
+  "saw_done": true,
+  "temperature": 0,
+  "elapsed_seconds": 77.055
+}

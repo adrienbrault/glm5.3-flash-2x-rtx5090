@@ -1,0 +1,61 @@
+{
+  "tag": "think-only-stream-default-r02",
+  "case": "think-only",
+  "finish": "tool_calls",
+  "eos_reason": null,
+  "stop_str": null,
+  "passed": false,
+  "calls": [
+    {
+      "index": 0,
+      "tool": "write_file",
+      "args_len": 7928,
+      "args_json_ok": true,
+      "args_json_error": null,
+      "body_len": 6292,
+      "line_count": 200,
+      "exact_body": false,
+      "byte_diff": {
+        "offset_zero_based": 11,
+        "actual_byte": 98,
+        "expected_byte": 92,
+        "actual_context_hex": "726f775f31203d2022615c62205c22715c22203c2f66616b653e20e280a6220a726f775f32203d2022615c62205c22715c22203c2f66616b653e20",
+        "expected_context_hex": "726f775f31203d2022615c5c62205c22715c22203c2f66616b653e203c7468696e6b3e220a726f775f32203d2022615c5c62205c22715c22203c2f"
+      },
+      "first_mismatch_line": 1,
+      "path": "/tmp/y.py",
+      "think_count": 0,
+      "close_think_count": 0,
+      "args_head": "{\"content\": \"row_1 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> …\\\"\\nrow_2 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> …\\\"\\nrow_3 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> …\\\"\\nrow_4 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> …\\\"\\nrow_5 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> …\\",
+      "args_tail": "\\\\\" </fake> …\\\"\\nrow_197 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> …\\\"\\nrow_198 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> …\\\"\\nrow_199 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> …\\\"\\nrow_200 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> …\\\"\\n\", \"path\": \"/tmp/y.py\"}"
+    }
+  ],
+  "content_len": 0,
+  "reasoning_len": 2180,
+  "completion_tokens": 3598,
+  "usage": {
+    "prompt_tokens": 235,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "prompt_time": 0.81,
+    "prompt_tokens_per_sec": 290.12,
+    "completion_tokens": 3598,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    },
+    "completion_time": 80.41,
+    "completion_tokens_per_sec": 44.75,
+    "total_tokens": 3833,
+    "total_time": 81.22
+  },
+  "reasoning_think_count": 0,
+  "reasoning_close_think_count": 0,
+  "reasoning_tail": "'s a lot of text (~200 short lines). Doable but long. Alternatively...\n\nYes, must enumerate. I'll write line numbers 1–200 each followed by = I can't. The rule: should be arrived by own verifiable steps. I can just enumerate sequentially; it's mechanical.\n\nBetter: line i content: row_i = \"a\\b \\\"q\\\" </fake> \" + char. I'll produce with i enumerating. I'll go fast.\n\nActually I can include python-like list comprehension? No—must be literal lines.\n\nI'll enumerate 1..200 in the content. Long but fine.",
+  "content_tail": "",
+  "raw_line_count": 7164,
+  "saw_done": true,
+  "temperature": "server-default",
+  "elapsed_seconds": 81.284
+}

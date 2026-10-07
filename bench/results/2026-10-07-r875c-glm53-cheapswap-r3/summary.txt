@@ -1,0 +1,12 @@
+GPU lock held; results /srv/qwen5090/results/2026-10-07-r875c-glm53-cheapswap-r3-182934; base OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/r875c-tools/split-stats-broad-r869.json
+gates: PASSED in R875b (/srv/qwen5090/results/2026-10-07-r875b-glm53-cheapswap-r3-113928), not repeated
+SB TRY: DRAFT=0 OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/r875c-tools/split-stats-broad-r869.json
+SB c1 score 56.7 t/s: code 56.7; prose 62.6; chat 61.7; html 52.7; edit 49.9
+XI TRY: DRAFT=0 OFFLOAD_N=96 GLM_IMG=tabbyapi:cheapswap-r3 PINNED_ARENA=1 SWAP_MODE=exchange SWAP_POLICY=histogram SWAP_INIT_STATS=/srv/qwen5090/r875c-tools/split-stats-broad-r869.json SWAP_CADENCE=exact SWAP_INTERVAL=64 SWAP_MAX=64 SWAP_SCOPE=global SWAP_FLOOR=4 SWAP_HYST=2.0
+XI c1 score 60.6 t/s: code 58.3; prose 64.3; chat 65.4; html 63.8; edit 51.5
+XIF TRY: DRAFT=0 OFFLOAD_N=96 GLM_IMG=tabbyapi:cheapswap-r3 PINNED_ARENA=1 SWAP_MODE=exchange SWAP_POLICY=histogram SWAP_INIT_STATS=/srv/qwen5090/r875c-tools/split-stats-broad-r869.json SWAP_CADENCE=served SWAP_INTERVAL=16 SWAP_MAX=64 SWAP_SCOPE=layer SWAP_FLOOR=2 SWAP_HYST=1.2
+XIF c1 score 58.0 t/s: code 53.2; prose 61.3; chat 61.8; html 60.1; edit 53.6
+XI engine: 
+XIF engine: 
+S TRY: DRAFT=0 OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/r875c-tools/split-stats-broad-r869.json GLM_IMG=tabbyapi:r861-glm-agent-r2 AGENT=1
+SERVING on :8029: static broad placement N=96, MTP off, agent overlay, vision on, 256k

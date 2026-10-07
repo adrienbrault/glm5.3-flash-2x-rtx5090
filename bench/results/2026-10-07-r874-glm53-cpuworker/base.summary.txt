@@ -1,0 +1,10 @@
+| Trial | N | cold GEMV us | hot GEMV us | cold GB/s | read GB/s | job us |
+|---|---:|---:|---:|---:|---:|---:|
+| 4-physical-baseline | 3 | 426.12 | 418.98 | 40.60 | 63.11 | 438.15 |
+| 4-smt-baseline | 3 | 676.18 | 675.58 | 25.59 | 63.05 | 692.75 |
+| 6-physical-baseline | 3 | 290.93 | 282.07 | 59.47 | 63.21 | 301.45 |
+| 6-smt-baseline | 3 | 457.44 | 456.97 | 37.82 | 63.15 | 470.67 |
+| 8-physical-baseline | 3 | 281.92 | 213.27 | 61.37 | 63.09 | 292.86 |
+| 8-smt-baseline | 3 | 342.73 | 341.74 | 50.48 | 63.22 | 357.00 |
+
+Each value is the median of trial means. Compare matching CPUs/pages/source, then inspect phase p95 and repetition spread in JSON. Installed job timing includes Python-call overhead.

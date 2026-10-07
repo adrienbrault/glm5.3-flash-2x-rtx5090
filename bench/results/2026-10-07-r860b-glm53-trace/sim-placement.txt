@@ -1,0 +1,3 @@
+decode steps 5474, generations 9, layers 42
+interval floor hyst budget   cpu_share  swaps/1k-steps
+     128   8.0  2.0     64       0.345      31.4   <- served defaults

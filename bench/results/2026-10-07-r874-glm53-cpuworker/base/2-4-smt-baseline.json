@@ -1,0 +1,198 @@
+{
+  "args": {
+    "installed_wall": false,
+    "source_root": null,
+    "arena_gib": 8.0,
+    "hidden": 4096,
+    "intermediate": 2048,
+    "bits": 2,
+    "threads": 4,
+    "jobs": 1024,
+    "warmup": 64,
+    "pages": "auto",
+    "backing": "anon",
+    "detail": false,
+    "gap_us": 0,
+    "no_prime": false,
+    "read_rounds": 4,
+    "output": "/results/base/2-4-smt-baseline.json",
+    "label": "2-4-smt-baseline"
+  },
+  "source": "/opt/venv/lib/python3.12/site-packages/exllamav3/exllamav3_ext/cpu/moe_mul1.cpp",
+  "source_sha256": "30154267b64a6148fa3e88e497217983887235f6f97a0434f2d729934ed94263",
+  "pid": 227,
+  "env": {
+    "EXL3_MOE_CPU_PIN": "0"
+  },
+  "affinity_before": [
+    0,
+    1,
+    8,
+    9
+  ],
+  "arena_bytes": 9112780800,
+  "expert_bytes": 6328320,
+  "experts": 1440,
+  "collapse": "not requested",
+  "smaps": [
+    {
+      "mapping": "7046cce48000-7048f01e9000 rw-p 00000000 00:00 0 ",
+      "Size": "8965764 kB",
+      "KernelPageSize": "4 kB",
+      "MMUPageSize": "4 kB",
+      "Rss": "8964768 kB",
+      "AnonHugePages": "0 kB",
+      "ShmemPmdMapped": "0 kB",
+      "FilePmdMapped": "0 kB",
+      "Shared_Hugetlb": "0 kB",
+      "Private_Hugetlb": "0 kB",
+      "VmFlags": "rd wr mr mw me ac sd"
+    }
+  ],
+  "worker_affinity": [
+    [
+      0,
+      1,
+      8,
+      9
+    ],
+    [
+      0,
+      1,
+      8,
+      9
+    ],
+    [
+      0,
+      1,
+      8,
+      9
+    ],
+    [
+      0,
+      1,
+      8,
+      9
+    ]
+  ],
+  "barriers_us": {
+    "0": {
+      "mean": 0.18604,
+      "p50": 0.14,
+      "p95": 0.19
+    },
+    "100": {
+      "mean": 0.187395,
+      "p50": 0.181,
+      "p95": 0.23
+    },
+    "2000": {
+      "mean": 49.497615,
+      "p50": 49.7235,
+      "p95": 53.411
+    }
+  },
+  "pure_read": [
+    {
+      "us": 144858.88875,
+      "GB_s": 62.90798499584652,
+      "checksum": 1.0648813412415373e+19
+    },
+    {
+      "us": 144283.72950000002,
+      "GB_s": 63.15875554076248,
+      "checksum": 1.0648813412415373e+19
+    },
+    {
+      "us": 144470.4565,
+      "GB_s": 63.07712331482804,
+      "checksum": 1.0648813412415373e+19
+    }
+  ],
+  "cold": {
+    "phases_us": {
+      "prep_gu": {
+        "mean": 4.95917022228241,
+        "p50": 5.4100341796875,
+        "p95": 5.7410888671875
+      },
+      "gemv_gu": {
+        "mean": 450.1449044942856,
+        "p50": 489.9639892578125,
+        "p95": 493.1199951171875
+      },
+      "act_prep_d": {
+        "mean": 6.567856431007385,
+        "p50": 6.8929443359375,
+        "p95": 7.0430908203125
+      },
+      "gemv_d": {
+        "mean": 226.0338395833969,
+        "p50": 245.78350830078125,
+        "p95": 248.4090576171875
+      },
+      "tf_d_finish": {
+        "mean": 2.460196614265442,
+        "p50": 2.614501953125,
+        "p95": 2.8150634765625
+      },
+      "accum": {
+        "mean": 0.0,
+        "p50": 0.0,
+        "p95": 0.0
+      }
+    },
+    "mean_experts": 2.75,
+    "gate_up_GB_s": 25.623606720503094,
+    "down_GB_s": 25.51462210538683,
+    "GEMV_GB_s": 25.58717521296754,
+    "native_job_us": {
+      "mean": 692.74756640625,
+      "p50": 754.367,
+      "p95": 757.588
+    }
+  },
+  "hot": {
+    "phases_us": {
+      "prep_gu": {
+        "mean": 4.522339105606079,
+        "p50": 4.8790283203125,
+        "p95": 5.0
+      },
+      "gemv_gu": {
+        "mean": 449.8656655550003,
+        "p50": 489.9334716796875,
+        "p95": 492.708984375
+      },
+      "act_prep_d": {
+        "mean": 6.386702537536621,
+        "p50": 6.721923828125,
+        "p95": 6.8330078125
+      },
+      "gemv_d": {
+        "mean": 225.71542036533356,
+        "p50": 245.4730224609375,
+        "p95": 247.5869140625
+      },
+      "tf_d_finish": {
+        "mean": 2.1927075386047363,
+        "p50": 2.343994140625,
+        "p95": 2.4249267578125
+      },
+      "accum": {
+        "mean": 0.0,
+        "p50": 0.0,
+        "p95": 0.0
+      }
+    },
+    "mean_experts": 2.75,
+    "gate_up_GB_s": 25.639511710168104,
+    "down_GB_s": 25.550615862511755,
+    "GEMV_GB_s": 25.609811110135542,
+    "native_job_us": {
+      "mean": 691.0496044921875,
+      "p50": 752.719,
+      "p95": 755.064
+    }
+  }
+}

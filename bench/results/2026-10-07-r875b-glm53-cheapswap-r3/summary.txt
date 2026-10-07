@@ -1,0 +1,10 @@
+GPU lock held; results /srv/qwen5090/results/2026-10-07-r875b-glm53-cheapswap-r3-113928; base OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/r875b-tools/split-stats-broad-r869.json
+selftest gpu0 rc=0: {"pass_test": true, "swaps": 96, "max_abs_error": 0.00023492088075727224, "swizzle": true, "rows": [1, 4, 8]}
+selftest gpu1 rc=0: {"pass_test": true, "swaps": 96, "max_abs_error": 0.00023492088075727224, "swizzle": true, "rows": [1, 4, 8]}
+selftest ring rc=0: {"pass_test": true, "swaps": 96, "rows": [1, 4, 8, 128], "devices": ["cuda:0", "cuda:1"], "folded": "1", "fused": "1"}
+selftest init-sw1-fo1 rc=0: PASS: 42 initialized layers, all GPU/worker/aux expert bytes, native map; streamed tail per GPU. Full-model logits/lifecycle remain separate.
+selftest init-sw1-fo0 rc=0: PASS: 42 initialized layers, all GPU/worker/aux expert bytes, native map; streamed tail per GPU. Full-model logits/lifecycle remain separate.
+selftest init-sw0-fo1 rc=0: PASS: 42 initialized layers, all GPU/worker/aux expert bytes, native map; streamed tail per GPU. Full-model logits/lifecycle remain separate.
+selftest init-sw0-fo0 rc=0: PASS: 42 initialized layers, all GPU/worker/aux expert bytes, native map; streamed tail per GPU. Full-model logits/lifecycle remain separate.
+SB TRY: DRAFT=0 OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/r875b-tools/split-stats-broad-r869.json
+postponed by user request 2026-10-07T16:10:52+00:00: SIGKILLed during SB; all 6 gates (gpu0/gpu1/ring + 4 init probes) PASSED

@@ -1,0 +1,2 @@
+ -- CPU MoE worker started: 2 layers, avx512-vbmi, 2 threads
+{"pass_test": true, "swaps": 96, "rows": [1, 4, 8, 128], "devices": ["cuda:0", "cuda:1"], "folded": "1", "fused": "1"}

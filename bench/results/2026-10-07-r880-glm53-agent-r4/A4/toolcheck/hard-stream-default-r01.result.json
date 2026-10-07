@@ -1,0 +1,61 @@
+{
+  "tag": "hard-stream-default-r01",
+  "case": "hard",
+  "finish": "tool_calls",
+  "eos_reason": null,
+  "stop_str": null,
+  "passed": false,
+  "calls": [
+    {
+      "index": 0,
+      "tool": "write_file",
+      "args_len": 11728,
+      "args_json_ok": true,
+      "args_json_error": null,
+      "body_len": 9892,
+      "line_count": 200,
+      "exact_body": false,
+      "byte_diff": {
+        "offset_zero_based": 20,
+        "actual_byte": 32,
+        "expected_byte": 60,
+        "actual_context_hex": "31203d2022615c5c62205c22715c2220203c2f66616b653e20203c7468696e6b3e783c2f7468696e6b3e220a726f775f32203d2022615c5c62205c22715c2220",
+        "expected_context_hex": "31203d2022615c5c62205c22715c22203c2f66616b653e203c7468696e6b3e783c2f7468696e6b3e220a726f775f32203d2022615c5c62205c22715c22203c2f"
+      },
+      "first_mismatch_line": 1,
+      "path": "/tmp/y.py",
+      "think_count": 200,
+      "close_think_count": 200,
+      "args_head": "{\"content\": \"row_1 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\"  </fake>  <think>x</think>\\\"\\nrow_2 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\"  </fake>  <think>x</think>\\\"\\nrow_3 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\"  </fake>  <think>x</think>\\\"\\nrow_4 = \\\"a\\\\\\\\b",
+      "args_tail": "row_198 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\"  </fake>  <think>x</think>\\\"\\nrow_199 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\"  </fake>  <think>x</think>\\\"\\nrow_200 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\"  </fake>  <think>x</think>\\\"\\n\", \"path\": \"/tmp/y.py\"}"
+    }
+  ],
+  "content_len": 0,
+  "reasoning_len": 304,
+  "completion_tokens": 4717,
+  "usage": {
+    "prompt_tokens": 243,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "prompt_time": 0.83,
+    "prompt_tokens_per_sec": 292.77,
+    "completion_tokens": 4717,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    },
+    "completion_time": 115.82,
+    "completion_tokens_per_sec": 40.73,
+    "total_tokens": 4960,
+    "total_time": 116.66
+  },
+  "reasoning_think_count": 2,
+  "reasoning_close_think_count": 2,
+  "reasoning_tail": "Need literal backslash `\\b` and `\\\"q\\\"`. Content: line i: row_i = \"a\\b \\\"q\\\"  </fake>  <think>x</think>\" — need to write escape literally: `\"a\\\\b \\\"q\\\"  </fake>  <think>x</think>\"`. 200 lines... generate manually? That's long but must do. Use Python string? No, must write literally. I'll write them all.",
+  "content_tail": "",
+  "raw_line_count": 9010,
+  "saw_done": true,
+  "temperature": "server-default",
+  "elapsed_seconds": 116.768
+}

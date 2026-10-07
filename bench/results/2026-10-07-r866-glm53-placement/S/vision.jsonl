@@ -1,0 +1,2 @@
+{"phase": "vision", "expect": "red", "ok": true, "text": "Red", "ttft_s": 0.3470591789809987}
+{"phase": "vision", "expect": "blue", "ok": false, "text": "White", "ttft_s": 0.31256885395850986}

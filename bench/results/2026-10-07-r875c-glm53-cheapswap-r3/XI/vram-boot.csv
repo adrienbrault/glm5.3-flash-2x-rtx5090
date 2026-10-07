@@ -1,0 +1,3 @@
+index, memory.used [MiB], memory.free [MiB], power.limit [W], clocks.current.memory [MHz], clocks.current.graphics [MHz]
+0, 31248 MiB, 903 MiB, 600.00 W, 16051 MHz, 2752 MHz
+1, 30482 MiB, 1669 MiB, 575.00 W, 16051 MHz, 2602 MHz

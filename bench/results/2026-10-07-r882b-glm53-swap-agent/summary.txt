@@ -1,0 +1,14 @@
+GPU lock held; results /srv/qwen5090/results/2026-10-07-r882b-glm53-swap-agent-203933; base OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/r882b-tools/split-stats-broad-r869.json
+build cheapswap-r3-agent-r2 rc=0: Successfully tagged tabbyapi:cheapswap-r3-agent-r2
+XA TRY: DRAFT=0 OFFLOAD_N=96 GLM_IMG=tabbyapi:cheapswap-r3-agent-r2 PINNED_ARENA=1 SWAP_MODE=exchange SWAP_POLICY=histogram SWAP_INIT_STATS=/srv/qwen5090/r882b-tools/split-stats-broad-r869.json SWAP_CADENCE=exact SWAP_INTERVAL=64 SWAP_MAX=64 SWAP_SCOPE=global SWAP_FLOOR=4 SWAP_HYST=2.0 AGENT=1
+XA c1 score 59.9 t/s: code 58.1; prose 62.5; chat 64.1; html 63.0; edit 51.6
+XA c1: aggregate 59.9 tok/s, per stream 59.9
+XA c2: aggregate 82.2 tok/s, per stream 41.1
+XA c4: aggregate 109.9 tok/s, per stream 27.5
+XA prefill prefill-8192 engine_prefill_tps 1999.0196078431372
+XA prefill prefill-32768 engine_prefill_tps 2145.9123610202746
+XA vision PASS
+XA toolcheck simple rc=2
+XA gate: c1 59.9, OK=0
+S TRY: DRAFT=0 OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/r882b-tools/split-stats-broad-r869.json GLM_IMG=tabbyapi:r861-glm-agent-r2 AGENT=1
+SERVING on :8029: static N=96 + agent overlay r2 (XA not promoted)

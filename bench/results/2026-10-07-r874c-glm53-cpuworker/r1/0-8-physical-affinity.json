@@ -1,0 +1,203 @@
+{
+  "args": {
+    "installed_wall": false,
+    "source_root": null,
+    "arena_gib": 8.0,
+    "hidden": 4096,
+    "intermediate": 2048,
+    "bits": 2,
+    "threads": 8,
+    "jobs": 1024,
+    "warmup": 64,
+    "pages": "auto",
+    "backing": "anon",
+    "detail": false,
+    "gap_us": 0,
+    "no_prime": false,
+    "read_rounds": 4,
+    "output": "/results/r1/0-8-physical-affinity.json",
+    "label": "0-8-physical-affinity"
+  },
+  "source": "/opt/venv/lib/python3.12/site-packages/exllamav3/exllamav3_ext/cpu/moe_mul1.cpp",
+  "source_sha256": "93331f741bd75ca1353715f39a8f140ba70a37ef55e3245159d1fb515e907099",
+  "pid": 27,
+  "env": {
+    "EXL3_MOE_CPU_PIN": "1",
+    "EXL3_MOE_CPU_RESPECT_AFFINITY": "1"
+  },
+  "affinity_before": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "arena_bytes": 9112780800,
+  "expert_bytes": 6328320,
+  "experts": 1440,
+  "collapse": "not requested",
+  "smaps": [
+    {
+      "mapping": "7a60e1a48000-7a6304de9000 rw-p 00000000 00:00 0 ",
+      "Size": "8965764 kB",
+      "KernelPageSize": "4 kB",
+      "MMUPageSize": "4 kB",
+      "Rss": "8964768 kB",
+      "AnonHugePages": "0 kB",
+      "ShmemPmdMapped": "0 kB",
+      "FilePmdMapped": "0 kB",
+      "Shared_Hugetlb": "0 kB",
+      "Private_Hugetlb": "0 kB",
+      "VmFlags": "rd wr mr mw me ac sd"
+    }
+  ],
+  "worker_affinity": [
+    [
+      0
+    ],
+    [
+      1
+    ],
+    [
+      2
+    ],
+    [
+      3
+    ],
+    [
+      4
+    ],
+    [
+      5
+    ],
+    [
+      6
+    ],
+    [
+      7
+    ]
+  ],
+  "barriers_us": {
+    "0": {
+      "mean": 0.25871500000000003,
+      "p50": 0.241,
+      "p95": 0.361
+    },
+    "100": {
+      "mean": 2.932345,
+      "p50": 0.3655,
+      "p95": 0.461
+    },
+    "2000": {
+      "mean": 54.537440000000004,
+      "p50": 49.749,
+      "p95": 98.526
+    }
+  },
+  "pure_read": [
+    {
+      "us": 144597.4705,
+      "GB_s": 63.021716552088655,
+      "checksum": 1.0648813412415373e+19
+    },
+    {
+      "us": 144300.1645,
+      "GB_s": 63.15156210372858,
+      "checksum": 1.0648813412415373e+19
+    },
+    {
+      "us": 144335.61125000002,
+      "GB_s": 63.13605298844778,
+      "checksum": 1.0648813412415373e+19
+    }
+  ],
+  "cold": {
+    "phases_us": {
+      "prep_gu": {
+        "mean": 2.636781334877014,
+        "p50": 2.60498046875,
+        "p95": 2.85595703125
+      },
+      "gemv_gu": {
+        "mean": 186.25356006622314,
+        "p50": 200.9195556640625,
+        "p95": 207.6820068359375
+      },
+      "act_prep_d": {
+        "mean": 4.561269998550415,
+        "p50": 4.43896484375,
+        "p95": 5.6009521484375
+      },
+      "gemv_d": {
+        "mean": 94.2014833688736,
+        "p50": 100.79498291015625,
+        "p95": 107.1729736328125
+      },
+      "tf_d_finish": {
+        "mean": 1.6927273273468018,
+        "p50": 1.7230224609375,
+        "p95": 1.9229736328125
+      },
+      "accum": {
+        "mean": 0.0,
+        "p50": 0.0,
+        "p95": 0.0
+      }
+    },
+    "mean_experts": 2.75,
+    "gate_up_GB_s": 61.92813708311897,
+    "down_GB_s": 61.22162617564055,
+    "GEMV_GB_s": 61.690828548083985,
+    "native_job_us": {
+      "mean": 291.683369140625,
+      "p50": 314.20300000000003,
+      "p95": 323.33
+    }
+  },
+  "hot": {
+    "phases_us": {
+      "prep_gu": {
+        "mean": 2.2193315029144287,
+        "p50": 2.14404296875,
+        "p95": 2.5340576171875
+      },
+      "gemv_gu": {
+        "mean": 137.0312284231186,
+        "p50": 145.0035400390625,
+        "p95": 164.0
+      },
+      "act_prep_d": {
+        "mean": 4.188885688781738,
+        "p50": 4.0980224609375,
+        "p95": 5.1400146484375
+      },
+      "gemv_d": {
+        "mean": 68.98637664318085,
+        "p50": 72.7879638671875,
+        "p95": 85.98193359375
+      },
+      "tf_d_finish": {
+        "mean": 1.2064132690429688,
+        "p50": 1.2320556640625,
+        "p95": 1.4029541015625
+      },
+      "accum": {
+        "mean": 0.0,
+        "p50": 0.0,
+        "p95": 0.0
+      }
+    },
+    "mean_experts": 2.75,
+    "gate_up_GB_s": 84.17304677722672,
+    "down_GB_s": 83.59865064126501,
+    "GEMV_GB_s": 83.98070637910837,
+    "native_job_us": {
+      "mean": 215.98836328125,
+      "p50": 227.90050000000002,
+      "p95": 262.015
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{"devices": [0], "experts": 1, "staged": false, "bytes_per_expert": 6485606, "aggregate_wall_gbs": 27.095476301028633, "last_dma_per_link_gbs": [28.70346806613353]}
+{"devices": [1], "experts": 1, "staged": false, "bytes_per_expert": 6485606, "aggregate_wall_gbs": 26.749514606929537, "last_dma_per_link_gbs": [28.707532797399683]}
+{"devices": [0, 1], "experts": 1, "staged": false, "bytes_per_expert": 6485606, "aggregate_wall_gbs": 30.828002641105407, "last_dma_per_link_gbs": [16.54356287832211, 16.4415668542074]}
+{"devices": [0], "experts": 2, "staged": false, "bytes_per_expert": 6485606, "aggregate_wall_gbs": 27.928415243926818, "last_dma_per_link_gbs": [28.793179832359552]}
+{"devices": [1], "experts": 2, "staged": false, "bytes_per_expert": 6485606, "aggregate_wall_gbs": 27.78892168761747, "last_dma_per_link_gbs": [28.78091245089026]}
+{"devices": [0, 1], "experts": 2, "staged": false, "bytes_per_expert": 6485606, "aggregate_wall_gbs": 38.367109963961795, "last_dma_per_link_gbs": [28.29276037990993, 28.286837676358836]}
+{"devices": [0], "experts": 8, "staged": false, "bytes_per_expert": 6485606, "aggregate_wall_gbs": 28.649959168664235, "last_dma_per_link_gbs": [28.862886623317944]}
+{"devices": [1], "experts": 8, "staged": false, "bytes_per_expert": 6485606, "aggregate_wall_gbs": 28.561093872163642, "last_dma_per_link_gbs": [28.856722844479734]}
+{"devices": [0, 1], "experts": 8, "staged": false, "bytes_per_expert": 6485606, "aggregate_wall_gbs": 55.42210598653599, "last_dma_per_link_gbs": [28.708549633505264, 28.70600862493332]}
+{"devices": [0], "experts": 1, "staged": true, "bytes_per_expert": 6485606, "aggregate_wall_gbs": 25.311582405782367, "last_dma_per_link_gbs": [28.711600574070456]}
+{"devices": [1], "experts": 1, "staged": true, "bytes_per_expert": 6485606, "aggregate_wall_gbs": 25.314600712985897, "last_dma_per_link_gbs": [28.699402593353742]}
+{"devices": [0, 1], "experts": 1, "staged": true, "bytes_per_expert": 6485606, "aggregate_wall_gbs": 29.083830782807848, "last_dma_per_link_gbs": [17.43442431774851, 17.34935689998192]}
+{"devices": [0], "experts": 2, "staged": true, "bytes_per_expert": 6485606, "aggregate_wall_gbs": 25.918243790124006, "last_dma_per_link_gbs": [28.79727001351622]}
+{"devices": [1], "experts": 2, "staged": true, "bytes_per_expert": 6485606, "aggregate_wall_gbs": 25.69335524029173, "last_dma_per_link_gbs": [28.78500105100066]}
+{"devices": [0, 1], "experts": 2, "staged": true, "bytes_per_expert": 6485606, "aggregate_wall_gbs": 29.40635432928573, "last_dma_per_link_gbs": [17.21086812183116, 17.159866432827403]}
+{"devices": [0], "experts": 8, "staged": true, "bytes_per_expert": 6485606, "aggregate_wall_gbs": 22.99670204673429, "last_dma_per_link_gbs": [28.860318221636113]}
+{"devices": [1], "experts": 8, "staged": true, "bytes_per_expert": 6485606, "aggregate_wall_gbs": 23.082793848600527, "last_dma_per_link_gbs": [28.856722844479734]}
+{"devices": [0, 1], "experts": 8, "staged": true, "bytes_per_expert": 6485606, "aggregate_wall_gbs": 19.912719740519027, "last_dma_per_link_gbs": [28.695847195231828, 28.858775869236638]}

@@ -1,0 +1,10 @@
+{"phase": "c1-decode", "kind": "code", "run": 0, "tokens": 1024, "tps": 52.50242429395063, "ttft_s": 0.6147351521067321, "finish_reason": "length", "accepted": 476, "rejected": 72, "accept_rate": 0.8686131386861314}
+{"phase": "c1-decode", "kind": "prose", "run": 0, "tokens": 1024, "tps": 58.24302331894742, "ttft_s": 0.5193334040232003, "finish_reason": "length", "accepted": 408, "rejected": 208, "accept_rate": 0.6623376623376623}
+{"phase": "c1-decode", "kind": "chat", "run": 0, "tokens": 1024, "tps": 68.53044683814275, "ttft_s": 0.5383356588426977, "finish_reason": "length", "accepted": 412, "rejected": 200, "accept_rate": 0.673202614379085}
+{"phase": "c1-decode", "kind": "html", "run": 0, "tokens": 2048, "tps": 61.43428226017905, "ttft_s": 0.5954674831591547, "finish_reason": "length", "accepted": 772, "rejected": 504, "accept_rate": 0.6050156739811913}
+{"phase": "c1-decode", "kind": "edit", "run": 0, "tokens": 1024, "tps": 49.88891395991218, "ttft_s": 1.8929315011482686, "finish_reason": "length", "accepted": 501, "rejected": 22, "accept_rate": 0.9579349904397706}
+{"phase": "c1-decode", "kind": "code", "run": 1, "tokens": 1024, "tps": 64.57984689383765, "ttft_s": 0.45122518204152584, "finish_reason": "length", "accepted": 459, "rejected": 106, "accept_rate": 0.8123893805309734}
+{"phase": "c1-decode", "kind": "prose", "run": 1, "tokens": 1024, "tps": 59.98779153454636, "ttft_s": 0.4499500570818782, "finish_reason": "length", "accepted": 395, "rejected": 234, "accept_rate": 0.6279809220985691}
+{"phase": "c1-decode", "kind": "chat", "run": 1, "tokens": 1024, "tps": 64.93228339698562, "ttft_s": 0.5414352691732347, "finish_reason": "length", "accepted": 410, "rejected": 204, "accept_rate": 0.6677524429967426}
+{"phase": "c1-decode", "kind": "html", "run": 1, "tokens": 2048, "tps": 62.96849515298357, "ttft_s": 0.589609223883599, "finish_reason": "length", "accepted": 761, "rejected": 526, "accept_rate": 0.5912975912975913}
+{"phase": "c1-decode", "kind": "edit", "run": 1, "tokens": 1024, "tps": 54.97725912028288, "ttft_s": 1.8849925009999424, "finish_reason": "length", "accepted": 477, "rejected": 70, "accept_rate": 0.8720292504570384}

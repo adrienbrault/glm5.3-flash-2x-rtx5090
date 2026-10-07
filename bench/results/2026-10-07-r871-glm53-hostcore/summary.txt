@@ -1,0 +1,18 @@
+GPU lock held; results /srv/qwen5090/results/2026-10-07-r871-glm53-hostcore-071136; base OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/r871-tools/split-stats-broad-r869.json
+t8 TRY: DRAFT=0 OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/r871-tools/split-stats-broad-r869.json CPU_THREADS=8
+t8 c1 score 57.5 t/s: code 57.8; prose 63.2; chat 61.5; html 54.3; edit 50.8
+t7h TRY: DRAFT=0 OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/r871-tools/split-stats-broad-r869.json CPU_THREADS=7 HOST_CONFINE=1
+t7h c1 score 39.4 t/s: code 39.4; prose 40.7; chat 40.7; html 40.0; edit 36.2
+t7 TRY: DRAFT=0 OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/r871-tools/split-stats-broad-r869.json CPU_THREADS=7
+t7 c1 score 54.1 t/s: code 55.2; prose 62.1; chat 60.4; html 46.8; edit 46.3
+t8s TRY: DRAFT=0 OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/r871-tools/split-stats-broad-r869.json CPU_THREADS=8 HOST_CONFINE=1
+t8s c1 score 57.8 t/s: code 57.5; prose 63.7; chat 62.6; html 53.6; edit 51.7
+t8b TRY: DRAFT=0 OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/r871-tools/split-stats-broad-r869.json CPU_THREADS=8
+t8b c1 score 58.5 t/s: code 59.9; prose 63.6; chat 61.6; html 53.2; edit 54.4
+best: t8b (CPU_THREADS=8)
+S TRY: DRAFT=0 OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/r871-tools/split-stats-broad-r869.json CPU_THREADS=8 GLM_IMG=tabbyapi:r861-glm-agent-r2 AGENT=1
+vision check FAILED: ValueError: vision check failed: expected blue, got 'White'
+toolcheck simple-stream tool_calls args 247 json True
+toolcheck simple-plain tool_calls args 287 json True
+toolcheck hard-stream stop args 0 json False
+SERVING on :8029: MTP off, OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/r871-tools/split-stats-broad-r869.json CPU_THREADS=8, agent overlay, vision on, 256k

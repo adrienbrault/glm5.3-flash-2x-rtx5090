@@ -1,0 +1,37 @@
+{
+  "tag": "hard-stream-default-r02",
+  "case": "hard",
+  "finish": "stop",
+  "eos_reason": null,
+  "stop_str": null,
+  "passed": false,
+  "calls": [],
+  "content_len": 0,
+  "reasoning_len": 40,
+  "completion_tokens": 19,
+  "usage": {
+    "prompt_tokens": 223,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "prompt_time": 0.8,
+    "prompt_tokens_per_sec": 278.75,
+    "completion_tokens": 19,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    },
+    "completion_time": 0.31,
+    "completion_tokens_per_sec": 61.63,
+    "total_tokens": 242,
+    "total_time": 1.11
+  },
+  "reasoning_think_count": 0,
+  "reasoning_close_think_count": 0,
+  "reasoning_tail": "Each line: `row_i = \"a\\\\b \\\"q\\\" </fake> ",
+  "content_tail": "",
+  "raw_line_count": 40,
+  "saw_done": true,
+  "temperature": "server-default",
+  "elapsed_seconds": 1.114
+}

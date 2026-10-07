@@ -1,0 +1,54 @@
+{
+  "tag": "think-only-stream-default-r02",
+  "case": "think-only",
+  "finish": "tool_calls",
+  "eos_reason": null,
+  "stop_str": null,
+  "passed": false,
+  "calls": [
+    {
+      "index": 0,
+      "tool": "write_file",
+      "args_len": 8528,
+      "args_json_ok": true,
+      "args_json_error": null,
+      "body_len": 6892,
+      "line_count": 200,
+      "exact_body": false,
+      "first_mismatch_line": 1,
+      "path": "/tmp/y.py",
+      "think_count": 0,
+      "close_think_count": 0,
+      "args_head": "{\"content\": \"row_1 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake>  vas\\\"\\nrow_2 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake>  vas\\\"\\nrow_3 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake>  vas\\\"\\nrow_4 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake>  vas\\\"\\nrow_5 = \\\"a\\\\b \\\\\\\"q\\\\\\",
+      "args_tail": "s\\\"\\nrow_197 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake>  vas\\\"\\nrow_198 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake>  vas\\\"\\nrow_199 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake>  vas\\\"\\nrow_200 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake>  vas\\\"\\n\", \"path\": \"/tmp/y.py\"}"
+    }
+  ],
+  "content_len": 0,
+  "reasoning_len": 948,
+  "completion_tokens": 3492,
+  "usage": {
+    "prompt_tokens": 221,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "prompt_time": 0.79,
+    "prompt_tokens_per_sec": 279.75,
+    "completion_tokens": 3492,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    },
+    "completion_time": 83.08,
+    "completion_tokens_per_sec": 42.03,
+    "total_tokens": 3713,
+    "total_time": 83.87
+  },
+  "reasoning_think_count": 0,
+  "reasoning_close_think_count": 0,
+  "reasoning_tail": "ne space.\n\nI'll write each line: row_i = \"a\\b \\\"q\\\" </fake>  vas\". Leading spaces between \\\"q\\\" and </fake> — that's fine. Must write 200 lines literally. That's long but doable.\n\nFormat: row_{i} = \"a\\b \\\"q\\\" </fake>  vas\"\n\nLet me generate lines 1-200. This is a lot of typing but straightforward.\n\nFile content must be literal; escape sequences a\\b written literally as a\\b (backslash b). The string contains a backslash; file content contains literal \"a\\b \\\"q\\\" </fake>  vas\".\n\nWrite all 200 lines.",
+  "content_tail": "",
+  "raw_line_count": 6962,
+  "saw_done": true,
+  "temperature": "server-default",
+  "elapsed_seconds": 83.926
+}

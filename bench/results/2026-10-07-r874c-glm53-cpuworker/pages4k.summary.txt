@@ -1,0 +1,5 @@
+| Trial | N | cold GEMV us | hot GEMV us | cold GB/s | read GB/s | job us |
+|---|---:|---:|---:|---:|---:|---:|
+| 8-physical-baseline | 3 | 280.91 | 208.40 | 61.59 | 63.05 | 291.69 |
+
+Each value is the median of trial means. Compare matching CPUs/pages/source, then inspect phase p95 and repetition spread in JSON. Installed job timing includes Python-call overhead.

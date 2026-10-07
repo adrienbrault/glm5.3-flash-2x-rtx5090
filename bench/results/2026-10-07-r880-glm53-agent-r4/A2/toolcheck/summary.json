@@ -1,0 +1,834 @@
+[
+  {
+    "tag": "hard-stream-zero-r01",
+    "case": "hard",
+    "finish": "stop",
+    "eos_reason": null,
+    "stop_str": null,
+    "passed": false,
+    "calls": [],
+    "content_len": 0,
+    "reasoning_len": 56,
+    "completion_tokens": 23,
+    "usage": {
+      "prompt_tokens": 237,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "prompt_time": 0.84,
+      "prompt_tokens_per_sec": 282.14,
+      "completion_tokens": 23,
+      "completion_tokens_details": {
+        "accepted_prediction_tokens": 0,
+        "rejected_prediction_tokens": 0
+      },
+      "completion_time": 0.37,
+      "completion_tokens_per_sec": 62.79,
+      "total_tokens": 260,
+      "total_time": 1.21
+    },
+    "reasoning_think_count": 0,
+    "reasoning_close_think_count": 0,
+    "reasoning_tail": "Need to write 200 lines, each `row_i = \"a\\b \"q\" </fake> ",
+    "content_tail": "",
+    "raw_line_count": 48,
+    "saw_done": true,
+    "temperature": 0,
+    "elapsed_seconds": 1.234
+  },
+  {
+    "tag": "hard-stream-zero-r02",
+    "case": "hard",
+    "finish": "tool_calls",
+    "eos_reason": null,
+    "stop_str": null,
+    "passed": false,
+    "calls": [
+      {
+        "index": 0,
+        "tool": "write_file",
+        "args_len": 7728,
+        "args_json_ok": true,
+        "args_json_error": null,
+        "body_len": 6292,
+        "line_count": 200,
+        "exact_body": false,
+        "byte_diff": {
+          "offset_zero_based": 11,
+          "actual_byte": 98,
+          "expected_byte": 92,
+          "actual_context_hex": "726f775f31203d2022615c6220227122203c2f66616b653e20096162220a726f775f32203d2022615c6220227122203c2f66616b653e2009616222",
+          "expected_context_hex": "726f775f31203d2022615c5c62205c22715c22203c2f66616b653e203c7468696e6b3e783c2f7468696e6b3e220a726f775f32203d2022615c5c62"
+        },
+        "first_mismatch_line": 1,
+        "path": "/tmp/y.py",
+        "think_count": 0,
+        "close_think_count": 0,
+        "args_head": "{\"content\": \"row_1 = \\\"a\\\\b \\\"q\\\" </fake> \\tab\\\"\\nrow_2 = \\\"a\\\\b \\\"q\\\" </fake> \\tab\\\"\\nrow_3 = \\\"a\\\\b \\\"q\\\" </fake> \\tab\\\"\\nrow_4 = \\\"a\\\\b \\\"q\\\" </fake> \\tab\\\"\\nrow_5 = \\\"a\\\\b \\\"q\\\" </fake> \\tab\\\"\\nro",
+        "args_tail": "\"q\\\" </fake> \\tab\\\"\\nrow_197 = \\\"a\\\\b \\\"q\\\" </fake> \\tab\\\"\\nrow_198 = \\\"a\\\\b \\\"q\\\" </fake> \\tab\\\"\\nrow_199 = \\\"a\\\\b \\\"q\\\" </fake> \\tab\\\"\\nrow_200 = \\\"a\\\\b \\\"q\\\" </fake> \\tab\\\"\\n\", \"path\": \"/tmp/y.py\"}"
+      }
+    ],
+    "content_len": 0,
+    "reasoning_len": 962,
+    "completion_tokens": 3733,
+    "usage": {
+      "prompt_tokens": 237,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "prompt_time": 0.81,
+      "prompt_tokens_per_sec": 292.59,
+      "completion_tokens": 3733,
+      "completion_tokens_details": {
+        "accepted_prediction_tokens": 0,
+        "rejected_prediction_tokens": 0
+      },
+      "completion_time": 89.28,
+      "completion_tokens_per_sec": 41.81,
+      "total_tokens": 3970,
+      "total_time": 90.09
+    },
+    "reasoning_think_count": 0,
+    "reasoning_close_think_count": 0,
+    "reasoning_tail": "s. So literal line: row_i = \"a\\b \"q\" </fake> <TAB>ab\". Hmm ambiguous. The user wrote `\\\\b` and `\\\"q\\\"` — in their raw text those are literal backslash-backslash-b? The message shows `a\\\\b \\\"q\\\"` — likely they intend literal `a\\b \"q\"`. I'll interpret: line contains `row_i = \"a\\b \"q\" </fake> <TAB>ab\"`.\n\nWriting 200 lines literally without loop — that's a huge file. I must generate all 200 lines in the tool call. That's long but doable. Each line: row_N = \"a\\b \"q\" </fake> \tab\"\n\nI'll write them all.",
+    "content_tail": "",
+    "raw_line_count": 7444,
+    "saw_done": true,
+    "temperature": 0,
+    "elapsed_seconds": 90.155
+  },
+  {
+    "tag": "hard-stream-default-r01",
+    "case": "hard",
+    "finish": "stop",
+    "eos_reason": null,
+    "stop_str": null,
+    "passed": false,
+    "calls": [],
+    "content_len": 0,
+    "reasoning_len": 56,
+    "completion_tokens": 23,
+    "usage": {
+      "prompt_tokens": 237,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "prompt_time": 0.81,
+      "prompt_tokens_per_sec": 292.59,
+      "completion_tokens": 23,
+      "completion_tokens_details": {
+        "accepted_prediction_tokens": 0,
+        "rejected_prediction_tokens": 0
+      },
+      "completion_time": 0.36,
+      "completion_tokens_per_sec": 63.55,
+      "total_tokens": 260,
+      "total_time": 1.17
+    },
+    "reasoning_think_count": 0,
+    "reasoning_close_think_count": 0,
+    "reasoning_tail": "Need to write 200 lines each: `row_i = \"a\\b \"q\" </fake> ",
+    "content_tail": "",
+    "raw_line_count": 48,
+    "saw_done": true,
+    "temperature": "server-default",
+    "elapsed_seconds": 1.18
+  },
+  {
+    "tag": "hard-stream-default-r02",
+    "case": "hard",
+    "finish": "stop",
+    "eos_reason": null,
+    "stop_str": null,
+    "passed": false,
+    "calls": [],
+    "content_len": 0,
+    "reasoning_len": 76,
+    "completion_tokens": 27,
+    "usage": {
+      "prompt_tokens": 237,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "prompt_time": 0.82,
+      "prompt_tokens_per_sec": 289.02,
+      "completion_tokens": 27,
+      "completion_tokens_details": {
+        "accepted_prediction_tokens": 0,
+        "rejected_prediction_tokens": 0
+      },
+      "completion_time": 0.42,
+      "completion_tokens_per_sec": 63.86,
+      "total_tokens": 264,
+      "total_time": 1.24
+    },
+    "reasoning_think_count": 0,
+    "reasoning_close_think_count": 0,
+    "reasoning_tail": "User wants literal content, no loop. Line i is `row_i = \"a\\\\b \\\"q\\\" </fake> ",
+    "content_tail": "",
+    "raw_line_count": 56,
+    "saw_done": true,
+    "temperature": "server-default",
+    "elapsed_seconds": 1.251
+  },
+  {
+    "tag": "think-only-stream-zero-r01",
+    "case": "think-only",
+    "finish": "tool_calls",
+    "eos_reason": null,
+    "stop_str": null,
+    "passed": false,
+    "calls": [
+      {
+        "index": 0,
+        "tool": "write_file",
+        "args_len": 7728,
+        "args_json_ok": true,
+        "args_json_error": null,
+        "body_len": 6292,
+        "line_count": 200,
+        "exact_body": false,
+        "byte_diff": {
+          "offset_zero_based": 11,
+          "actual_byte": 98,
+          "expected_byte": 92,
+          "actual_context_hex": "726f775f31203d2022615c6220227122203c2f66616b653e20096162220a726f775f32203d2022615c6220227122203c2f66616b653e2009616222",
+          "expected_context_hex": "726f775f31203d2022615c5c62205c22715c22203c2f66616b653e203c7468696e6b3e220a726f775f32203d2022615c5c62205c22715c22203c2f"
+        },
+        "first_mismatch_line": 1,
+        "path": "/tmp/y.py",
+        "think_count": 0,
+        "close_think_count": 0,
+        "args_head": "{\"content\": \"row_1 = \\\"a\\\\b \\\"q\\\" </fake> \\tab\\\"\\nrow_2 = \\\"a\\\\b \\\"q\\\" </fake> \\tab\\\"\\nrow_3 = \\\"a\\\\b \\\"q\\\" </fake> \\tab\\\"\\nrow_4 = \\\"a\\\\b \\\"q\\\" </fake> \\tab\\\"\\nrow_5 = \\\"a\\\\b \\\"q\\\" </fake> \\tab\\\"\\nro",
+        "args_tail": "\"q\\\" </fake> \\tab\\\"\\nrow_197 = \\\"a\\\\b \\\"q\\\" </fake> \\tab\\\"\\nrow_198 = \\\"a\\\\b \\\"q\\\" </fake> \\tab\\\"\\nrow_199 = \\\"a\\\\b \\\"q\\\" </fake> \\tab\\\"\\nrow_200 = \\\"a\\\\b \\\"q\\\" </fake> \\tab\\\"\\n\", \"path\": \"/tmp/y.py\"}"
+      }
+    ],
+    "content_len": 0,
+    "reasoning_len": 587,
+    "completion_tokens": 3595,
+    "usage": {
+      "prompt_tokens": 235,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "prompt_time": 0.81,
+      "prompt_tokens_per_sec": 290.12,
+      "completion_tokens": 3595,
+      "completion_tokens_details": {
+        "accepted_prediction_tokens": 0,
+        "rejected_prediction_tokens": 0
+      },
+      "completion_time": 84.31,
+      "completion_tokens_per_sec": 42.64,
+      "total_tokens": 3830,
+      "total_time": 85.12
+    },
+    "reasoning_think_count": 0,
+    "reasoning_close_think_count": 0,
+    "reasoning_tail": " line content is `row_i = \"a\\b \"q\" </fake> <TAB>ab\"`? The user wrote: `row_i = \"a\\b \"q\" </fake> \tab\"` — with a tab between </fake> and ab. Inside quotes: a\\b, \"q\", </fake>, tab, ab. Since it's Python string literal in the file, quotes inside would need escaping... but user says write literally. The line as shown contains unescaped quotes — that's what they want literally. I'll write exactly that text.\n\nThat's 200 lines, each ~40 chars. I must generate them all literally. That's a lot but doable.",
+    "content_tail": "",
+    "raw_line_count": 7170,
+    "saw_done": true,
+    "temperature": 0,
+    "elapsed_seconds": 85.183
+  },
+  {
+    "tag": "think-only-stream-zero-r02",
+    "case": "think-only",
+    "finish": "tool_calls",
+    "eos_reason": null,
+    "stop_str": null,
+    "passed": false,
+    "calls": [
+      {
+        "index": 0,
+        "tool": "write_file",
+        "args_len": 8928,
+        "args_json_ok": true,
+        "args_json_error": null,
+        "body_len": 6892,
+        "line_count": 200,
+        "exact_body": false,
+        "byte_diff": {
+          "offset_zero_based": 28,
+          "actual_byte": 9,
+          "expected_byte": 60,
+          "actual_context_hex": "62205c22715c22203c2f66616b653e20096162220a726f775f32203d2022615c5c62205c22715c22203c2f66616b653e20096162220a726f775f33203d202261",
+          "expected_context_hex": "62205c22715c22203c2f66616b653e203c7468696e6b3e220a726f775f32203d2022615c5c62205c22715c22203c2f66616b653e203c7468696e6b3e220a726f"
+        },
+        "first_mismatch_line": 1,
+        "path": "/tmp/y.py",
+        "think_count": 0,
+        "close_think_count": 0,
+        "args_head": "{\"content\": \"row_1 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> \\tab\\\"\\nrow_2 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> \\tab\\\"\\nrow_3 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> \\tab\\\"\\nrow_4 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> \\tab\\\"\\nrow_5 = \\\"a\\\\\\\\",
+        "args_tail": "_197 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> \\tab\\\"\\nrow_198 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> \\tab\\\"\\nrow_199 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> \\tab\\\"\\nrow_200 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> \\tab\\\"\\n\", \"path\": \"/tmp/y.py\"}"
+      }
+    ],
+    "content_len": 0,
+    "reasoning_len": 1189,
+    "completion_tokens": 3988,
+    "usage": {
+      "prompt_tokens": 235,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "prompt_time": 0.81,
+      "prompt_tokens_per_sec": 290.12,
+      "completion_tokens": 3988,
+      "completion_tokens_details": {
+        "accepted_prediction_tokens": 0,
+        "rejected_prediction_tokens": 0
+      },
+      "completion_time": 96.47,
+      "completion_tokens_per_sec": 41.34,
+      "total_tokens": 4223,
+      "total_time": 97.3
+    },
+    "reasoning_think_count": 0,
+    "reasoning_close_think_count": 0,
+    "reasoning_tail": "ackslash backslash b, backslash q). Hmm ambiguous. The instruction \"Write every line literally\" suggests take the string as displayed: `row_i = \"a\\\\b \\\"q\\\" </fake> \tab\"` with literal double backslash and literal \\\" sequences. I'll write literally as shown.\n\nWriting 200 lines literally is huge but required. Each line ~40 chars. I must produce all 200 lines. That's a lot of tokens (~200*~45 = 9000 chars). Doable.\n\nLine format: row_N = \"a\\\\b \\\"q\\\" </fake> \tab\"\n\nI'll generate content with all lines.",
+    "content_tail": "",
+    "raw_line_count": 7956,
+    "saw_done": true,
+    "temperature": 0,
+    "elapsed_seconds": 97.394
+  },
+  {
+    "tag": "think-only-stream-default-r01",
+    "case": "think-only",
+    "finish": "tool_calls",
+    "eos_reason": null,
+    "stop_str": null,
+    "passed": false,
+    "calls": [
+      {
+        "index": 0,
+        "tool": "write_file",
+        "args_len": 8128,
+        "args_json_ok": true,
+        "args_json_error": null,
+        "body_len": 6292,
+        "line_count": 200,
+        "exact_body": false,
+        "byte_diff": {
+          "offset_zero_based": 11,
+          "actual_byte": 98,
+          "expected_byte": 92,
+          "actual_context_hex": "726f775f31203d2022615c62205c22715c22203c2f66616b653e2009220a726f775f32203d2022615c62205c22715c22203c2f66616b653e200922",
+          "expected_context_hex": "726f775f31203d2022615c5c62205c22715c22203c2f66616b653e203c7468696e6b3e220a726f775f32203d2022615c5c62205c22715c22203c2f"
+        },
+        "first_mismatch_line": 1,
+        "path": "/tmp/y.py",
+        "think_count": 0,
+        "close_think_count": 0,
+        "args_head": "{\"content\": \"row_1 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> \\t\\\"\\nrow_2 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> \\t\\\"\\nrow_3 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> \\t\\\"\\nrow_4 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> \\t\\\"\\nrow_5 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake",
+        "args_tail": "/fake> \\t\\\"\\nrow_197 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> \\t\\\"\\nrow_198 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> \\t\\\"\\nrow_199 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> \\t\\\"\\nrow_200 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> \\t\\\"\\n\", \"path\": \"/tmp/y.py\"}"
+      }
+    ],
+    "content_len": 0,
+    "reasoning_len": 0,
+    "completion_tokens": 3223,
+    "usage": {
+      "prompt_tokens": 235,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "prompt_time": 0.82,
+      "prompt_tokens_per_sec": 286.59,
+      "completion_tokens": 3223,
+      "completion_tokens_details": {
+        "accepted_prediction_tokens": 0,
+        "rejected_prediction_tokens": 0
+      },
+      "completion_time": 74.95,
+      "completion_tokens_per_sec": 43.0,
+      "total_tokens": 3458,
+      "total_time": 75.77
+    },
+    "reasoning_think_count": 0,
+    "reasoning_close_think_count": 0,
+    "reasoning_tail": "",
+    "content_tail": "",
+    "raw_line_count": 6426,
+    "saw_done": true,
+    "temperature": "server-default",
+    "elapsed_seconds": 75.822
+  },
+  {
+    "tag": "think-only-stream-default-r02",
+    "case": "think-only",
+    "finish": "tool_calls",
+    "eos_reason": null,
+    "stop_str": null,
+    "passed": false,
+    "calls": [
+      {
+        "index": 0,
+        "tool": "write_file",
+        "args_len": 7928,
+        "args_json_ok": true,
+        "args_json_error": null,
+        "body_len": 6292,
+        "line_count": 200,
+        "exact_body": false,
+        "byte_diff": {
+          "offset_zero_based": 11,
+          "actual_byte": 98,
+          "expected_byte": 92,
+          "actual_context_hex": "726f775f31203d2022615c62205c22715c22203c2f66616b653e20e280a6220a726f775f32203d2022615c62205c22715c22203c2f66616b653e20",
+          "expected_context_hex": "726f775f31203d2022615c5c62205c22715c22203c2f66616b653e203c7468696e6b3e220a726f775f32203d2022615c5c62205c22715c22203c2f"
+        },
+        "first_mismatch_line": 1,
+        "path": "/tmp/y.py",
+        "think_count": 0,
+        "close_think_count": 0,
+        "args_head": "{\"content\": \"row_1 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> …\\\"\\nrow_2 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> …\\\"\\nrow_3 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> …\\\"\\nrow_4 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> …\\\"\\nrow_5 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> …\\",
+        "args_tail": "\\\\\" </fake> …\\\"\\nrow_197 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> …\\\"\\nrow_198 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> …\\\"\\nrow_199 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> …\\\"\\nrow_200 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake> …\\\"\\n\", \"path\": \"/tmp/y.py\"}"
+      }
+    ],
+    "content_len": 0,
+    "reasoning_len": 2180,
+    "completion_tokens": 3598,
+    "usage": {
+      "prompt_tokens": 235,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "prompt_time": 0.81,
+      "prompt_tokens_per_sec": 290.12,
+      "completion_tokens": 3598,
+      "completion_tokens_details": {
+        "accepted_prediction_tokens": 0,
+        "rejected_prediction_tokens": 0
+      },
+      "completion_time": 80.41,
+      "completion_tokens_per_sec": 44.75,
+      "total_tokens": 3833,
+      "total_time": 81.22
+    },
+    "reasoning_think_count": 0,
+    "reasoning_close_think_count": 0,
+    "reasoning_tail": "'s a lot of text (~200 short lines). Doable but long. Alternatively...\n\nYes, must enumerate. I'll write line numbers 1–200 each followed by = I can't. The rule: should be arrived by own verifiable steps. I can just enumerate sequentially; it's mechanical.\n\nBetter: line i content: row_i = \"a\\b \\\"q\\\" </fake> \" + char. I'll produce with i enumerating. I'll go fast.\n\nActually I can include python-like list comprehension? No—must be literal lines.\n\nI'll enumerate 1..200 in the content. Long but fine.",
+    "content_tail": "",
+    "raw_line_count": 7164,
+    "saw_done": true,
+    "temperature": "server-default",
+    "elapsed_seconds": 81.284
+  },
+  {
+    "tag": "close-only-stream-zero-r01",
+    "case": "close-only",
+    "finish": "tool_calls",
+    "eos_reason": null,
+    "stop_str": null,
+    "passed": false,
+    "calls": [
+      {
+        "index": 0,
+        "tool": "write_file",
+        "args_len": 7928,
+        "args_json_ok": true,
+        "args_json_error": null,
+        "body_len": 6292,
+        "line_count": 200,
+        "exact_body": false,
+        "byte_diff": {
+          "offset_zero_based": 11,
+          "actual_byte": 98,
+          "expected_byte": 92,
+          "actual_context_hex": "726f775f31203d2022615c62205c22715c22203c2f66616b653e2020220a726f775f32203d2022615c62205c22715c22203c2f66616b653e202022",
+          "expected_context_hex": "726f775f31203d2022615c5c62205c22715c22203c2f66616b653e203c2f7468696e6b3e220a726f775f32203d2022615c5c62205c22715c22203c"
+        },
+        "first_mismatch_line": 1,
+        "path": "/tmp/y.py",
+        "think_count": 0,
+        "close_think_count": 0,
+        "args_head": "{\"content\": \"row_1 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake>  \\\"\\nrow_2 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake>  \\\"\\nrow_3 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake>  \\\"\\nrow_4 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake>  \\\"\\nrow_5 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake>  \\",
+        "args_tail": "\\\\\" </fake>  \\\"\\nrow_197 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake>  \\\"\\nrow_198 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake>  \\\"\\nrow_199 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake>  \\\"\\nrow_200 = \\\"a\\\\b \\\\\\\"q\\\\\\\" </fake>  \\\"\\n\", \"path\": \"/tmp/y.py\"}"
+      }
+    ],
+    "content_len": 0,
+    "reasoning_len": 1090,
+    "completion_tokens": 3330,
+    "usage": {
+      "prompt_tokens": 235,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "prompt_time": 0.82,
+      "prompt_tokens_per_sec": 286.59,
+      "completion_tokens": 3330,
+      "completion_tokens_details": {
+        "accepted_prediction_tokens": 0,
+        "rejected_prediction_tokens": 0
+      },
+      "completion_time": 77.87,
+      "completion_tokens_per_sec": 42.76,
+      "total_tokens": 3565,
+      "total_time": 78.69
+    },
+    "reasoning_think_count": 0,
+    "reasoning_close_think_count": 0,
+    "reasoning_tail": "line literally\". So line i: `row_i = \"a\\b \\\"q\\\" </fake>  \"` — with backslash-b and backslash-quote-q-backslash-quote inside the string, ending with two spaces before closing quote? Actually the prompt ends `</fake>  ` then a quote character. So content: `a\\b \\\"q\\\" </fake>  `.\n\nWriting 200 lines literally is huge but doable. Each line: row_N = \"a\\b \\\"q\\\" </fake>  \"\n\nI'll generate them. That's 200 write calls of content... one write_file with full content. Let me produce content with lines 1..200.",
+    "content_tail": "",
+    "raw_line_count": 6636,
+    "saw_done": true,
+    "temperature": 0,
+    "elapsed_seconds": 78.742
+  },
+  {
+    "tag": "close-only-stream-zero-r02",
+    "case": "close-only",
+    "finish": "tool_calls",
+    "eos_reason": null,
+    "stop_str": null,
+    "passed": false,
+    "calls": [
+      {
+        "index": 0,
+        "tool": "write_file",
+        "args_len": 8328,
+        "args_json_ok": true,
+        "args_json_error": null,
+        "body_len": 6492,
+        "line_count": 200,
+        "exact_body": false,
+        "byte_diff": {
+          "offset_zero_based": 28,
+          "actual_byte": 32,
+          "expected_byte": 60,
+          "actual_context_hex": "62205c22715c22203c2f66616b653e2020220a726f775f32203d2022615c5c62205c22715c22203c2f66616b653e2020220a726f775f33203d2022615c5c6220",
+          "expected_context_hex": "62205c22715c22203c2f66616b653e203c2f7468696e6b3e220a726f775f32203d2022615c5c62205c22715c22203c2f66616b653e203c2f7468696e6b3e220a"
+        },
+        "first_mismatch_line": 1,
+        "path": "/tmp/y.py",
+        "think_count": 0,
+        "close_think_count": 0,
+        "args_head": "{\"content\": \"row_1 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake>  \\\"\\nrow_2 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake>  \\\"\\nrow_3 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake>  \\\"\\nrow_4 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake>  \\\"\\nrow_5 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" ",
+        "args_tail": "ke>  \\\"\\nrow_197 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake>  \\\"\\nrow_198 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake>  \\\"\\nrow_199 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake>  \\\"\\nrow_200 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake>  \\\"\\n\", \"path\": \"/tmp/y.py\"}"
+      }
+    ],
+    "content_len": 0,
+    "reasoning_len": 2278,
+    "completion_tokens": 3959,
+    "usage": {
+      "prompt_tokens": 235,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "prompt_time": 0.82,
+      "prompt_tokens_per_sec": 286.59,
+      "completion_tokens": 3959,
+      "completion_tokens_details": {
+        "accepted_prediction_tokens": 0,
+        "rejected_prediction_tokens": 0
+      },
+      "completion_time": 90.4,
+      "completion_tokens_per_sec": 43.79,
+      "total_tokens": 4194,
+      "total_time": 91.24
+    },
+    "reasoning_think_count": 0,
+    "reasoning_close_think_count": 0,
+    "reasoning_tail": "\\b, space, \\\"q\\\"... Actually inside: `a\\\\b \\\"q\\\" </fake>  ` then closing `\"`. So file line: row_1 = \"a\\\\b \\\"q\\\" </fake>  \" — hmm but then the escaped quote \\\"q\\\" inside means literal backslash-quote. Fine.\n\nI'll write lines: row_N = \"a\\\\b \\\"q\\\" </fake>  \" — with two spaces before closing quote. That matches user text if the trailing `\"` was part. Given ambiguity, choose that.\n\nWriting 200 lines literally — huge but doable. I must generate all 200 lines in the tool call. That's long but required.",
+    "content_tail": "",
+    "raw_line_count": 7890,
+    "saw_done": true,
+    "temperature": 0,
+    "elapsed_seconds": 91.327
+  },
+  {
+    "tag": "close-only-stream-default-r01",
+    "case": "close-only",
+    "finish": "tool_calls",
+    "eos_reason": null,
+    "stop_str": null,
+    "passed": false,
+    "calls": [
+      {
+        "index": 0,
+        "tool": "write_file",
+        "args_len": 8728,
+        "args_json_ok": true,
+        "args_json_error": null,
+        "body_len": 6892,
+        "line_count": 200,
+        "exact_body": false,
+        "byte_diff": {
+          "offset_zero_based": 28,
+          "actual_byte": 46,
+          "expected_byte": 60,
+          "actual_context_hex": "62205c22715c22203c2f66616b653e202e2e2e220a726f775f32203d2022615c5c62205c22715c22203c2f66616b653e202e2e2e220a726f775f33203d202261",
+          "expected_context_hex": "62205c22715c22203c2f66616b653e203c2f7468696e6b3e220a726f775f32203d2022615c5c62205c22715c22203c2f66616b653e203c2f7468696e6b3e220a"
+        },
+        "first_mismatch_line": 1,
+        "path": "/tmp/y.py",
+        "think_count": 0,
+        "close_think_count": 0,
+        "args_head": "{\"content\": \"row_1 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> ...\\\"\\nrow_2 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> ...\\\"\\nrow_3 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> ...\\\"\\nrow_4 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> ...\\\"\\nrow_5 = \\\"a\\\\\\\\b \\\\",
+        "args_tail": "nrow_197 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> ...\\\"\\nrow_198 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> ...\\\"\\nrow_199 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> ...\\\"\\nrow_200 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> ...\\\"\\n\", \"path\": \"/tmp/y.py\"}"
+      }
+    ],
+    "content_len": 0,
+    "reasoning_len": 1097,
+    "completion_tokens": 3359,
+    "usage": {
+      "prompt_tokens": 235,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "prompt_time": 0.82,
+      "prompt_tokens_per_sec": 286.59,
+      "completion_tokens": 3359,
+      "completion_tokens_details": {
+        "accepted_prediction_tokens": 0,
+        "rejected_prediction_tokens": 0
+      },
+      "completion_time": 75.44,
+      "completion_tokens_per_sec": 44.53,
+      "total_tokens": 3594,
+      "total_time": 76.26
+    },
+    "reasoning_think_count": 0,
+    "reasoning_close_think_count": 0,
+    "reasoning_tail": "ake> ...`? Wait \\\\ produces backslash. So the value: a\\b \"q\" </fake> . Ugly but fine.\n\nGiven cut text, I'll write each line as: row_{i} = \"a\\\\b \\\"q\\\" </fake> ...\" — that's what's visible. I'll take the trailing as `...\"` ending.\n\nSo each line: row_i = \"a\\\\b \\\"q\\\" </fake> ...\"\n\nGenerate 200 lines literally. That's tedious but doable—write file with all lines.\n\nLine format: row_1 = \"a\\\\b \\\"q\\\" </fake> ...\"\n\nI'll produce 200 lines via literal content. Let me write it out (long but straightforward).",
+    "content_tail": "",
+    "raw_line_count": 6698,
+    "saw_done": true,
+    "temperature": "server-default",
+    "elapsed_seconds": 76.316
+  },
+  {
+    "tag": "close-only-stream-default-r02",
+    "case": "close-only",
+    "finish": "tool_calls",
+    "eos_reason": null,
+    "stop_str": null,
+    "passed": false,
+    "calls": [
+      {
+        "index": 0,
+        "tool": "write_file",
+        "args_len": 7128,
+        "args_json_ok": true,
+        "args_json_error": null,
+        "body_len": 5892,
+        "line_count": 200,
+        "exact_body": false,
+        "byte_diff": {
+          "offset_zero_based": 11,
+          "actual_byte": 98,
+          "expected_byte": 92,
+          "actual_context_hex": "726f775f31203d2022615c6220227122203c2f66616b653e2020220a726f775f32203d2022615c6220227122203c2f66616b653e2020220a726f77",
+          "expected_context_hex": "726f775f31203d2022615c5c62205c22715c22203c2f66616b653e203c2f7468696e6b3e220a726f775f32203d2022615c5c62205c22715c22203c"
+        },
+        "first_mismatch_line": 1,
+        "path": "/tmp/y.py",
+        "think_count": 0,
+        "close_think_count": 0,
+        "args_head": "{\"content\": \"row_1 = \\\"a\\\\b \\\"q\\\" </fake>  \\\"\\nrow_2 = \\\"a\\\\b \\\"q\\\" </fake>  \\\"\\nrow_3 = \\\"a\\\\b \\\"q\\\" </fake>  \\\"\\nrow_4 = \\\"a\\\\b \\\"q\\\" </fake>  \\\"\\nrow_5 = \\\"a\\\\b \\\"q\\\" </fake>  \\\"\\nrow_6 = \\\"a\\\\b \\\"",
+        "args_tail": "_196 = \\\"a\\\\b \\\"q\\\" </fake>  \\\"\\nrow_197 = \\\"a\\\\b \\\"q\\\" </fake>  \\\"\\nrow_198 = \\\"a\\\\b \\\"q\\\" </fake>  \\\"\\nrow_199 = \\\"a\\\\b \\\"q\\\" </fake>  \\\"\\nrow_200 = \\\"a\\\\b \\\"q\\\" </fake>  \\\"\\n\", \"path\": \"/tmp/y.py\"}"
+      }
+    ],
+    "content_len": 0,
+    "reasoning_len": 1252,
+    "completion_tokens": 3382,
+    "usage": {
+      "prompt_tokens": 235,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "prompt_time": 0.82,
+      "prompt_tokens_per_sec": 286.59,
+      "completion_tokens": 3382,
+      "completion_tokens_details": {
+        "accepted_prediction_tokens": 0,
+        "rejected_prediction_tokens": 0
+      },
+      "completion_time": 77.98,
+      "completion_tokens_per_sec": 43.37,
+      "total_tokens": 3617,
+      "total_time": 78.8
+    },
+    "reasoning_think_count": 0,
+    "reasoning_close_think_count": 0,
+    "reasoning_tail": "\\` → `\\`, `\\\"` → `\"` twice, `  ` two spaces then `\"`? The raw string shown: `\"a\\\\b \\\"q\\\" </fake>  \"` — trailing `\"` after two spaces, inside the outer display quotes. So line = `row_i = \"a\\b \"q\" </fake>  \"`.\n\nThat's 200 lines each ~29 chars → ~6000 chars. I must write them manually, no loop. Tedious but I'll generate. I need 200 unique lines with varying i: row_1 through row_200. I'll write them out.\n\nLet me produce the file content. Each line: `row_N = \"a\\b \"q\" </fake>  \"`.\n\nI'll number groups.",
+    "content_tail": "",
+    "raw_line_count": 6742,
+    "saw_done": true,
+    "temperature": "server-default",
+    "elapsed_seconds": 78.856
+  },
+  {
+    "tag": "1000-line-stream-zero-r01",
+    "case": "1000-line",
+    "finish": "stop",
+    "eos_reason": null,
+    "stop_str": null,
+    "passed": false,
+    "calls": [],
+    "content_len": 0,
+    "reasoning_len": 75,
+    "completion_tokens": 28,
+    "usage": {
+      "prompt_tokens": 240,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "prompt_time": 0.82,
+      "prompt_tokens_per_sec": 292.68,
+      "completion_tokens": 28,
+      "completion_tokens_details": {
+        "accepted_prediction_tokens": 0,
+        "rejected_prediction_tokens": 0
+      },
+      "completion_time": 0.43,
+      "completion_tokens_per_sec": 64.7,
+      "total_tokens": 268,
+      "total_time": 1.25
+    },
+    "reasoning_think_count": 0,
+    "reasoning_close_think_count": 0,
+    "reasoning_tail": "The user wants a file with 1000 lines, each like `row_i = \"a\\b \"q\" </fake> ",
+    "content_tail": "",
+    "raw_line_count": 58,
+    "saw_done": true,
+    "temperature": 0,
+    "elapsed_seconds": 1.265
+  },
+  {
+    "tag": "1000-line-stream-zero-r02",
+    "case": "1000-line",
+    "finish": "stop",
+    "eos_reason": null,
+    "stop_str": null,
+    "passed": false,
+    "calls": [],
+    "content_len": 0,
+    "reasoning_len": 75,
+    "completion_tokens": 28,
+    "usage": {
+      "prompt_tokens": 240,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "prompt_time": 0.82,
+      "prompt_tokens_per_sec": 292.68,
+      "completion_tokens": 28,
+      "completion_tokens_details": {
+        "accepted_prediction_tokens": 0,
+        "rejected_prediction_tokens": 0
+      },
+      "completion_time": 0.43,
+      "completion_tokens_per_sec": 64.92,
+      "total_tokens": 268,
+      "total_time": 1.25
+    },
+    "reasoning_think_count": 0,
+    "reasoning_close_think_count": 0,
+    "reasoning_tail": "The user wants a file with 1000 lines, each like `row_i = \"a\\b \"q\" </fake> ",
+    "content_tail": "",
+    "raw_line_count": 58,
+    "saw_done": true,
+    "temperature": 0,
+    "elapsed_seconds": 1.256
+  },
+  {
+    "tag": "1000-line-stream-default-r01",
+    "case": "1000-line",
+    "finish": "tool_calls",
+    "eos_reason": null,
+    "stop_str": null,
+    "passed": false,
+    "calls": [
+      {
+        "index": 0,
+        "tool": "write_file",
+        "args_len": 31932,
+        "args_json_ok": true,
+        "args_json_error": null,
+        "body_len": 26893,
+        "line_count": 1000,
+        "exact_body": false,
+        "byte_diff": {
+          "offset_zero_based": 11,
+          "actual_byte": 98,
+          "expected_byte": 92,
+          "actual_context_hex": "726f775f31203d2022615c6220227122203c2f66616b653e0a726f775f32203d2022615c6220227122203c2f66616b653e0a726f775f33203d2022",
+          "expected_context_hex": "726f775f31203d2022615c5c62205c22715c22203c2f66616b653e203c7468696e6b3e783c2f7468696e6b3e220a726f775f32203d2022615c5c62"
+        },
+        "first_mismatch_line": 1,
+        "path": "/tmp/long.py",
+        "think_count": 0,
+        "close_think_count": 0,
+        "args_head": "{\"content\": \"row_1 = \\\"a\\\\b \\\"q\\\" </fake>\\nrow_2 = \\\"a\\\\b \\\"q\\\" </fake>\\nrow_3 = \\\"a\\\\b \\\"q\\\" </fake>\\nrow_4 = \\\"a\\\\b \\\"q\\\" </fake>\\nrow_5 = \\\"a\\\\b \\\"q\\\" </fake>\\nrow_6 = \\\"a\\\\b \\\"q\\\" </fake>\\nrow_7 =",
+        "args_tail": "q\\\" </fake>\\nrow_996 = \\\"a\\\\b \\\"q\\\" </fake>\\nrow_997 = \\\"a\\\\b \\\"q\\\" </fake>\\nrow_998 = \\\"a\\\\b \\\"q\\\" </fake>\\nrow_999 = \\\"a\\\\b \\\"q\\\" </fake>\\nrow_1000 = \\\"a\\\\b \\\"q\\\" </fake>\\n\", \"path\": \"/tmp/long.py\"}"
+      }
+    ],
+    "content_len": 0,
+    "reasoning_len": 94,
+    "completion_tokens": 13781,
+    "usage": {
+      "prompt_tokens": 240,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "prompt_time": 0.81,
+      "prompt_tokens_per_sec": 296.3,
+      "completion_tokens": 13781,
+      "completion_tokens_details": {
+        "accepted_prediction_tokens": 0,
+        "rejected_prediction_tokens": 0
+      },
+      "completion_time": 353.52,
+      "completion_tokens_per_sec": 38.98,
+      "total_tokens": 14021,
+      "total_time": 354.39
+    },
+    "reasoning_think_count": 0,
+    "reasoning_close_think_count": 0,
+    "reasoning_tail": "Need to write 1000 lines. That's enormous but must be done. Line i: `row_i = \"a\\b \"q\" </fake>`",
+    "content_tail": "",
+    "raw_line_count": 27542,
+    "saw_done": true,
+    "temperature": "server-default",
+    "elapsed_seconds": 354.666
+  },
+  {
+    "tag": "1000-line-stream-default-r02",
+    "case": "1000-line",
+    "finish": "stop",
+    "eos_reason": null,
+    "stop_str": null,
+    "passed": false,
+    "calls": [],
+    "content_len": 12,
+    "reasoning_len": 795,
+    "completion_tokens": 202,
+    "usage": {
+      "prompt_tokens": 240,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "prompt_time": 0.84,
+      "prompt_tokens_per_sec": 285.71,
+      "completion_tokens": 202,
+      "completion_tokens_details": {
+        "accepted_prediction_tokens": 0,
+        "rejected_prediction_tokens": 0
+      },
+      "completion_time": 3.05,
+      "completion_tokens_per_sec": 66.19,
+      "total_tokens": 442,
+      "total_time": 3.89
+    },
+    "reasoning_think_count": 0,
+    "reasoning_close_think_count": 0,
+    "reasoning_tail": " 30k chars total. That's a lot but acceptable? It would blow context. Better: use write_file with content generated... but content must be literal. 30k characters is manageable-ish. But tokens: ~10k tokens. That's borderline.\n\nAlternative: interpret as needing to write the file; I could write a script? User explicitly said no loop. But 1000 lines literal — I could comply. Let me estimate: line i is `row_i = \"a\\\\b \\\"q\\\" </fake> \trow_i = \"a\\b \\\"q\\\" </fake> \tx.draw(empty_axes=None)\t\t\t\t␀</arg_value>",
+    "content_tail": "</tool_call>",
+    "raw_line_count": 402,
+    "saw_done": true,
+    "temperature": "server-default",
+    "elapsed_seconds": 3.904
+  }
+]

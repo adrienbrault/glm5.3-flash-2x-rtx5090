@@ -1,0 +1,4 @@
+{"phase": "c1-decode", "kind": "edit", "run": 0, "tokens": 1024, "tps": 49.52409994772437, "ttft_s": 2.5656359989661723, "finish_reason": "length", "accepted": 499, "rejected": 26, "accept_rate": 0.9504761904761905}
+{"phase": "c1-decode", "kind": "code", "run": 0, "tokens": 1024, "tps": 50.87782828169889, "ttft_s": 0.5889189429581165, "finish_reason": "length", "accepted": 476, "rejected": 72, "accept_rate": 0.8686131386861314}
+{"phase": "c1-decode", "kind": "edit", "run": 1, "tokens": 1024, "tps": 46.700823970051545, "ttft_s": 1.8604834699071944, "finish_reason": "length", "accepted": 437, "rejected": 150, "accept_rate": 0.7444633730834753}
+{"phase": "c1-decode", "kind": "code", "run": 1, "tokens": 1024, "tps": 51.10765602665977, "ttft_s": 0.535652334918268, "finish_reason": "length", "accepted": 468, "rejected": 88, "accept_rate": 0.841726618705036}

@@ -1,0 +1,2 @@
+GPU lock held; results /srv/qwen5090/results/2026-10-07-r868-glm53-agent-debug-031155
+SERVING on :8029: N=96 MTP off, plain image

@@ -1,0 +1,55 @@
+{
+  "tag": "1000-line-stream-zero-r01",
+  "case": "1000-line",
+  "finish": "tool_calls",
+  "eos_reason": null,
+  "stop_str": null,
+  "passed": true,
+  "calls": [
+    {
+      "index": 0,
+      "tool": "write_file",
+      "args_len": 56932,
+      "args_json_ok": true,
+      "args_json_error": null,
+      "body_len": 47893,
+      "line_count": 1000,
+      "exact_body": true,
+      "byte_diff": null,
+      "first_mismatch_line": null,
+      "path": "/tmp/long.py",
+      "think_count": 1000,
+      "close_think_count": 1000,
+      "args_head": "{\"content\": \"row_1 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> <think>x</think>\\\"\\nrow_2 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> <think>x</think>\\\"\\nrow_3 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> <think>x</think>\\\"\\nrow_4 = \\\"a\\\\\\\\b \\\\\\\"q",
+      "args_tail": "\\nrow_998 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> <think>x</think>\\\"\\nrow_999 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> <think>x</think>\\\"\\nrow_1000 = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> <think>x</think>\\\"\\n\", \"path\": \"/tmp/long.py\"}"
+    }
+  ],
+  "content_len": 0,
+  "reasoning_len": 2098,
+  "completion_tokens": 21376,
+  "usage": {
+    "prompt_tokens": 246,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "prompt_time": 0.82,
+    "prompt_tokens_per_sec": 300.0,
+    "completion_tokens": 21376,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    },
+    "completion_time": 549.37,
+    "completion_tokens_per_sec": 38.91,
+    "total_tokens": 21622,
+    "total_time": 550.29
+  },
+  "reasoning_think_count": 7,
+  "reasoning_close_think_count": 7,
+  "reasoning_tail": "ly. Let me generate.\n\nLine format: row_N = \"a\\\\b \\\"q\\\" </fake> <think>x</think>\"\n\nJSON escaping: each `\\` → `\\\\`, each `\"` → `\\\"`. So each line in JSON: row_N = \\\"a\\\\\\\\b \\\\\\\"q\\\\\\\" </fake> <think>x</think>\\\"\n\nThat's very long. I'll write it. Actually, can I reduce? No, must be literal. Let me just produce the content. I'll write it out.\n\nActually, to save effort, I could... no, must comply. Let me produce 1000 lines. This will be a massive output. Proceed.\n\nI'll write the file with lines 1..1000.",
+  "content_tail": "",
+  "raw_line_count": 40718,
+  "saw_done": true,
+  "temperature": 0,
+  "elapsed_seconds": 550.699
+}

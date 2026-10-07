@@ -1,0 +1,9 @@
+GPU lock held; results /srv/qwen5090/results/2026-10-07-r870-glm53-depth-063536
+ladder 3k: prefill 1549 t/s (2.6 s), decode 21.7 t/s
+ladder 8k: prefill 1914 t/s (4.3 s), decode 25.8 t/s
+ladder 16k: prefill 1894 t/s (8.7 s), decode 45.9 t/s
+ladder 32k: prefill 1948 t/s (16.8 s), decode 42.6 t/s
+ladder 64k: prefill 1949 t/s (33.7 s), decode 43.9 t/s
+ladder 128k: prefill 1848 t/s (70.9 s), decode 48.7 t/s
+prof32k 31k: prefill 1917 t/s (17.1 s), decode 21.4 t/s
+SERVING on :8029: N=96 MTP off, plain image

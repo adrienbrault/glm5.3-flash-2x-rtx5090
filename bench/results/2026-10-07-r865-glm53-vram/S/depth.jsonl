@@ -1,0 +1,1 @@
+{"phase": "depth", "target": 32768, "calibrated_tokens": 32774, "prompt_tokens": 32774, "engine_prefill_s": 17.82, "engine_prefill_tps": 1839.1694725028058, "ttft_s": 17.960372004075907, "decode_tokens": 256, "decode_tps": 20.724272863284792, "accept_rate": null, "finish_reason": "length"}

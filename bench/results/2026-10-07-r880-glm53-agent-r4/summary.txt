@@ -1,0 +1,12 @@
+GPU lock held; results /srv/qwen5090/results/2026-10-07-r880-glm53-agent-r4-161049; base OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/r880-tools/split-stats-broad-r869.json
+build r4 rc=0: sha256:a66507713c1dfd47a33d61979f294f1a828e6cead78142671edc8c60912b834e
+A2 TRY: DRAFT=0 OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/r880-tools/split-stats-broad-r869.json GLM_IMG=tabbyapi:r861-glm-agent-r2 AGENT=1
+A2 vision PASS
+A2 toolcheck rc=1: 0 of 16 passed; failed: hard-stream-zero-r01 hard-stream-zero-r02 hard-stream-default-r01 hard-stream-default-r02 think-only-stream-zero-r01 think-only-stream-zero-r02 think-only-stream-default-r01 think-only-stream-default-r02 close-only-stream-zero-r01 close-only-stream-zero-r02 close-only-stream-default-r01 close-only-stream-default-r02 1000-line-stream-zero-r01 1000-line-stream-zero-r02 1000-l
+A2 original-prompt plain probe rc=1: hard-plain-zero-r01 stop eos_reason stop_token stop_str '<|user|>';hard-plain-zero-r02 stop eos_reason stop_token stop_str '<|user|>';think-only-plain-zero-r01 stop eos_reason stop_token stop_str '<|user|>';think-only-plain-zero-r02 tool_calls eos_reason stop_token stop_str '<|observation|>';close-only-plain-zero-r01 tool_calls eos_reason stop_token stop_str '<|observation|>';close-only-plain-zero-r02 tool_calls eos_reason stop_token stop_str '<|observation|>';
+A4 TRY: DRAFT=0 OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/r880-tools/split-stats-broad-r869.json GLM_IMG=tabbyapi:r861-glm-agent-r4 AGENT=1 TAG_TRACE=1
+A4 vision PASS
+A4 toolcheck rc=1: 2 of 16 passed; failed: hard-stream-zero-r01 hard-stream-zero-r02 hard-stream-default-r01 hard-stream-default-r02 think-only-stream-zero-r01 think-only-stream-zero-r02 think-only-stream-default-r01 think-only-stream-default-r02 close-only-stream-zero-r01 close-only-stream-zero-r02 close-only-stream-default-r01 close-only-stream-default-r02 1000-line-stream-zero-r02 1000-line-stream-default-r02
+A4 literal probe rc=0:   "scope": "Real Rust tokenizer with ExLlama-style flag mapping; no ExLlama imports, no weights" } 
+S TRY: DRAFT=0 OFFLOAD_N=96 PLACEMENT=static SPLIT_STATS=/srv/qwen5090/r880-tools/split-stats-broad-r869.json GLM_IMG=tabbyapi:r861-glm-agent-r2 AGENT=1
+SERVING on :8029: static N=96, MTP off, agent overlay tabbyapi:r861-glm-agent-r2, vision on, 256k

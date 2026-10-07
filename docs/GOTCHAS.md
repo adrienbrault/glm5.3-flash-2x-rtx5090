@@ -7,3 +7,5 @@
 **The fit estimate from tensor sizes is short by several GB.** In R858, 80 experts per layer on the CPU (estimated to fit 31 + 31 GiB) and 12 whole MoE layers on the CPU both filled both cards at module 45 of 50 and failed with `Insufficient VRAM in split for model and cache`; 104 experts per layer on the CPU booted with about 2 GB free on one card. Plan the ladder against a smaller budget than the load budget (`PLAN_SPLIT` in `scripts/r858-glm53-audition.sh`).
 
 **Concurrency adds little aggregate throughput with CPU-side experts.** Four streams route to about four times as many distinct experts per layer, and the CPU side does not batch them: R858 measured 49.5 tok/s at c1 and 68.6 tok/s summed over four streams.
+
+**Tool calls arrive as plain text.** GLM-5.3 writes `<tool_call>NAME<arg_key>K</arg_key><arg_value>V</arg_value></tool_call>`; TabbyAPI passes it through as `content` unless the model config sets `tool_format: glm4_5`, whose parser reads that layout and returns `tool_calls` with `finish_reason: tool_calls`. Checked 2026-10-07, streamed and not streamed.

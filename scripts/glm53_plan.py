@@ -250,6 +250,9 @@ def config(s):
   output_chunking: true
   vision: true
   vision_offload: false
+  # GLM-5.3 emits <tool_call>NAME<arg_key>K</arg_key><arg_value>V</arg_value></tool_call>; without tool_format
+  # TabbyAPI returns it as plain content (2026-10-07, DeepSeek Harness bring-up). glm4_5 parses that layout.
+  tool_format: glm4_5
   reasoning: true
   reasoning_start_token: <think>
   reasoning_end_token: </think>

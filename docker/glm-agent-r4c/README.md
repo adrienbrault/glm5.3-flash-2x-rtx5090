@@ -1,0 +1,3 @@
+# TabbyAPI GLM agent overlay, revision 4c (candidate, under test)
+
+`tabbyapi:r861-glm-agent-r4c` is `tabbyapi:r861-glm-agent-r4b` (`../glm-agent-r4b/`) with one line added: `import os` in `backends/exllamav3/model.py`. Revision 4b reads `TABBY_GLM_CACHE_VERIFY` through `os.getenv` in `_encode_prompt`, but the module never imported `os`, so every chat request failed with `NameError` and the launcher's warmup aborted the boot in R881d (`bench/results/r881d-glm53-agent-r4b.md`). The Dockerfile asserts that the import is absent before the edit, present after it, and that the file still parses. Round R881e measures it; its result is pending.

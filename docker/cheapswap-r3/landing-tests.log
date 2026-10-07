@@ -1,0 +1,7 @@
+patching file 'model/moe_cpu_host.py'
+patching file 'model/moe_exchange.py'
+patching file 'model/moe_score.py'
+patching file 'modules/block_sparse_mlp.py'
+patching file 'modules/block_sparse_mlp_cpu.py'
+Landing PASS: exact files, syntax, default opt-in gating, score defaults and inverse profile map; GPU tests remain separate.
+PASS: untouched pristine files, r2 transaction/host byte identity, all packet syntax, complete unique grid and selected winner.

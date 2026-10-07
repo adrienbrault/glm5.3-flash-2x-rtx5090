@@ -1,0 +1,16 @@
+{
+  "fixed_ms": 14.128555273066379,
+  "legacy_effective_ms_per_swap": 32.45270502285278,
+  "d2h_gbs_assumed": 28.8,
+  "expert_mb": 6.33,
+  "exposure": 0.38571720319860764,
+  "exposed_ms_per_pick": 0.05049388841872681,
+  "static_training_fit_picks": 33.55316039459262,
+  "profile_fixed_ms": 5.11687162186249,
+  "profile_legacy_ms": 39.13235488321201,
+  "sweep_overhead_ms_assumed": 10.0,
+  "sync_ms_assumed": 1.0,
+  "launch_ms_assumed": 0.08,
+  "vram_gbs_assumed": 600.0,
+  "ddr_gbs": 60.0
+}

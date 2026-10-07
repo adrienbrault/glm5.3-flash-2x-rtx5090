@@ -1,0 +1,1059 @@
+--- a/endpoints/OAI/router.py
++++ b/endpoints/OAI/router.py
+@@ -2,7 +2,7 @@
+ from asyncio import CancelledError, InvalidStateError
+ 
+ from fastapi import APIRouter, Depends, HTTPException, Request
+-from sse_starlette import EventSourceResponse
++from endpoints.OAI.utils.sse_keepalive import keepalive_response
+ 
+ from common import model
+ from common.auth import check_api_key
+@@ -96,8 +96,9 @@
+         if data.stream and not config.developer.disable_request_streaming:
+             # flan tokenize-offloop r2: the check encodes the prompt; a long one off the event loop
+             await run_tokenize(prompt_chars(prompt), model.check_context_length, prompt, data)
+-            return EventSourceResponse(
++            return keepalive_response(
+                 stream_generate_completion(prompt, data, request, model_path, disconnect_handler),
++                disconnect_handler,
+                 ping=get_sse_ping_interval(),
+             )
+         else:
+@@ -160,10 +161,11 @@
+         if data.stream and not config.developer.disable_request_streaming:
+             # flan tokenize-offloop r2: the check encodes the prompt; a long one off the event loop
+             await run_tokenize(prompt_chars(prompt), model.check_context_length, prompt, data, mm_embeddings)
+-            return EventSourceResponse(
++            return keepalive_response(
+                 stream_generate_chat_completion(
+                     prompt, mm_embeddings, data, request, model_path, disconnect_handler
+                 ),
++                disconnect_handler,
+                 ping=get_sse_ping_interval(),
+             )
+         else:
+--- a/endpoints/OAI/types/chat_completion.py
++++ b/endpoints/OAI/types/chat_completion.py
+@@ -38,6 +38,8 @@
+     role: str = "user"
+     content: Optional[Union[str, List[ChatCompletionMessagePart]]] = None
+     reasoning_content: Optional[str] = None
++    # Accepted for clients that echo TensorFold-style reasoning; never serialized.
++    reasoning: Optional[object] = Field(default=None, exclude=True)
+     tool_calls: Optional[List[ToolCall]] = None
+     tool_call_id: Optional[str] = None
+ 
+--- a/endpoints/OAI/utils/chat_completion.py
++++ b/endpoints/OAI/utils/chat_completion.py
+@@ -39,6 +39,12 @@
+     HarmonyStreamParser,
+     TagStreamParser,
+ )
++from endpoints.OAI.utils.toolcall_formats.glm4_5_stream import (
++    GLMToolCallStream,
++    stream_toolcalls_enabled,
++)
++from endpoints.OAI.utils.sse_keepalive import keepalive_seconds
++from endpoints.OAI.utils import glm_tool_fixes as glm_fixes
+ from endpoints.OAI.utils.tools import (
+     get_toolcall_tags,
+     parse_toolcalls,
+@@ -337,7 +343,13 @@
+             # Convert the message content into a concatenated string
+             message.content = concatenated_content
+ 
+-        message_dicts.append(message.model_dump(exclude_none=True))
++        message_dict = message.model_dump(exclude_none=True)
++        if glm_fixes.enabled(getattr(model.container, "tool_format", None)) and getattr(message, "reasoning", None) is not None:
++            message_dict["reasoning"] = message.reasoning
++        message_dicts.append(message_dict)
++
++    if glm_fixes.enabled(getattr(model.container, "tool_format", None)):
++        glm_fixes.prepare_history(message_dicts, model.container)
+ 
+     # Pre-template: convert tool_call arguments from JSON strings to dicts.
+     # OpenAI-compatible clients (Kilo, Roo, etc.) send arguments as JSON
+@@ -510,7 +522,8 @@
+     validate_tool_choice(data)
+ 
+     # Locally store tools dict
+-    tools = data.model_dump()["tools"]
++    tools = (glm_fixes.active_tools(data) if glm_fixes.enabled(getattr(model.container, "tool_format", None))
++             else data.model_dump()["tools"])
+ 
+     try:
+         data.template_vars = resolve_template_vars(data, model.container)
+@@ -532,6 +545,9 @@
+             data.messages, data.template_vars
+         )
+ 
++        if glm_fixes.enabled(getattr(model.container, "tool_format", None)):
++            prompt = glm_fixes.thinking_prompt(prompt, data)
++
+         if continued_message_text is not None:
+             prompt = _cut_prompt_at_continue_tag(prompt, continued_message_text)
+ 
+@@ -579,6 +595,7 @@
+     text: str,
+     tool_format: str,
+     label: str,
++    params=None,
+ ) -> list:
+     """
+     Parse collected tool calls and convert to OAI format.
+@@ -588,7 +605,14 @@
+     deltas, which we don't do here.)
+     """
+ 
+-    parsed = parse_toolcalls(text, tool_format)
++    if glm_fixes.enabled(tool_format) and params is not None:
++        from endpoints.OAI.utils.toolcall_formats.glm4_5 import parse_toolcalls as parse_glm
++        tools, limit = glm_fixes.active_tools(params), glm_fixes.call_limit(params)
++        validation = GLMToolCallStream(tools, limit)
++        validation.feed(text, final=True)
++        parsed = [] if validation.invalid or validation.unfinished else parse_glm(text, tools, limit)
++    else:
++        parsed = parse_toolcalls(text, tool_format)
+     for tc_idx, p in enumerate(parsed):
+         p.index = tc_idx
+     dumped = [p.model_dump(mode="json") for p in parsed]
+@@ -684,8 +708,8 @@
+     choice.
+ 
+     In streaming mode, emits chunks of text to be emitted as deltas to the client, divided into
+-    reasoning/content/tool phases. Tool calls are parsed together at the end of stream, so the
+-    last chunk contains all tool calls collected for the turn.
++    reasoning/content/tool phases. Tool calls are parsed together at the end by default.
++    The optional GLM live parser emits append-only deltas during generation.
+ 
+     In non-streaming mode, collects everything with the same logic but then emits a single
+     response packet at the end, to be combined with any other choices (for n>1 requests) and
+@@ -723,7 +747,16 @@
+             tool_end=t_tool_end if use_tool else None,
+             start_in_reasoning=start_in_reasoning_mode,
+             tool_calls_in_reasoning=mc.tool_calls_in_reasoning,
++            preserve_tool_reasoning_tags=glm_fixes.enabled(tool_format),
++            recover_tool_prefix=(glm_fixes.enabled(tool_format)
++                                 or stream_toolcalls_enabled(tool_format, streaming_mode)),
+         )
++
++    fixes_on = glm_fixes.enabled(tool_format)
++    live_tools = None
++    if stream_toolcalls_enabled(tool_format, streaming_mode):
++        live_tools = (GLMToolCallStream(glm_fixes.active_tools(params), glm_fixes.call_limit(params))
++                      if fixes_on else GLMToolCallStream())
+ 
+     # Reasoning budget: when the reasoning phase exceeds the budget, force
+     # end-of-reasoning tokens into the output stream so the model answers
+@@ -858,6 +891,7 @@
+ 
+             delta_reasoning = ""
+             delta_content = ""
++            tool_fragments = []
+             for channel, sub in events:
+                 if channel == REASONING:
+                     delta_reasoning += sub
+@@ -867,6 +901,13 @@
+                     full_content += sub
+                 else:
+                     full_tool += sub
++                    if live_tools is not None:
++                        tool_fragments.append(sub)
++
++            delta_tools = (
++                live_tools.feed("".join(tool_fragments), final=bool(finish_reason))
++                if live_tools is not None else []
++            )
+ 
+             # Count reasoning tokens and force the end of the reasoning phase
+             # when the budget is exhausted. Attribution is approximate: a
+@@ -933,15 +974,40 @@
+                         collected_logprobs = []
+                 generation["delta_reasoning_content"] = delta_reasoning
+                 generation["delta_content"] = delta_content
+-                generation["delta_tool_calls"] = ""
++                generation["delta_tool_calls"] = delta_tools if live_tools is not None else ""
++                completed_calls = []
+                 if finish_reason and full_tool:
+-                    generation["delta_tool_calls"] = _parse_tool_calls(
+-                        full_tool, tool_format, label
+-                    )
+-                    _finish_with_tool_calls(generation, generation["delta_tool_calls"], label)
++                    if live_tools is None:
++                        generation["delta_tool_calls"] = _parse_tool_calls(
++                            full_tool, tool_format, label, params
++                        )
++                        completed_calls = generation["delta_tool_calls"]
++                        if fixes_on and not completed_calls:
++                            generation["delta_content"] += full_tool
++                            full_content += full_tool
++                    else:
++                        completed_calls = live_tools.calls
++                        if live_tools.invalid or live_tools.unfinished or not completed_calls:
++                            # Append-only prefixes cannot be retracted. The entire
++                            # live turn falls back to raw tool-channel content;
++                            # no successful tool finish or reasoning-cache entry.
++                            completed_calls = []
++                            generation["delta_content"] += full_tool
++                            full_content += full_tool
++                            generation["finish_reason"] = (
++                                "length" if generation.get("finish_reason") == "length"
++                                or generation.get("eos_reason") == "max_new_tokens" else "stop"
++                            )
++                    if (live_tools is None and not fixes_on) or completed_calls:
++                        _finish_with_tool_calls(generation, completed_calls, label)
++                    if fixes_on:
++                        glm_fixes.remember(mc, params, full_content, completed_calls, full_reasoning)
+                 if forcing is not None and finish_reason:
+                     check_forced_tool_calls(
+-                        forcing, generation, generation["delta_tool_calls"], label
++                        forcing,
++                        generation,
++                        completed_calls if live_tools is not None else generation["delta_tool_calls"],
++                        label,
+                     )
+                 await gen_queue.put(generation)
+ 
+@@ -956,11 +1022,15 @@
+                 generation["logprob_response"] = ChatCompletionLogprobs(content=collected_logprobs)
+             generation["reasoning_content"] = full_reasoning
+             generation["content"] = full_content if has_content else None
+-            generation["tool_calls"] = _parse_tool_calls(full_tool, tool_format, label)
+-            if full_tool:
++            generation["tool_calls"] = _parse_tool_calls(full_tool, tool_format, label, params)
++            if fixes_on and full_tool and not generation["tool_calls"]:
++                generation["content"] = full_content + full_tool
++            if full_tool and (generation["tool_calls"] or not fixes_on):
+                 _finish_with_tool_calls(generation, generation["tool_calls"], label)
+             if forcing is not None:
+                 check_forced_tool_calls(forcing, generation, generation["tool_calls"], label)
++            if fixes_on:
++                glm_fixes.remember(mc, params, full_content, generation["tool_calls"], full_reasoning)
+             return generation
+ 
+     except Exception as e:
+@@ -1078,6 +1148,10 @@
+         yield get_generator_error("Chat completion aborted. Please check the server console.")
+ 
+     finally:
++        if keepalive_seconds() is not None:
++            for task in gen_tasks:
++                task.cancel()
++            await asyncio.gather(*gen_tasks, return_exceptions=True)
+         await disconnect_handler.cleanup()
+ 
+ 
+--- a/endpoints/OAI/utils/completion.py
++++ b/endpoints/OAI/utils/completion.py
+@@ -5,6 +5,7 @@
+ """
+ 
+ import asyncio
++from endpoints.OAI.utils.sse_keepalive import keepalive_seconds
+ import json
+ import pathlib
+ from asyncio import CancelledError
+@@ -358,6 +359,10 @@
+         yield get_generator_error("Completion aborted. Please check the server console.")
+ 
+     finally:
++        if keepalive_seconds() is not None:
++            for task in gen_tasks:
++                task.cancel()
++            await asyncio.gather(*gen_tasks, return_exceptions=True)
+         await disconnect_handler.cleanup()
+ 
+ 
+--- /dev/null
++++ b/endpoints/OAI/utils/glm_tool_fixes.py
+@@ -0,0 +1,193 @@
++"""Opt-in GLM history/choice/typing fixes. See the overlay's THIRD_PARTY.md.
++
++Reasoning memory and union typing are adapted from TensorFold Spark patch 0620
++(Apache-2.0). Memory belongs to the loaded model container, not a global app.
++"""
++
++import hashlib
++import json
++import math
++import os
++from collections import OrderedDict
++
++
++def enabled(tool_format):
++    return tool_format == "glm4_5" and os.getenv("TABBY_GLM_TOOL_FIXES") == "1"
++
++
++def forcing_enabled(tool_format):
++    return enabled(tool_format) and os.getenv("TABBY_GLM_FORCING") == "1"
++
++
++_JSON_TYPES = {str: "string", bool: "boolean", int: "integer", float: "number",
++               list: "array", dict: "object", type(None): "null"}
++
++
++def schema_types(schema):
++    if not isinstance(schema, dict):
++        return None
++    kind = schema.get("type")
++    if isinstance(kind, str):
++        return {kind}
++    if isinstance(kind, list) and kind and all(isinstance(k, str) for k in kind):
++        return set(kind)
++    for key in ("anyOf", "oneOf"):
++        members = schema.get(key)
++        if isinstance(members, list) and members:
++            types = [schema_types(member) for member in members]
++            return None if any(t is None for t in types) else set().union(*types)
++    values = schema.get("enum") or ([schema["const"]] if "const" in schema else None)
++    if isinstance(values, list) and values:
++        return {_JSON_TYPES.get(type(v)) for v in values}
++    return None
++
++
++def typed_value(raw, schema):
++    types = schema_types(schema)
++    if types and "string" in types:
++        return None if "null" in types and raw.strip() == "null" else raw
++    try:
++        value = json.loads(raw)
++        if types and isinstance(value, str):
++            value = json.loads(value)
++        if isinstance(value, float):
++            if not math.isfinite(value):
++                return raw  # JSON disallows NaN and infinity
++            if types and "integer" in types and "number" not in types and value.is_integer():
++                value = int(value)
++        kind = _JSON_TYPES.get(type(value))
++        if types is None or kind in types or (kind == "integer" and "number" in types):
++            return value
++    except (ValueError, TypeError):
++        pass
++    return raw.strip() if types is None else raw
++
++
++def properties(tools, name):
++    for tool in tools or []:
++        fn = tool.get("function", tool)
++        if fn.get("name") == name:
++            return (fn.get("parameters") or {}).get("properties") or {}
++    return {}
++
++
++def active_tools(data):
++    tools = data.model_dump()["tools"] or []
++    if data.tool_choice == "none":
++        return []
++    name = getattr(getattr(data.tool_choice, "function", None), "name", None)
++    return [t for t in tools if t["function"]["name"] == name] if name else tools
++
++
++def call_limit(data):
++    named = getattr(getattr(data.tool_choice, "function", None), "name", None)
++    return 1 if named or data.parallel_tool_calls is False else None
++
++
++def canonical_messages(messages):
++    """Full visible prefix; canonical args and positions allow client-renumbered ids.
++
++    This intentionally ignores reasoning (which clients may omit), but retains
++    system/user messages, earlier calls and results. Identical visible prefixes
++    from separate conversations remain ambiguous without a conversation id.
++    """
++    result = []
++    for message in messages:
++        m = {k: v for k, v in message.items()
++             if k not in ("reasoning", "reasoning_content", "tool_call_id")}
++        m["content"] = m.get("content") or ""
++        if m.get("tool_calls"):
++            calls = []
++            for call in m["tool_calls"]:
++                fn = dict(call["function"])
++                args = fn.get("arguments")
++                if isinstance(args, str):
++                    try:
++                        args = json.loads(args) if args.strip() else {}
++                    except ValueError:
++                        pass
++                fn["arguments"] = args
++                calls.append({"function": fn})
++            m["tool_calls"] = calls
++        result.append(m)
++    return result
++
++
++def history_key(messages):
++    raw = json.dumps(canonical_messages(messages), sort_keys=True, ensure_ascii=False, separators=(",", ":"))
++    return hashlib.sha256(raw.encode("utf-8", "surrogatepass")).hexdigest()
++
++
++class ReasoningMemory:
++    """256 replies / 8 MiB UTF-8 LRU; exact full-prefix matching, per model."""
++
++    def __init__(self, entries=256, byte_limit=8 << 20):
++        self.entries, self.byte_limit = entries, byte_limit
++        self.items = OrderedDict()
++        self.size = 0
++
++    def put(self, key, reasoning):
++        size = len(reasoning.encode("utf-8", "surrogatepass"))
++        if not reasoning or size > self.byte_limit or self.entries <= 0:
++            return
++        old = self.items.pop(key, None)
++        if old:
++            self.size -= old[1]
++        self.items[key] = (reasoning, size)
++        self.size += size
++        while self.size > self.byte_limit or len(self.items) > self.entries:
++            _, (_, removed) = self.items.popitem(last=False)
++            self.size -= removed
++
++    def get(self, key):
++        entry = self.items.get(key)
++        if entry is not None:
++            self.items.move_to_end(key)
++            return entry[0]
++        return None
++
++
++def memory(mc):
++    if not hasattr(mc, "_glm_tool_reasoning"):
++        mc._glm_tool_reasoning = ReasoningMemory()
++    return mc._glm_tool_reasoning
++
++
++def prepare_history(messages, mc):
++    for i, message in enumerate(messages):
++        if message.get("content") is None:
++            message["content"] = ""
++        if message.get("role") != "assistant":
++            continue
++        if not isinstance(message.get("reasoning_content"), str) and isinstance(message.get("reasoning"), str):
++            message["reasoning_content"] = message["reasoning"]
++        for call in message.get("tool_calls") or []:
++            fn = call["function"]
++            if fn.get("arguments") is None or (isinstance(fn.get("arguments"), str) and not fn["arguments"].strip()):
++                fn["arguments"] = {}
++        if (message.get("tool_calls") and not isinstance(message.get("reasoning_content"), str)
++                and "</think>" not in message["content"]):
++            kept = memory(mc).get(history_key(messages[:i + 1]))
++            if kept is not None:
++                message["reasoning_content"] = kept
++        # GLM's template tests only ID presence, then drops unmatched results.
++        # A missing ID selects its lossless in-order fallback for the whole run.
++        ids = {c.get("id") for c in message.get("tool_calls") or []}
++        for result in messages[i + 1:]:
++            if result.get("role") != "tool":
++                break
++            if result.get("tool_call_id") not in ids:
++                result.pop("tool_call_id", None)
++
++
++def remember(mc, data, content, calls, reasoning):
++    if calls and reasoning:
++        history = [m.model_dump(exclude_none=True) for m in data.messages]
++        history.append({"role": "assistant", "content": content or "", "tool_calls": calls})
++        memory(mc).put(history_key(history), reasoning)
++
++
++def thinking_prompt(prompt, data):
++    if data.template_vars.get("enable_thinking") is False and data.add_generation_prompt and prompt.endswith("<think>"):
++        return prompt + "</think>"
++    return prompt
+--- /dev/null
++++ b/endpoints/OAI/utils/sse_keepalive.py
+@@ -0,0 +1,103 @@
++"""Idle SSE comments, serialized through the same sender as data frames."""
++
++import asyncio
++import math
++import os
++import sys
++from contextlib import nullcontext
++from time import monotonic
++
++
++def keepalive_seconds():
++    raw = os.getenv("TABBY_SSE_KEEPALIVE_S", "")
++    if not raw or raw == "0":
++        return None
++    try:
++        seconds = float(raw)
++    except ValueError as exc:
++        raise ValueError("TABBY_SSE_KEEPALIVE_S must be finite and positive (or 0/off)") from exc
++    if not math.isfinite(seconds) or seconds <= 0:
++        raise ValueError("TABBY_SSE_KEEPALIVE_S must be finite and positive (or 0/off)")
++    return seconds
++
++
++async def idle_comments(
++    source, seconds, disconnect_handler, *, clock=monotonic, wait=asyncio.wait,
++    cleanup_scope=nullcontext,
++):
++    """Never cancel an anext on timeout: that would abort model generation."""
++    iterator = source.__aiter__()
++    pending = None
++    disconnected = asyncio.create_task(disconnect_handler.abort_event.wait())
++    last_write = clock()
++    try:
++        while not disconnect_handler.disconnected:
++            if pending is None:
++                pending = asyncio.ensure_future(iterator.__anext__())
++            done, _ = await wait(
++                {pending, disconnected},
++                timeout=max(0.0, seconds - (clock() - last_write)),
++                return_when=asyncio.FIRST_COMPLETED,
++            )
++            if disconnected in done or disconnect_handler.disconnected:
++                return
++            if pending in done:
++                try:
++                    frame = pending.result()
++                except StopAsyncIteration:
++                    return
++                pending = None
++                yield frame
++                last_write = clock()  # resumed only after the frame's ASGI send
++                if frame == "[DONE]":
++                    return
++            else:
++                # bytes bypass EventSourceResponse's data-field encoding.
++                yield b": keepalive\n\n"
++                last_write = clock()
++    finally:
++        # EventSourceResponse uses AnyIO cancellation scopes. Shield cleanup
++        # from their repeated cancellation at each await after a disconnect.
++        with cleanup_scope():
++            tasks = [task for task in (pending, disconnected) if task is not None]
++            for task in tasks:
++                task.cancel()
++            await asyncio.gather(*tasks, return_exceptions=True)
++            try:
++                await iterator.aclose()
++            finally:
++                await disconnect_handler.cleanup()
++
++
++def keepalive_response(source, disconnect_handler, ping):
++    from sse_starlette import EventSourceResponse
++
++    seconds = keepalive_seconds()
++    if seconds is None:
++        # Preserve the original response and its configured pings byte for byte.
++        return EventSourceResponse(source, ping=ping)
++    # Disable the independent periodic pinger. All comments/data use one
++    # async iterator, so neither can interleave or race with [DONE].
++    from anyio import CancelScope  # already required by sse-starlette
++
++    class ClosingEventSourceResponse(EventSourceResponse):
++        async def __call__(self, scope, receive, send):
++            try:
++                await super().__call__(scope, receive, send)
++            finally:
++                # The superclass has joined its sending/listening tasks now.
++                # A disconnect during send leaves the iterator at yield, so
++                # its own finally cannot run until the response closes it.
++                with CancelScope(shield=True):
++                    try:
++                        await self.body_iterator.aclose()
++                    finally:
++                        await disconnect_handler.cleanup()
++
++    return ClosingEventSourceResponse(
++        idle_comments(
++            source, seconds, disconnect_handler,
++            cleanup_scope=lambda: CancelScope(shield=True),
++        ),
++        ping=sys.maxsize,
++    )
+--- a/endpoints/OAI/utils/stream_parser.py
++++ b/endpoints/OAI/utils/stream_parser.py
+@@ -54,12 +54,16 @@
+         tool_end: Optional[str] = None,
+         start_in_reasoning: bool = False,
+         tool_calls_in_reasoning: bool = True,
++        preserve_tool_reasoning_tags: bool = False,
++        recover_tool_prefix: bool = False,
+     ):
+         self.reasoning_start = reasoning_start
+         self.reasoning_end = reasoning_end
+         self.tool_start = tool_start
+         self.tool_end = tool_end
+         self.tool_calls_in_reasoning = tool_calls_in_reasoning
++        self.preserve_tool_reasoning_tags = preserve_tool_reasoning_tags
++        self.recover_tool_prefix = recover_tool_prefix
+ 
+         self.in_reasoning = start_in_reasoning
+         self.in_tool = False
+@@ -116,7 +120,15 @@
+         """Flush held text at the end of generation. Held whitespace is dropped."""
+ 
+         events = []
+-        self._route(self._pending, events)
++        if (self.recover_tool_prefix and self._pending and self.tool_start
++                and self.tool_start.startswith(self._pending)
++                and not any(t and t.startswith(self._pending)
++                            for t in (self.reasoning_start, self.reasoning_end))):
++            # A distinct unfinished tool opener is part of an invalid turn,
++            # even when no call header could yet be announced.
++            events.append((TOOL, self._pending))
++        else:
++            self._route(self._pending, events)
+         self._pending = ""
+         return _merge_events(events)
+ 
+@@ -151,6 +163,11 @@
+         text; reasoning tags are consumed. No nesting is expected, except tool
+         calls may occur inside reasoning content.
+         """
++
++        if (self.in_tool and self.preserve_tool_reasoning_tags
++                and tag in (self.reasoning_start, self.reasoning_end)):
++            events.append((TOOL, tag))
++            return
+ 
+         if not self.in_tool:
+             if tag == self.reasoning_start:
+--- a/endpoints/OAI/utils/tool_choice.py
++++ b/endpoints/OAI/utils/tool_choice.py
+@@ -39,6 +39,7 @@
+ from common.networking import handle_request_error
+ from endpoints.OAI.types.tools import NamedToolChoice, ToolSpec
+ from endpoints.OAI.utils.toolcall_formats import qwen3_coder
++from endpoints.OAI.utils import glm_tool_fixes as glm_fixes
+ from endpoints.OAI.utils.tools import ALL_TOOLCALL_FORMATS, get_toolcall_tags
+ 
+ # Default cap on reasoning tokens before a required/named tool call is forced
+@@ -146,7 +147,8 @@
+ def supports_forcing(tool_format: Optional[str]) -> bool:
+     """Tool formats with a grammar builder."""
+ 
+-    return bool(tool_format) and ALL_TOOLCALL_FORMATS.get(tool_format) is qwen3_coder
++    return (glm_fixes.forcing_enabled(tool_format)
++            or (bool(tool_format) and ALL_TOOLCALL_FORMATS.get(tool_format) is qwen3_coder))
+ 
+ 
+ def _lark_string(text: str) -> str:
+@@ -270,6 +272,38 @@
+     return grammar
+ 
+ 
++def build_glm_grammar(forcing, tools, tool_start, tool_end, single_id, outer_ws=True,
++                      content_max_tokens=0):
++    """GLM XML grammar: constrain the function name and call count, not value schemas."""
++    names = [tool.function.name for tool in tools]
++    names = [name for name in names if _PARSEABLE_NAME.fullmatch(name)]
++    if forcing.name:
++        names = [name for name in names if name == forcing.name]
++    if not names or any("::=" in name for name in names):
++        return None
++    start = _tag_literal(tool_start, single_id)
++    lead, trail = (" WS? ", " WS?") if outer_ws else (" ", "")
++    content = content_max_tokens > 0 and start.startswith("<[")
++    calls = "call" if forcing.single_call else "call (WS? call)*"
++    lines = [f"start:{lead}{'content? ' if content else ''}{calls}{trail}" +
++             (f" |{lead}content" if content else "")]
++    if content:
++        lines.append(f"content[max_tokens={int(content_max_tokens)}]: " + r"/(?s:[^ \t\r\n].*)/")
++    lines.append(f"call: {start} WS? (" + " | ".join(_lark_string(n) for n in names) +
++                 f") WS? (param WS?)* {_tag_literal(tool_end, single_id)}")
++    ak, ake, av, ave = [_tag_literal(t, single_id) for t in
++                        ("<arg_key>", "</arg_key>", "<arg_value>", "</arg_value>")]
++    # A special closing tag terminates a free ordinary-token lexeme; otherwise
++    # include the literal closing tag in a lazy lexeme, as the Qwen builder does.
++    key = "key " + ake if ake.startswith("<[") else "key"
++    value = "value " + ave if ave.startswith("<[") else "value"
++    lines.append(f"param: {ak} {key} WS? {av} {value}")
++    lines.append("key: /[^<>]+/" if ake.startswith("<[") else r"key[lazy]: /[^<>]+<\/arg_key>/")
++    lines.append("value: /(?s:.*)/" if ave.startswith("<[") else r"value[lazy]: /(?s:.*)<\/arg_value>/")
++    lines.append(r"WS: /[ \t\r\n]{1," + str(_MAX_WS) + "}/")
++    return "\n".join(lines) + "\n"
++
++
+ def prepare_tool_choice_forcing(
+     data,
+     tool_format: Optional[str],
+@@ -296,7 +330,8 @@
+         return None
+ 
+     content_max_tokens = resolve_content_max_tokens()
+-    forcing.grammar = build_qwen3_coder_grammar(
++    builder = build_glm_grammar if glm_fixes.enabled(tool_format) else build_qwen3_coder_grammar
++    forcing.grammar = builder(
+         forcing,
+         data.tools or [],
+         tool_start,
+@@ -308,10 +343,12 @@
+     if forcing.grammar is not None and "content" in forcing.grammar.split("\n", 1)[0]:
+         # The continuation prompt ends with the content and the template's
+         # separator, so the call starts at once
+-        forcing.call_grammar = build_qwen3_coder_grammar(
++        forcing.call_grammar = builder(
+             forcing, data.tools or [], tool_start, tool_end, single_id, outer_ws=False
+         )
+     if forcing.grammar is None:
++        if glm_fixes.enabled(tool_format):
++            raise _request_error("Cannot build a GLM tool_choice grammar for these function names.")
+         xlogger.warning(
+             f"{label}: no tool call grammar could be built for tool_choice "
+             f"{forcing.mode} (tool names the parser cannot read back); the request "
+--- a/endpoints/OAI/utils/toolcall_formats/glm4_5.py
++++ b/endpoints/OAI/utils/toolcall_formats/glm4_5.py
+@@ -1,6 +1,7 @@
+ import re
+ import json
+ from itertools import zip_longest
++from endpoints.OAI.utils import glm_tool_fixes as glm_fixes
+ from common.logger import xlogger
+ from endpoints.OAI.types.tools import ToolCall, Tool
+ from endpoints.OAI.utils.toolcall_formats.common import coerce_param_value
+@@ -33,9 +34,11 @@
+ _FUNC_NAME = re.compile(r"^(.*?)(?=<arg_key>|$)", re.DOTALL)
+ _ARG_KEY = re.compile(r"<arg_key>(.*?)</arg_key>", re.DOTALL)
+ _ARG_VALUE = re.compile(r"<arg_value>(.*?)</arg_value>", re.DOTALL)
++_PAIRS = re.compile(r"\s*<arg_key>(.*?)</arg_key>\s*<arg_value>(.*?)</arg_value>", re.DOTALL)
+ 
+ 
+-def parse_toolcalls(text: str) -> list[ToolCall]:
++def parse_toolcalls(text: str, tools=None, max_calls=None) -> list[ToolCall]:
++    fixes_on = glm_fixes.enabled("glm4_5") and tools is not None
+     outer_matches = list(_OUTER.finditer(text))
+ 
+     results = []
+@@ -50,13 +53,32 @@
+         if not func_name:
+             continue
+ 
++        if fixes_on:
++            names = {t.get("function", t).get("name") for t in tools}
++            if func_name not in names or (max_calls is not None and len(results) >= max_calls):
++                continue
++
+         # Extract interleaved key/value pairs
+         keys = [m.group(1).strip() for m in _ARG_KEY.finditer(inner)]
+-        values = [m.group(1).strip() for m in _ARG_VALUE.finditer(inner)]
++        values = [m.group(1) if fixes_on else m.group(1).strip() for m in _ARG_VALUE.finditer(inner)]
+ 
++        if fixes_on:
++            body = inner[name_match.end():]
++            pairs = list(_PAIRS.finditer(body))
++            cursor = 0
++            valid = True
++            for pair in pairs:
++                if pair.start() != cursor:
++                    valid = False
++                cursor = pair.end()
++            if not valid or body[cursor:].strip():
++                continue
++        if fixes_on and (len(keys) != len(values) or len(set(keys)) != len(keys) or any(not k for k in keys)):
++            continue
++        schema = glm_fixes.properties(tools, func_name) if fixes_on else {}
+         args: dict[str, any] = {}
+         for key, val in zip_longest(keys, values):
+-            args[key] = coerce_param_value(val)
++            args[key] = glm_fixes.typed_value(val, schema.get(key)) if fixes_on else coerce_param_value(val)
+ 
+         args_json = json.dumps(args, ensure_ascii=False)
+         results.append(ToolCall(function=Tool(name=func_name, arguments=args_json)))
+--- /dev/null
++++ b/endpoints/OAI/utils/toolcall_formats/glm4_5_stream.py
+@@ -0,0 +1,298 @@
++"""Append-only GLM deltas. Plain strings stream; JSON candidates wait for closure."""
++
++import json
++import os
++
++from endpoints.OAI.types.tools import ToolCall, Tool
++from endpoints.OAI.utils import glm_tool_fixes as glm_fixes
++from endpoints.OAI.utils.toolcall_formats.common import coerce_param_value
++from endpoints.OAI.utils.toolcall_formats.glm4_5 import parse_toolcalls
++
++
++def stream_toolcalls_enabled(tool_format, streaming_mode):
++    return streaming_mode and tool_format == "glm4_5" and os.getenv("TABBY_STREAM_TOOLCALLS") == "1"
++
++
++class _Fields:
++    """Independent non-nested regex-equivalent tag scanner, with bounded tag holdback."""
++
++    def __init__(self, start, end):
++        self.start, self.end = start, end
++        self.inside = False
++        self.pending = ""
++
++    def feed(self, text):
++        self.pending += text
++        events = []
++        while self.pending:
++            token = self.end if self.inside else self.start
++            pos = self.pending.find(token)
++            if pos >= 0:
++                if self.inside and pos:
++                    events.append(("text", self.pending[:pos]))
++                self.pending = self.pending[pos + len(token):]
++                events.append(("end" if self.inside else "start", ""))
++                self.inside = not self.inside
++                continue
++            hold = 0
++            for size in range(min(len(token) - 1, len(self.pending)), 0, -1):
++                if token.startswith(self.pending[-size:]):
++                    hold = size
++                    break
++            safe = len(self.pending) - hold
++            if self.inside and safe:
++                events.append(("text", self.pending[:safe]))
++            self.pending = self.pending[safe:]
++            break
++        return events
++
++
++class _Value:
++    def __init__(self):
++        self.parts = []
++        self.closed = False
++        self.first = None
++        self.plain = False
++        self.literal = None
++        self.literal_pos = 0
++
++    def add(self, text):
++        self.parts.append(text)
++        if self.first is None:
++            text = text.lstrip()
++            if not text:
++                return
++            self.first = text[0]
++            # Include Python json.loads' NaN/Infinity extensions. No schema
++            # overrides this: the served parser always attempts json.loads.
++            self.plain = self.first not in '{["-0123456789tfnNI'
++            self.literal = {
++                "t": "true", "f": "false", "n": "null", "N": "NaN", "I": "Infinity"
++            }.get(self.first)
++        if self.literal and not self.plain:
++            for char in text:
++                if self.literal_pos < len(self.literal):
++                    if char != self.literal[self.literal_pos]:
++                        self.plain = True
++                        break
++                    self.literal_pos += 1
++                elif not char.isspace():
++                    self.plain = True
++                    break
++
++
++class _Block:
++    def __init__(self, owner):
++        self.owner = owner
++        self.parts = []
++        self.name_pending = ""
++        self.name = None
++        self.call = None
++        self.keys = []
++        self.key_parts = []
++        self.key_scan = _Fields("<arg_key>", "</arg_key>")
++        self.value_scan = _Fields("<arg_value>", "</arg_value>")
++        self.values = []
++        self.emitted = 0
++        self.active = False
++        self.leading = True
++        self.whitespace = ""
++        self.arguments_started = False
++        self.emitted_args = {}
++        self.duplicate = False
++
++    def _header(self, name):
++        self.name = name.strip()
++        if not self.name:
++            return
++        if self.owner.fixes_on:
++            names = {t.get("function", t).get("name") for t in self.owner.tools}
++            if self.name not in names or (self.owner.max_calls is not None and self.owner.next_index >= self.owner.max_calls):
++                return
++        self.call = ToolCall(function=Tool(name=self.name, arguments=""))
++        self.call.index = self.owner.next_index
++        self.owner.next_index += 1
++        self.owner.deltas.append({
++            "index": self.call.index, "id": self.call.id, "type": "function",
++            "function": {"name": self.name, "arguments": ""},
++        })
++
++    def _delta(self, text):
++        if text:
++            self.owner.deltas.append({"index": self.call.index, "function": {"arguments": text}})
++
++    def _member(self, key):
++        prefix = ", " if self.arguments_started else "{"
++        self.arguments_started = True
++        return prefix + json.dumps(key, ensure_ascii=False) + ": "
++
++    def _string_text(self, text):
++        if self.owner.fixes_on:
++            self._delta(json.dumps(text, ensure_ascii=False)[1:-1])
++            return
++        if self.leading:
++            text = text.lstrip()
++            if not text:
++                return
++            self.leading = False
++        text = self.whitespace + text
++        stripped = text.rstrip()
++        self.whitespace = text[len(stripped):]
++        self._delta(json.dumps(stripped, ensure_ascii=False)[1:-1])
++
++    def _coerce(self, key, raw):
++        if self.owner.fixes_on:
++            return glm_fixes.typed_value(raw, glm_fixes.properties(self.owner.tools, self.name).get(key))
++        return coerce_param_value(raw)
++
++    def _advance(self):
++        if not self.call or self.duplicate:
++            return
++        while self.emitted < len(self.values) and self.emitted < len(self.keys):
++            value = self.values[self.emitted]
++            key = self.keys[self.emitted]
++            if self.active:
++                if not value.closed:
++                    return
++                self._delta('"')
++                self.active = False
++                self.emitted_args[key] = self._coerce(key, "".join(value.parts))
++                self.emitted += 1
++            elif value.closed:
++                coerced = self._coerce(key, "".join(value.parts))
++                self._delta(self._member(key) + json.dumps(coerced, ensure_ascii=False))
++                self.emitted_args[key] = coerced
++                self.emitted += 1
++            elif value.plain and (not self.owner.fixes_on or "string" in
++                    (glm_fixes.schema_types(glm_fixes.properties(self.owner.tools, self.name).get(key)) or set())):
++                self._delta(self._member(key) + '"')
++                self.active = True
++                self.leading = True
++                self.whitespace = ""
++                self._string_text("".join(value.parts))
++                return
++            else:
++                return
++
++    def feed(self, text):
++        self.parts.append(text)
++        if self.name is None:
++            self.name_pending += text
++            pos = self.name_pending.find("<arg_key>")
++            if pos >= 0:
++                self._header(self.name_pending[:pos])
++                self.name_pending = ""
++        for event, sub in self.key_scan.feed(text):
++            if event == "start":
++                self.key_parts = []
++            elif event == "text":
++                self.key_parts.append(sub)
++            else:
++                key = "".join(self.key_parts).strip()
++                if key in self.keys:
++                    self.duplicate = True
++                    self.owner.invalid = True
++                self.keys.append(key)
++        for event, sub in self.value_scan.feed(text):
++            if event == "start":
++                self.values.append(_Value())
++            elif event == "text":
++                self.values[-1].add(sub)
++                if self.active and self.emitted == len(self.values) - 1:
++                    self._string_text(sub)
++            else:
++                self.values[-1].closed = True
++            self._advance()
++
++    def finish(self):
++        # A truncated value can end in a proper prefix of its closing tag.
++        # Flush that literal text, but never fabricate a value/call terminator.
++        if self.value_scan.inside and self.value_scan.pending:
++            text = self.value_scan.pending
++            self.value_scan.pending = ""
++            self.values[-1].add(text)
++            if self.active and self.emitted == len(self.values) - 1:
++                self._string_text(text)
++            self._advance()
++
++    def close(self):
++        raw = "<tool_call>" + "".join(self.parts) + "</tool_call>"
++        if self.duplicate or self.key_scan.inside or self.value_scan.inside:
++            self.owner.invalid = True
++            return
++        try:
++            parsed = (parse_toolcalls(raw, self.owner.tools) if self.owner.fixes_on
++                      else parse_toolcalls(raw))
++        except Exception:
++            # Missing values make the served parser fail the whole parse. An
++            # already sent header/body is necessarily an incomplete call.
++            self.owner.invalid = True
++            return
++        if not parsed:
++            # A filtered name or excess call was never announced. Malformed
++            # accepted calls must invalidate the turn, including zero-arg bodies.
++            if self.call is not None or (not self.owner.fixes_on and "".join(self.parts).strip()):
++                self.owner.invalid = True
++            return
++        canonical = parsed[0]
++        if self.name is None:
++            self._header(canonical.function.name)
++        if not self.call:
++            return
++        self._advance()
++        if not self.arguments_started:
++            self._delta(canonical.function.arguments)
++        else:
++            # The legacy dict has distinct Python keys None and "null".
++            # JSON serializes both as "null"; decoding canonical JSON here
++            # would collapse them. Extra values map to None (last wins).
++            if len(self.values) > len(self.keys):
++                value = self._coerce(None, "".join(self.values[-1].parts))
++                self._delta(self._member("null") + json.dumps(value, ensure_ascii=False))
++            self._delta("}")
++        self.call.function.arguments = canonical.function.arguments
++        self.owner.calls.append(self.call.model_dump(mode="json"))
++
++
++class GLMToolCallStream:
++    """Consumes TOOL-channel text from TagStreamParser; indices are per choice."""
++
++    def __init__(self, tools=None, max_calls=None):
++        self.tools, self.max_calls = tools, max_calls
++        self.fixes_on = glm_fixes.enabled("glm4_5") and tools is not None
++        self.outer = _Fields("<tool_call>", "</tool_call>")
++        self.block = None
++        self.next_index = 0
++        self.calls = []
++        self.invalid = False
++        self.deltas = []
++
++    @property
++    def unfinished(self):
++        return self.block is not None or bool(self.outer.pending)
++
++    def feed(self, text, final=False):
++        self.deltas = []
++        for event, sub in self.outer.feed(text):
++            if event == "start":
++                self.block = _Block(self)
++            elif event == "text":
++                self.block.feed(sub)
++            else:
++                self.block.close()
++                self.block = None
++        if final and self.block is not None:
++            if self.outer.pending:
++                self.block.feed(self.outer.pending)
++                self.outer.pending = ""
++            self.block.finish()
++        # A backend chunk can span several parser events. Emit at most one
++        # entry per index in a frame, as OpenAI clients expect.
++        merged = {}
++        for delta in self.deltas:
++            index = delta["index"]
++            if index not in merged:
++                merged[index] = delta
++            else:
++                merged[index]["function"]["arguments"] += delta["function"]["arguments"]
++        return list(merged.values())

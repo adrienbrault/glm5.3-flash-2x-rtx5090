@@ -1,0 +1,15 @@
+--- a/backends/exllamav3/model.py
++++ b/backends/exllamav3/model.py
+@@ -1647,6 +1647,12 @@
+                     yield generation
+ 
+                 if result.get("eos"):
++                    if __import__('os').getenv('TABBY_GLM_TAG_TRACE') == '1':
++                        fields = {k: result.get(k) for k in (
++                            'eos_reason', 'eos_triggering_token_id', 'eos_triggering_token_str',
++                            'eos_triggering_string', 'new_tokens')}
++                        fields.update(request_id=request_id, effective_stops=stop_conditions)
++                        xlogger.info('[GLM-TAG-R4-A2-EOS] ' + __import__('json').dumps(fields, default=str))
+                     xlogger.debug("EOS result received from generator", result)
+                     finish_chunk = self.handle_finish_chunk(
+                         result, request_id, full_response, label

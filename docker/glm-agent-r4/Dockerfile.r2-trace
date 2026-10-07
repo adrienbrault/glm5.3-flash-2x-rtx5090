@@ -1,0 +1,6 @@
+# Optional diagnostic baseline: same r2 behavior, only an opt-in EOS log added.
+FROM tabbyapi:r861-glm-agent-r2
+COPY r2-eos-probe.patch /opt/r2-eos-probe.patch
+RUN patch -p1 --fuzz=0 --forward --batch --dry-run -d /app < /opt/r2-eos-probe.patch \
+    && patch -p1 --fuzz=0 --forward --batch --no-backup-if-mismatch -d /app < /opt/r2-eos-probe.patch \
+    && python3 -c "import ast,pathlib; s=pathlib.Path('/app/backends/exllamav3/model.py').read_text(); ast.parse(s); assert '[GLM-TAG-R4-A2-EOS]' in s"

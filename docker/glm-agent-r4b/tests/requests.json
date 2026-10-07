@@ -1,0 +1,613 @@
+{
+  "null_history": {
+    "model": "GLM-5.3-Flash",
+    "messages": [
+      {
+        "role": "user",
+        "content": "go"
+      },
+      {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "a",
+            "type": "function",
+            "function": {
+              "name": "f",
+              "arguments": "{}"
+            }
+          }
+        ]
+      },
+      {
+        "role": "tool",
+        "tool_call_id": "a",
+        "content": "done"
+      }
+    ],
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "f",
+          "description": "Test tool",
+          "parameters": {
+            "type": "object",
+            "properties": {}
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "g",
+          "description": "Test tool",
+          "parameters": {
+            "type": "object",
+            "properties": {}
+          }
+        }
+      }
+    ],
+    "max_tokens": 128
+  },
+  "reasoning_first": {
+    "model": "GLM-5.3-Flash",
+    "messages": [
+      {
+        "role": "user",
+        "content": "go"
+      }
+    ],
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "f",
+          "description": "Test tool",
+          "parameters": {
+            "type": "object",
+            "properties": {}
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "g",
+          "description": "Test tool",
+          "parameters": {
+            "type": "object",
+            "properties": {}
+          }
+        }
+      }
+    ],
+    "max_tokens": 128,
+    "reasoning_effort": "low",
+    "enable_thinking": true,
+    "tool_choice": {
+      "type": "function",
+      "function": {
+        "name": "f"
+      }
+    }
+  },
+  "reasoning_omitted": {
+    "model": "GLM-5.3-Flash",
+    "messages": [
+      {
+        "role": "user",
+        "content": "go"
+      },
+      {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "a",
+            "type": "function",
+            "function": {
+              "name": "f",
+              "arguments": "{}"
+            }
+          }
+        ]
+      },
+      {
+        "role": "tool",
+        "tool_call_id": "a",
+        "content": "done"
+      }
+    ],
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "f",
+          "description": "Test tool",
+          "parameters": {
+            "type": "object",
+            "properties": {}
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "g",
+          "description": "Test tool",
+          "parameters": {
+            "type": "object",
+            "properties": {}
+          }
+        }
+      }
+    ],
+    "max_tokens": 128
+  },
+  "choice_none": {
+    "model": "GLM-5.3-Flash",
+    "messages": [
+      {
+        "role": "user",
+        "content": "go"
+      }
+    ],
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "f",
+          "description": "Test tool",
+          "parameters": {
+            "type": "object",
+            "properties": {}
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "g",
+          "description": "Test tool",
+          "parameters": {
+            "type": "object",
+            "properties": {}
+          }
+        }
+      }
+    ],
+    "max_tokens": 128,
+    "tool_choice": "none"
+  },
+  "choice_named": {
+    "model": "GLM-5.3-Flash",
+    "messages": [
+      {
+        "role": "user",
+        "content": "go"
+      }
+    ],
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "f",
+          "description": "Test tool",
+          "parameters": {
+            "type": "object",
+            "properties": {}
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "g",
+          "description": "Test tool",
+          "parameters": {
+            "type": "object",
+            "properties": {}
+          }
+        }
+      }
+    ],
+    "max_tokens": 128,
+    "tool_choice": {
+      "type": "function",
+      "function": {
+        "name": "f"
+      }
+    }
+  },
+  "choice_required": {
+    "model": "GLM-5.3-Flash",
+    "messages": [
+      {
+        "role": "user",
+        "content": "go"
+      }
+    ],
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "f",
+          "description": "Test tool",
+          "parameters": {
+            "type": "object",
+            "properties": {}
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "g",
+          "description": "Test tool",
+          "parameters": {
+            "type": "object",
+            "properties": {}
+          }
+        }
+      }
+    ],
+    "max_tokens": 128,
+    "tool_choice": "required"
+  },
+  "parallel_false": {
+    "model": "GLM-5.3-Flash",
+    "messages": [
+      {
+        "role": "user",
+        "content": "go"
+      }
+    ],
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "f",
+          "description": "Test tool",
+          "parameters": {
+            "type": "object",
+            "properties": {}
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "g",
+          "description": "Test tool",
+          "parameters": {
+            "type": "object",
+            "properties": {}
+          }
+        }
+      }
+    ],
+    "max_tokens": 128,
+    "tool_choice": "auto",
+    "parallel_tool_calls": false
+  },
+  "typed_values": {
+    "model": "GLM-5.3-Flash",
+    "messages": [
+      {
+        "role": "user",
+        "content": "go"
+      }
+    ],
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "f",
+          "description": "Test tool",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "s": {
+                "type": "string"
+              },
+              "i": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "n": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "b": {
+                "oneOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ],
+    "max_tokens": 128
+  },
+  "unclosed_think": {
+    "model": "GLM-5.3-Flash",
+    "messages": [
+      {
+        "role": "user",
+        "content": "go"
+      }
+    ],
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "f",
+          "description": "Test tool",
+          "parameters": {
+            "type": "object",
+            "properties": {}
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "g",
+          "description": "Test tool",
+          "parameters": {
+            "type": "object",
+            "properties": {}
+          }
+        }
+      }
+    ],
+    "max_tokens": 128,
+    "enable_thinking": true
+  },
+  "thinking_off": {
+    "model": "GLM-5.3-Flash",
+    "messages": [
+      {
+        "role": "user",
+        "content": "go"
+      }
+    ],
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "f",
+          "description": "Test tool",
+          "parameters": {
+            "type": "object",
+            "properties": {}
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "g",
+          "description": "Test tool",
+          "parameters": {
+            "type": "object",
+            "properties": {}
+          }
+        }
+      }
+    ],
+    "max_tokens": 128,
+    "enable_thinking": false
+  },
+  "malformed_calls": {
+    "model": "GLM-5.3-Flash",
+    "messages": [
+      {
+        "role": "user",
+        "content": "go"
+      }
+    ],
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "f",
+          "description": "Test tool",
+          "parameters": {
+            "type": "object",
+            "properties": {}
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "g",
+          "description": "Test tool",
+          "parameters": {
+            "type": "object",
+            "properties": {}
+          }
+        }
+      }
+    ],
+    "max_tokens": 128
+  },
+  "empty_arguments": {
+    "model": "GLM-5.3-Flash",
+    "messages": [
+      {
+        "role": "user",
+        "content": "go"
+      },
+      {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "a",
+            "type": "function",
+            "function": {
+              "name": "f",
+              "arguments": ""
+            }
+          }
+        ]
+      },
+      {
+        "role": "tool",
+        "tool_call_id": "a",
+        "content": "done"
+      }
+    ],
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "f",
+          "description": "Test tool",
+          "parameters": {
+            "type": "object",
+            "properties": {}
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "g",
+          "description": "Test tool",
+          "parameters": {
+            "type": "object",
+            "properties": {}
+          }
+        }
+      }
+    ],
+    "max_tokens": 128
+  },
+  "reasoning_alias": {
+    "model": "GLM-5.3-Flash",
+    "messages": [
+      {
+        "role": "user",
+        "content": "go"
+      },
+      {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "a",
+            "type": "function",
+            "function": {
+              "name": "f",
+              "arguments": "{}"
+            }
+          }
+        ],
+        "reasoning": "plan"
+      },
+      {
+        "role": "tool",
+        "tool_call_id": "a",
+        "content": "done"
+      }
+    ],
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "f",
+          "description": "Test tool",
+          "parameters": {
+            "type": "object",
+            "properties": {}
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "g",
+          "description": "Test tool",
+          "parameters": {
+            "type": "object",
+            "properties": {}
+          }
+        }
+      }
+    ],
+    "max_tokens": 128
+  },
+  "unknown_result": {
+    "model": "GLM-5.3-Flash",
+    "messages": [
+      {
+        "role": "user",
+        "content": "go"
+      },
+      {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "a",
+            "type": "function",
+            "function": {
+              "name": "f",
+              "arguments": "{}"
+            }
+          }
+        ]
+      },
+      {
+        "role": "tool",
+        "tool_call_id": "unknown",
+        "content": "B"
+      }
+    ],
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "f",
+          "description": "Test tool",
+          "parameters": {
+            "type": "object",
+            "properties": {}
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "g",
+          "description": "Test tool",
+          "parameters": {
+            "type": "object",
+            "properties": {}
+          }
+        }
+      }
+    ],
+    "max_tokens": 128
+  }
+}

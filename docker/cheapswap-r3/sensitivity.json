@@ -1,0 +1,137 @@
+[
+  {
+    "fence_ms": 0.1,
+    "d2h_gbs": 10.0,
+    "selected_mean_tps": 57.89936967511997,
+    "reselected_policy": {
+      "k": 8,
+      "H": 512,
+      "wp": 8.0,
+      "wb": 256.0,
+      "M": 32,
+      "rho": 2.0,
+      "init": "static"
+    },
+    "reselected_mean_tps": 58.16854020425389
+  },
+  {
+    "fence_ms": 0.1,
+    "d2h_gbs": 20.0,
+    "selected_mean_tps": 58.72574117051341,
+    "reselected_policy": {
+      "k": 8,
+      "H": 512,
+      "wp": 32.0,
+      "wb": 256.0,
+      "M": 32,
+      "rho": 2.0,
+      "init": "static"
+    },
+    "reselected_mean_tps": 59.13249179367811
+  },
+  {
+    "fence_ms": 0.1,
+    "d2h_gbs": 28.8,
+    "selected_mean_tps": 58.9829692104132,
+    "reselected_policy": {
+      "k": 8,
+      "H": 512,
+      "wp": 32.0,
+      "wb": 256.0,
+      "M": 32,
+      "rho": 2.0,
+      "init": "static"
+    },
+    "reselected_mean_tps": 59.43592837605753
+  },
+  {
+    "fence_ms": 10.0,
+    "d2h_gbs": 10.0,
+    "selected_mean_tps": 56.88173226535145,
+    "reselected_policy": {
+      "k": 32,
+      "H": 512,
+      "wp": 32.0,
+      "wb": 256.0,
+      "M": 32,
+      "rho": 2.0,
+      "init": "static"
+    },
+    "reselected_mean_tps": 56.88173226535145
+  },
+  {
+    "fence_ms": 10.0,
+    "d2h_gbs": 20.0,
+    "selected_mean_tps": 57.679110479618906,
+    "reselected_policy": {
+      "k": 32,
+      "H": 512,
+      "wp": 32.0,
+      "wb": 256.0,
+      "M": 32,
+      "rho": 2.0,
+      "init": "static"
+    },
+    "reselected_mean_tps": 57.679110479618906
+  },
+  {
+    "fence_ms": 10.0,
+    "d2h_gbs": 28.8,
+    "selected_mean_tps": 57.92723204576479,
+    "reselected_policy": {
+      "k": 32,
+      "H": 512,
+      "wp": 32.0,
+      "wb": 256.0,
+      "M": 32,
+      "rho": 2.0,
+      "init": "static"
+    },
+    "reselected_mean_tps": 57.92723204576479
+  },
+  {
+    "fence_ms": 50.0,
+    "d2h_gbs": 10.0,
+    "selected_mean_tps": 53.11017090642494,
+    "reselected_policy": {
+      "k": 32,
+      "H": 512,
+      "wp": 32.0,
+      "wb": 256.0,
+      "M": 32,
+      "rho": 2.0,
+      "init": "static"
+    },
+    "reselected_mean_tps": 53.11017090642494
+  },
+  {
+    "fence_ms": 50.0,
+    "d2h_gbs": 20.0,
+    "selected_mean_tps": 53.80466848779012,
+    "reselected_policy": {
+      "k": 32,
+      "H": 512,
+      "wp": 32.0,
+      "wb": 256.0,
+      "M": 32,
+      "rho": 2.0,
+      "init": "static"
+    },
+    "reselected_mean_tps": 53.80466848779012
+  },
+  {
+    "fence_ms": 50.0,
+    "d2h_gbs": 28.8,
+    "selected_mean_tps": 54.02051345789012,
+    "reselected_policy": {
+      "k": 32,
+      "H": 512,
+      "wp": 32.0,
+      "wb": 256.0,
+      "M": 32,
+      "rho": 2.0,
+      "init": "static"
+    },
+    "reselected_mean_tps": 54.02051345789012
+  }
+]

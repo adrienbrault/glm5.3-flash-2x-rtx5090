@@ -1,0 +1,13 @@
+{
+  "reasoning_first": "plan</think><tool_call>f</tool_call>",
+  "parallel_false": "<tool_call>f</tool_call><tool_call>g</tool_call>",
+  "choice_named": "<tool_call>g</tool_call>",
+  "typed_values": "<tool_call>f<arg_key>s</arg_key><arg_value>123</arg_value><arg_key>i</arg_key><arg_value>null</arg_value><arg_key>n</arg_key><arg_value>\"5\"</arg_value><arg_key>b</arg_key><arg_value>true</arg_value></tool_call>",
+  "unclosed_think": "plan<tool_call>f</tool_call>",
+  "malformed_calls": [
+    "<tool_call>f</tool_call><tool_call>g<arg_key>x</arg_key></tool_call>",
+    "<tool_call>f<arg_value>x</arg_value></tool_call>",
+    "<tool_call>f<arg_key>x</tool_call>"
+  ],
+  "truncated": "<tool_call>f<arg_key>x</arg_key><arg_value>unfinished"
+}

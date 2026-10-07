@@ -1,0 +1,43 @@
+test_allocation_failure_precedes_writes (test_cpu.ExchangeTests.test_allocation_failure_precedes_writes) ... ok
+test_fences_old_producers_and_real_prefill_state (test_cpu.ExchangeTests.test_fences_old_producers_and_real_prefill_state) ... ok
+test_legacy_checkpoint_body_preserved (test_cpu.ExchangeTests.test_legacy_checkpoint_body_preserved) ... ok
+test_mismatch_is_atomic (test_cpu.ExchangeTests.test_mismatch_is_atomic) ... ok
+test_real_exchange_routine_with_cpu_tensor_double (test_cpu.ExchangeTests.test_real_exchange_routine_with_cpu_tensor_double) ... ok
+test_native_band_roundtrip_all_quant_widths (test_cpu.LayoutTests.test_native_band_roundtrip_all_quant_widths) ... ok
+test_opt_in_only (test_cpu.LayoutTests.test_opt_in_only) ... ok
+test_rejects_shape_and_dtype_mismatch (test_cpu.LayoutTests.test_rejects_shape_and_dtype_mismatch) ... ok
+test_dma_both_directions_and_contention (test_cpu.ReplayTests.test_dma_both_directions_and_contention) ... ok
+test_exact_cadence_and_layer_budget (test_cpu.ReplayTests.test_exact_cadence_and_layer_budget) ... ok
+test_heldout_does_not_change_training (test_cpu.ReplayTests.test_heldout_does_not_change_training) ... ok
+test_no_swap_counts (test_cpu.ReplayTests.test_no_swap_counts) ... ok
+test_later_layer_failure_poisons_previously_committed_host (test_review.AdditionalFailureTests.test_later_layer_failure_poisons_previously_committed_host) ... ok
+test_undrainable_transfer_retains_scratch_and_operands (test_review.AdditionalFailureTests.test_undrainable_transfer_retains_scratch_and_operands) ... ok
+test_worker_death_is_not_a_successful_reader_fence (test_review.AdditionalFailureTests.test_worker_death_is_not_a_successful_reader_fence) ... ok
+test_unfolded_resident_and_streamed_scale_rows_refresh_in_place (test_review.CacheTests.test_unfolded_resident_and_streamed_scale_rows_refresh_in_place) ... ok
+test_bad_descriptors_reject_before_views_are_written (test_review.DescriptorTests.test_bad_descriptors_reject_before_views_are_written) ... ok
+test_chunk_edges_padding_aux_spill_and_bias_absence (test_review.DescriptorTests.test_chunk_edges_padding_aux_spill_and_bias_absence) ... ok
+test_entire_legacy_modules_match_after_disabled_flag_specialization (test_review.OffPathTests.test_entire_legacy_modules_match_after_disabled_flag_specialization) ... ok
+test_every_supplied_grid_price_and_training_choice (test_review.StoredModelTests.test_every_supplied_grid_price_and_training_choice) ... ok
+test_abort_during_fence_is_rejected_before_exchange (test_review.SweepTests.test_abort_during_fence_is_rejected_before_exchange) ... ok
+test_aborted_worker_is_rejected_before_exchange (test_review.SweepTests.test_aborted_worker_is_rejected_before_exchange) ... ok
+test_capturing_defers_without_reset_or_fence (test_review.SweepTests.test_capturing_defers_without_reset_or_fence) ... ok
+test_poisoned_host_cannot_retry_a_sweep (test_review.SweepTests.test_poisoned_host_cannot_retry_a_sweep) ... ok
+test_publish_and_commit_failures_poison_entire_sweep (test_review.SweepTests.test_publish_and_commit_failures_poison_entire_sweep) ... ok
+test_success_commits_before_return_without_poison (test_review.SweepTests.test_success_commits_before_return_without_poison) ... ok
+test_enqueue_failure_drains_side_stream_before_releasing_scratch (test_review.TransferFailureTests.test_enqueue_failure_drains_side_stream_before_releasing_scratch) ... ok
+test_admission_threshold_ties_and_zero_churn (test_score.PolicyTests.test_admission_threshold_ties_and_zero_churn) ... ok
+test_exchange_transaction_and_host_identical_to_r2 (test_score.PolicyTests.test_exchange_transaction_and_host_identical_to_r2) ... ok
+test_expired_prompt_is_ignored (test_score.PolicyTests.test_expired_prompt_is_ignored) ... ok
+test_inline_sweep_retains_prompt_and_queue_drain_expires_it (test_score.PolicyTests.test_inline_sweep_retains_prompt_and_queue_drain_expires_it) ... ok
+test_invalid_inputs_are_rejected (test_score.PolicyTests.test_invalid_inputs_are_rejected) ... ok
+test_prefill_chunk_accumulation_and_replacement (test_score.PolicyTests.test_prefill_chunk_accumulation_and_replacement) ... ok
+test_profile_map_and_prior_keep_original_router_ids (test_score.PolicyTests.test_profile_map_and_prior_keep_original_router_ids) ... ok
+test_real_submission_decays_decode_and_redirects_prefill_counts (test_score.PolicyTests.test_real_submission_decays_decode_and_redirects_prefill_counts) ... ok
+test_real_sweep_publication_failure_poisoned (test_score.PolicyTests.test_real_sweep_publication_failure_poisoned) ... ok
+test_unload_releases_score_vectors_and_registry (test_score.PolicyTests.test_unload_releases_score_vectors_and_registry) ... ok
+test_real_selection_plus_r2_global_sweep_matches_independent_simulator (test_score.RealTraceReplayTests.test_real_selection_plus_r2_global_sweep_matches_independent_simulator) ... ok
+
+----------------------------------------------------------------------
+Ran 38 tests in 0.530s
+
+OK

@@ -1,0 +1,704 @@
+--- a/model/moe_cpu_host.py
++++ b/model/moe_cpu_host.py
+@@ -1,5 +1,7 @@
+ from __future__ import annotations
+ import os
++
++_exchange_mode = os.environ.get("EXL3_MOE_CPU_SWAP_MODE", "checkpoint") == "exchange"
+ import multiprocessing
+ from multiprocessing import shared_memory
+ import numpy as np
+@@ -465,7 +467,16 @@
+                     pass
+                 # The ack carries the expert block locations (only meaningful to a parent that
+                 # maps the arena)
+-                conn.send(("ok", blocks if pinned else None))
++                if _exchange_mode:
++                    from .moe_exchange import arena_descriptor
++                    def descriptor(t):
++                        return arena_descriptor(t,arena.chunks)
++                    exchange = [[tuple(descriptor(t) for t in proj[e])
++                                 for proj in ([g] if g else []) + [u, d]]
++                                for e in range(len(u))]
++                    conn.send(("ok", blocks, exchange, swz))
++                else:
++                    conn.send(("ok", blocks if pinned else None))
+             elif msg[0] == "start":
+                 shm_name, layout = msg[1], msg[2]
+                 break
+@@ -607,6 +618,11 @@
+         # chunks (mmap, int16 view) indexed like the worker's chunk list, and per layer the
+         # per-expert (chunk, byte offset) of its contiguous [gate | up | down] trellis block
+         self.pinned = TUNING.pinned_arena
++        if _exchange_mode:
++            if not self.pinned:
++                raise RuntimeError("exchange requires EXL3_MOE_PINNED_ARENA=1")
++            self.exchange_views = []
++            self.exchange_swizzled = None
+         self.arena_maps = []
+         self.arena_views = []
+         self.layer_blocks = []
+@@ -639,6 +655,13 @@
+             if msg[0] == "ok":
+                 # Layer acks arrive in registration order: entry i describes specs[i]
+                 self.layer_blocks.append(msg[1] if len(msg) > 1 else None)
++                if _exchange_mode:
++                    if len(msg) != 4:
++                        raise RuntimeError("exchange worker descriptor acknowledgment missing")
++                    self.exchange_views.append(msg[2])
++                    if self.exchange_swizzled is not None and self.exchange_swizzled != msg[3]:
++                        raise RuntimeError("exchange worker layout changed during load")
++                    self.exchange_swizzled = msg[3]
+                 self.acked += 1
+             elif msg[0] == "chunk":
+                 self._attach_chunk(msg[1], msg[2], msg[3])
+@@ -902,6 +925,9 @@
+         threading.Thread(target = wd, daemon = True).start()
+ 
+     def begin_pass(self):
++        if _exchange_mode:
++            from .moe_exchange import require_healthy
++            require_healthy(self)
+         if not self.started:
+             self.ensure_started()
+         if not self.started:
+@@ -1719,6 +1745,8 @@
+                 pass
+         self.arena_views = []
+         self.layer_blocks = []
++        if _exchange_mode:
++            self.exchange_views = []
+         maps, self.arena_maps = self.arena_maps, []
+         if maps:
+             import gc
+--- /dev/null
++++ b/model/moe_exchange.py
+@@ -0,0 +1,279 @@
++"""Opt-in, in-place CPU/GPU expert exchange. No checkpoint access or native ABI changes."""
++import os
++
++# Only populated if CUDA itself refuses to drain an interrupted transfer. Retaining the
++# tensor exporters prevents scratch reuse/unmapping until the operator restarts the process.
++_failed_transfers = []
++
++
++def poison(host):
++    host.exchange_failed = True
++    abort = getattr(host, "v_abort", None)
++    if abort is not None:
++        abort[0] = 1
++
++
++def require_healthy(host):
++    if getattr(host, "exchange_failed", False):
++        raise RuntimeError("previous expert exchange failed; reload model")
++    abort = getattr(host, "v_abort", None)
++    if abort is not None and int(abort[0]):
++        raise RuntimeError("CPU MoE worker aborted; reload model")
++    proc = getattr(host, "proc", None)
++    if proc is not None and not proc.is_alive():
++        raise RuntimeError("CPU MoE worker died; reload model")
++
++
++def enabled():
++    return os.environ.get("EXL3_MOE_CPU_SWAP_MODE", "checkpoint") == "exchange"
++
++
++def native_view(t, swizzled):
++    """View physical band order as native logical tiles; K8 is never swizzled."""
++    if not swizzled or t.shape[2] // 16 == 8:
++        return t
++    tk, tn, ps = t.shape
++    return t.view(tn // 8, tk, 8, ps).permute(1, 0, 2, 3).reshape(t.shape)
++
++
++def band_view(t, swizzled):
++    if not swizzled or t.shape[2] // 16 == 8:
++        return t
++    tk, tn, ps = t.shape
++    return t.view(tk, tn // 8, 8, ps).permute(1, 0, 2, 3).reshape(t.shape)
++
++
++def compatible(gpu, host):
++    return gpu is not None and host is not None and gpu.shape == host.shape and gpu.dtype == host.dtype
++
++
++def exchange_tensors(pairs, stream, swizzled=False, verify=False):
++    """pairs=(GPU tensor, shared arena tensor, is_trellis, optional GPU aux mirror).
++
++    Caller fences all previous readers of this layer and forbids new submissions until return.
++    GPU scratch only: no permanent duplicate host expert. All arena DMA operands contiguous.
++    Return after D2H completion, so raw worker pointers immediately see committed bytes.
++    A failure is fatal: caller must not continue inference with a partly exchanged expert.
++    """
++    import torch
++    if not all(compatible(g, h) and g.is_contiguous() and h.is_contiguous()
++               and (mirror is None or compatible(mirror, h)) for g,h,_,mirror in pairs):
++        return False
++    # Preallocate every temporary before the first write; an OOM cannot leave a half swap.
++    scratch = [(torch.empty_like(g), torch.empty_like(g)) for g,_,_,_ in pairs]
++    try:
++        with torch.cuda.stream(stream):
++            for (g,h,tr,mirror),(incoming,outgoing) in zip(pairs,scratch):
++                outgoing.copy_(g)
++                incoming.copy_(h, non_blocking=True)
++                if tr:
++                    tk, tn, ps = g.shape
++                    if swizzled and ps // 16 != 8:
++                        g.view(tk, tn//8, 8, ps).copy_(
++                            incoming.view(tn//8, tk, 8, ps).permute(1,0,2,3))
++                        incoming.view(tn//8, tk, 8, ps).copy_(
++                            outgoing.view(tk, tn//8, 8, ps).permute(1,0,2,3))
++                    else:
++                        g.copy_(incoming)
++                        incoming.copy_(outgoing)
++                else:
++                    g.copy_(incoming)
++                    incoming.copy_(outgoing)
++                if mirror is not None:
++                    mirror.copy_(outgoing)
++                h.copy_(incoming, non_blocking=True)
++            done = torch.cuda.Event()
++            done.record(stream)
++        # Keeps scratch and pinned host mappings alive through both DMA directions.
++        done.synchronize()
++    except BaseException:
++        # Allocations belong to the producer stream, but copies use the side stream.
++        # A failed enqueue must drain that stream before these Python references die.
++        try:
++            stream.synchronize()
++        except BaseException:
++            _failed_transfers.append((stream, pairs, scratch))
++        raise
++    if verify:
++        for (g,h,tr,mirror),(incoming,outgoing) in zip(pairs,scratch):
++            expected = band_view(outgoing,swizzled) if tr else outgoing
++            assert torch.equal(h,expected.cpu()), "demotion bytes differ"
++            if mirror is not None:
++                assert torch.equal(mirror,outgoing), "streamed auxiliary bytes differ"
++    return True
++
++
++def fence_layer(module):
++    """Stream-tail events are the reader references for this layer's fixed-address slots.
++
++    Each recorded stream includes the layer's collect wait/readback. Thus waiting releases
++    all old GPU and worker readers of this layer, without draining other devices' rings.
++    The served engine has one serialized Python inference producer; no work is submitted
++    while this synchronous sweep holds control. Prefill copy streams are fenced too.
++    """
++    import torch
++    streams = dict(getattr(module, "_exchange_read_streams", {}))
++    current = torch.cuda.current_stream(module.device)
++    streams[current.cuda_stream] = current
++    for st in (getattr(module.cpu_host, "sstate", None) or {}).values():
++        s = st.get("copy_stream")
++        if s is not None and s.device == current.device:
++            streams[s.cuda_stream] = s
++    events=[]
++    for s in streams.values():
++        with torch.cuda.device(s.device):
++            e=torch.cuda.Event(); e.record(s); events.append(e)
++    for e in events: e.synchronize()
++
++
++def exchange_experts(module, r_cold, r_hot, mp):
++    import torch
++    host=module.cpu_host
++    require_healthy(host)
++    if not host.pinned:
++        raise RuntimeError("exchange requires EXL3_MOE_PINNED_ARENA=1")
++    slot=int(mp[r_cold]); local=int(mp[r_hot])-module.cpu_split_first
++    desc=host.exchange_views[module.cpu_layer_idx][local]
++    names=(["g"] if module.gated else [])+["u","d"]
++    gpu_lists=([module.gates] if module.gated else [])+[module.ups,module.downs]
++    if len(desc) != len(names):
++        raise RuntimeError("exchange projection descriptor count differs")
++    pairs=[]
++    for name,gs,projection in zip(names,gpu_lists,desc):
++        if len(projection) != 4:
++            raise RuntimeError("exchange field descriptor count differs")
++        live=gs[slot].inner
++        for field,d in zip(("trellis","suh","svh","bias"),projection):
++            g=getattr(live,field,None)
++            if d is None:
++                if g is not None: return False
++                continue
++            h=arena_tensor(host,d)
++            mirror=None
++            if field!='trellis':
++                aux=host.aux.get(module.cpu_layer_idx,{}).get(field+'_'+name)
++                if aux is not None: mirror=aux[local]
++            pairs.append((g,h,field=='trellis',mirror))
++    if os.environ.get("EXL3_MOE_CPU_SWAP_DEBUG"):
++        print(f" -- exchange bytes: layer={module.key} bytes={sum(h.numel()*h.element_size() for _,h,_,_ in pairs)} "
++              f"shapes={[tuple(h.shape) for _,h,tr,_ in pairs if tr]}",flush=True)
++    swz=host.exchange_swizzled
++    stream=getattr(module,"_exchange_copy_stream",None)
++    if stream is None:
++        stream=module._exchange_copy_stream=torch.cuda.Stream(device=module.device)
++    try:
++        if not exchange_tensors(pairs,stream,swz,bool(os.environ.get("EXL3_MOE_CPU_SWAP_VERIFY"))):
++            return False
++        # Unfolded reconstruction owns stacked copies, not pointer tables. Update both
++        # resident and streamed rows in place, before the router map can be published.
++        with torch.cuda.stream(stream):
++            changed=refresh_recon_scales(module,slot,local)
++            if changed:
++                ready=torch.cuda.Event(); ready.record(stream)
++        if changed:
++            ready.synchronize()
++        mp[r_cold],mp[r_hot]=int(mp[r_hot]),slot
++        return True
++    except BaseException:
++        poison(host)
++        try:
++            stream.synchronize()
++        except BaseException:
++            pass
++        raise
++
++
++def arena_descriptor(t, chunks):
++    """Exact actual allocation, including aux tensors spilling into a later chunk."""
++    if t is None:
++        return None
++    import ctypes
++    ptr=t.data_ptr()
++    nbytes=t.numel()*t.element_size()
++    if not t.is_contiguous() or nbytes <= 0:
++        raise RuntimeError("exchange requires a nonempty contiguous arena tensor")
++    for ci,chunk in enumerate(chunks):
++        start=ctypes.addressof(ctypes.c_char.from_buffer(chunk))
++        if start <= ptr and ptr+nbytes <= start+len(chunk):
++            return (ci,ptr-start,tuple(t.shape),str(t.dtype).split(".")[-1])
++    raise RuntimeError("exchange tensor is outside shared arena")
++
++
++def arena_tensor(host, descriptor):
++    import math
++    import torch
++    ci,offset,shape,dtype=descriptor
++    if not isinstance(ci,int) or not 0 <= ci < len(host.arena_views):
++        raise RuntimeError("invalid exchange arena chunk")
++    if dtype not in ("int16","float16"):
++        raise RuntimeError("invalid exchange arena dtype")
++    if not shape or any(not isinstance(x,int) or x <= 0 for x in shape):
++        raise RuntimeError("invalid exchange arena shape")
++    dt=getattr(torch,dtype)
++    raw=host.arena_views[ci].view(torch.uint8)
++    size=2  # all served trellises and auxiliaries are 16-bit
++    nbytes=math.prod(shape)*size
++    if not isinstance(offset,int) or offset < 0 or offset % size or offset+nbytes > raw.numel():
++        raise RuntimeError("invalid exchange arena offset/extent")
++    return raw[offset:offset+nbytes].view(dt).view(shape)
++
++
++def refresh_recon_scales(module, slot, local):
++    """Preserve graph-visible addresses while refreshing the unfolded copied scales."""
++    changed=False
++    resident=getattr(module,"batch_recon",None)
++    if resident and not resident.folded:
++        changed=True
++        for name,ls in (("g",module.gates) if module.gated else (None,None),
++                        ("u",module.ups),("d",module.downs)):
++            if name is None: continue
++            suh,svh=resident.scales[name]
++            suh[slot].copy_(ls[slot].inner.suh)
++            svh[slot].copy_(ls[slot].inner.svh)
++    host=module.cpu_host
++    seen=set()
++    for state in list((getattr(host,"_dev_bufs",None) or {}).values()) + list((getattr(host,"sstate",None) or {}).values()):
++        recon=state.get("recon",{}).get(module.cpu_layer_idx)
++        if recon is None or recon.folded or id(recon) in seen: continue
++        seen.add(id(recon))
++        changed=True
++        aux=host.aux[module.cpu_layer_idx]
++        for name,(suh,svh) in recon.scales.items():
++            suh[local].copy_(aux["suh_"+name][local])
++            svh[local].copy_(aux["svh_"+name][local])
++    return changed
++
++
++def run_sweep(ip, reg):
++    import torch
++    if torch.cuda.is_current_stream_capturing():
++        ip.moe_cpu_swap_pending=True
++        return
++    # Include every affected host: earlier layers may already have committed before a
++    # later layer fails. No retry is allowed against any part of this registry.
++    hosts={id(m.cpu_host):m.cpu_host for m in reg}.values()
++    try:
++        for host in hosts: require_healthy(host)
++        budget=int(os.environ.get("EXL3_MOE_CPU_SWAP_MAX",64))
++        scope=os.environ.get("EXL3_MOE_CPU_SWAP_BUDGET_SCOPE","global")
++        if scope not in ("global","layer"): raise ValueError("swap budget scope must be global or layer")
++        reg[0]._split_sweep_layer_reset()
++        import time
++        started=time.perf_counter(); fence_s=0.; total=0
++        with torch.inference_mode():
++            for m in reg:
++                b=budget if scope=='layer' else budget-total
++                if b<=0: break
++                before=time.perf_counter(); fence_layer(m); fence_s+=time.perf_counter()-before
++                # Timeout/watchdog abort can release GPU waits without worker completion.
++                require_healthy(m.cpu_host)
++                with torch.cuda.device(m.device):
++                    total+=m._split_sweep_layer(b)
++                    committed=torch.cuda.Event(); committed.record(torch.cuda.current_stream(m.device))
++                    committed.synchronize()
++                require_healthy(m.cpu_host)
++        if os.environ.get("EXL3_MOE_CPU_SWAP_DEBUG"):
++            print(f" -- exchange sweep: {total} swaps wall_ms={(time.perf_counter()-started)*1000:.3f} fence_ms={fence_s*1000:.3f}",flush=True)
++    except BaseException:
++        for host in hosts: poison(host)
++        raise
+--- /dev/null
++++ b/model/moe_score.py
+@@ -0,0 +1,109 @@
++"""Opt-in score selection only. No Torch dependency until an actual layer sweep.
++Transaction, reader fencing, payload conversion and poisoning are owned by r2 unchanged.
++All IDs remain in original router/checkpoint order; maps encode physical placement.
++"""
++import math
++import os
++
++
++def settings():
++    policy=os.environ.get('EXL3_MOE_CPU_SWAP_POLICY','histogram')
++    if policy not in ('histogram','score'):
++        raise ValueError('swap policy must be histogram or score')
++    if policy!='score':return None
++    if os.environ.get('EXL3_MOE_CPU_SWAP_CADENCE','exact')!='exact':
++        raise ValueError('score requires exact cadence')
++    if os.environ.get('EXL3_MOE_CPU_SWAP_BUDGET_SCOPE','global')!='global':
++        raise ValueError('score requires a global swap budget')
++    os.environ.setdefault('EXL3_MOE_CPU_SWAP_MAX','32')
++    cfg=dict(k=int(os.environ.get('EXL3_MOE_CPU_SWAP_INTERVAL',32)),
++             H=float(os.environ.get('EXL3_MOE_CPU_SCORE_HALF_LIFE',512)),
++             wp=float(os.environ.get('EXL3_MOE_CPU_SCORE_PREFILL',32)),
++             wb=float(os.environ.get('EXL3_MOE_CPU_SCORE_PRIOR',256)),
++             rho=float(os.environ.get('EXL3_MOE_CPU_SCORE_HYST',2)),
++             M=int(os.environ.get('EXL3_MOE_CPU_SWAP_MAX',32)))
++    if cfg['k']<=0 or cfg['M']<0 or not all(math.isfinite(cfg[x]) for x in ('H','wp','wb','rho')) \
++            or cfg['H']<=0 or cfg['wp']<0 or cfg['wb']<0 or cfg['rho']<=1:
++        raise ValueError('invalid score settings: positive interval/half-life, nonnegative weights/budget, hysteresis >1 required')
++    cfg['decay']=2**(-1/cfg['H'])
++    return cfg
++
++
++def validated_counts(counts,experts):
++    if len(counts)!=experts:raise ValueError('profile expert count differs')
++    out=[float(x) for x in counts]
++    if any(not math.isfinite(x) or x<0 for x in out):raise ValueError('profile counts must be finite and nonnegative')
++    return out
++
++
++def rate(counts,topk):
++    counts=validated_counts(counts,len(counts));mass=sum(counts)
++    return [x*topk/mass for x in counts] if mass else [0.]*len(counts)
++
++
++def initial_map(order):
++    if sorted(order)!=list(range(len(order))):raise ValueError('initial order must be a permutation')
++    mp=[0]*len(order)
++    for slot,expert in enumerate(order):mp[expert]=slot
++    return mp
++
++
++def scores(decode,prompt_counts,prompt_rows,prior,cfg):
++    if not (len(decode)==len(prompt_counts)==len(prior)):raise ValueError('score vector sizes differ')
++    denom=max(prompt_rows,1)
++    if prompt_rows<=0:prompt_counts=[0.]*len(decode)
++    return [float(d)+cfg['wp']*float(p)/denom+cfg['wb']*float(b)
++            for d,p,b in zip(decode,prompt_counts,prior)]
++
++
++def select_pairs(mp,first,score,budget,rho):
++    """Stable served tie order, disjoint pairs, strict improvement prevents zero churn.
++    Global allocation remains registry ordered in r2 run_sweep.
++    """
++    if budget<0 or rho<=1:raise ValueError('invalid score selection budget/hysteresis')
++    if len(score)!=len(mp) or any(not math.isfinite(float(x)) or float(x)<0 for x in score):
++        raise ValueError('invalid score vector')
++    head=sorted((float(score[r]),r) for r in range(len(mp)) if int(mp[r])<first)
++    tail=sorted(((float(score[r]),r) for r in range(len(mp)) if int(mp[r])>=first),reverse=True)
++    out=[]
++    for (cold,a),(hot,b) in zip(head,tail):
++        if len(out)>=budget or hot<=cold or hot<rho*cold:break
++        out.append((a,b))
++    return out
++
++
++def prepare_signal(module,is_prefill,rows):
++    """The presence of params['prefill'] marks LS prefill, including short chunks.
++    Router/map kernels already count uses. Redirect those counts to a separate fixed GPU
++    vector for prefill. No router ID D2H or new histogram/scatter kernel is added.
++    """
++    module._score_is_prefill=bool(is_prefill)
++    if is_prefill:
++        if not module._score_previous_prefill:
++            module._score_prompt_hist.zero_();module._score_prompt_rows=0
++        module._score_prompt_rows+=int(rows)
++        module._score_count_hist=module._score_prompt_hist
++    else:
++        module._score_count_hist=module._split_hist
++    module._score_previous_prefill=bool(is_prefill)
++
++
++def sweep_layer(module,budget):
++    """Called only inside r2's fenced, healthy-worker, fail-closed sweep boundary."""
++    import torch
++    mp=module._split_map.cpu()
++    dec=module._split_hist.cpu().tolist()
++    prompt=module._score_prompt_hist.cpu().tolist()
++    cfg=module._score_settings
++    value=scores(dec,prompt,module._score_prompt_rows,module._split_stats_prior,cfg)
++    pairs=select_pairs(mp,module.cpu_split_first,value,budget,cfg['rho'])
++    n=0
++    for cold,hot in pairs:
++        if module._split_swap_experts(cold,hot,mp):n+=1
++    if n:
++        if os.environ.get('EXL3_MOE_CPU_SWAP_VERIFY'):
++            assert mp.sort().values.equal(torch.arange(module.num_experts)), \
++                f'{module.key}: placement map is not a permutation after sweep'
++        module._split_map.copy_(mp.to(module._split_map.device))
++    # No sweep-based histogram decay: each decode submit multiplies by the H-token decay.
++    return n
+--- a/modules/block_sparse_mlp.py
++++ b/modules/block_sparse_mlp.py
+@@ -12,7 +12,7 @@
+ from .mlp import MLP, GatedMLP
+ from .rmsnorm import RMSNorm
+ from .layernorm import LayerNorm
+-from .block_sparse_mlp_cpu import BlockSparseMLP_CPU
++from .block_sparse_mlp_cpu import BlockSparseMLP_CPU, _score_mode
+ from .moe_batch_recon import PAD_MAX
+ from ..model.model_tp_alloc import TPAllocation
+ from ..util import profile_opt
+@@ -1103,6 +1103,9 @@
+         cpu_partial = None
+         cpu_pending = None
+         if self.cpu_split_first is not None and not params.get("autosplit_measure"):
++            if _score_mode:
++                if getattr(self, "_score_policy", False):
++                    self.cpu_score_prepare(params, bsz)
+             cpu_partial, cpu_pending = self.cpu_split_submit(y, bsz, selected_experts, routing_weights)
+ 
+         if self.cpu_offload:
+--- a/modules/block_sparse_mlp_cpu.py
++++ b/modules/block_sparse_mlp_cpu.py
+@@ -2,6 +2,9 @@
+ from typing_extensions import override
+ import os
+ import torch
++
++_exchange_mode = os.environ.get("EXL3_MOE_CPU_SWAP_MODE", "checkpoint") == "exchange"
++_score_mode = _exchange_mode and os.environ.get("EXL3_MOE_CPU_SWAP_POLICY", "histogram") == "score"
+ from ..ext import exllamav3_ext as ext
+ 
+ # Kernel-fused issue/collect for decode-size split jobs (EXL3_MOE_SPLIT_FUSED=0 restores the
+@@ -56,11 +59,22 @@
+     histogram and the arena slots in place, and those are inference tensors (allocated under
+     inference mode at load), so it must itself run under inference mode: the generator's
+     cancel() and clear_queue() paths reach here outside any forward (issue #329)."""
++    if _score_mode:
++        if not getattr(infer_params, "_score_inline_sweep", False):
++            # Generator queue drained: expire prompt signal, even if no sweep is pending.
++            for m in getattr(infer_params, "moe_cpu_swap_modules", ()):
++                if getattr(m, "_score_policy", False):
++                    m._score_prompt_rows = 0
++                    m._score_previous_prefill = False
+     if not getattr(infer_params, "moe_cpu_swap_pending", False):
+         return
+     infer_params.moe_cpu_swap_pending = False
+     reg = getattr(infer_params, "moe_cpu_swap_modules", None)
+     if not reg:
++        return
++    if _exchange_mode:
++        from ..model.moe_exchange import run_sweep
++        run_sweep(infer_params, reg)
+         return
+     reg[0]._split_sweep_layer_reset()
+     # Quiesce every device holding a split layer, not just the current one: with a
+@@ -180,6 +194,19 @@
+             dev = torch.device(self.device)
+             self._split_map = torch.arange(self.num_experts, dtype = torch.long, device = dev)
+             self._split_hist = torch.zeros(self.num_experts, dtype = torch.float, device = dev)
++            if _exchange_mode:
++                from ..model.moe_score import initial_map, settings
++                order = getattr(self, "_split_initial_order", None)
++                if order is not None:
++                    self._split_map.copy_(torch.tensor(initial_map(order), dtype = torch.long, device = dev))
++                self._score_settings = settings()
++                self._score_policy = self._score_settings is not None
++                if self._score_policy:
++                    self._score_prompt_hist = torch.zeros_like(self._split_hist)
++                    self._score_prompt_rows = 0
++                    self._score_previous_prefill = False
++                    self._score_is_prefill = False
++                    self._score_count_hist = self._split_hist
+             self._split_selcpu_t = None
+             self._swap_tick_count = 0
+             ip2 = self.config.infer_params
+@@ -204,6 +231,13 @@
+                     reg.remove(self)
+                 self._split_map = None
+                 self._split_hist = None
++                if _exchange_mode:
++                    self._score_prompt_hist = None
++                    self._score_count_hist = None
++                    self._score_policy = False
++                    self._score_settings = None
++                    self._split_initial_order = None
++                    self._split_stats_prior = None
+         if self.cpu_offload:
+             host = getattr(self, "cpu_host", None)
+             if host is not None:
+@@ -224,7 +258,25 @@
+         Expert ids ship in the worker's local range with -1 sentinels for GPU-resident
+         picks."""
+         if self._split_map is not None:
+-            self._split_swap_tick()
++            if _exchange_mode:
++                if getattr(self.cpu_host, "exchange_failed", False):
++                    raise RuntimeError("previous expert exchange failed; reload model")
++                # Register every producer stream before tick; collect lands on this stream
++                # before forward returns. Capture itself never performs a sweep.
++                streams = getattr(self, "_exchange_read_streams", None)
++                if streams is None:
++                    streams = self._exchange_read_streams = {}
++                stream = torch.cuda.current_stream(self.device)
++                streams[stream.cuda_stream] = stream
++            if _exchange_mode:
++                if getattr(self, "_score_policy", False):
++                    if not self._score_is_prefill:
++                        self._split_swap_tick()
++                        self._split_hist.mul_(self._score_settings['decay'])
++                else:
++                    self._split_swap_tick()
++            else:
++                self._split_swap_tick()
+         if bsz < self.cpu_host.stream_min_rows:
+             # Fused fast path: one kernel does the map translate + staging writes straight
+             # into the pinned slot, skipping the whole activation payload (and, downstream,
+@@ -234,7 +286,7 @@
+                 call = lambda: self.cpu_host.submit_issue_fused(
+                     self.cpu_layer_idx, y, selected_experts, routing_weights,
+                     self._split_map,
+-                    self._split_hist if self._split_map is not None else None,
++                    (self._score_count_hist if _score_mode else self._split_hist) if self._split_map is not None else None,
+                     self.cpu_split_first)
+                 pending = _sprof_wrap("issue", self.cpu_layer_idx, call) \
+                     if _split_prof else call()
+@@ -246,6 +298,11 @@
+         sel_cpu = self._split_translate(selected_experts)
+         return self.cpu_host.submit_prefill(
+             self.cpu_layer_idx, y, sel_cpu, routing_weights), None
++
++    if _score_mode:
++        def cpu_score_prepare(self, params, rows):
++            from ..model.moe_score import prepare_signal
++            prepare_signal(self, "prefill" in params, rows)
+ 
+     def _split_translate(self, selected_experts):
+         """Copy-path selection translate: dynamic placement runs the map kernel (hit counts,
+@@ -261,7 +318,8 @@
+                 max(n, 64), dtype = torch.long, device = selected_experts.device)
+         sel_cpu = buf[:n].view(selected_experts.shape)
+         ext.moe_split_map(
+-            selected_experts.view(-1), self._split_map, self._split_hist,
++            selected_experts.view(-1), self._split_map,
++            self._score_count_hist if _score_mode else self._split_hist,
+             buf[:n], self.cpu_split_first)
+         return sel_cpu
+ 
+@@ -501,18 +559,36 @@
+             and not self.tid2eid_key
+         stats_path = os.environ.get("EXL3_MOE_CPU_SPLIT_STATS")
+         if stats_path and self._split_dynamic:
+-            # Static placement from a stats file only applies with dynamic swapping disabled
+-            print(f" !! {self.key}: EXL3_MOE_CPU_SPLIT_STATS ignored, set EXL3_MOE_CPU_SWAP=0 to use it")
+-            stats_path = None
++            if _exchange_mode:
++                pass  # Profile initialization composes with the resident exchange map.
++            else:
++                # Static placement from a stats file only applies with dynamic swapping disabled
++                print(f" !! {self.key}: EXL3_MOE_CPU_SPLIT_STATS ignored, set EXL3_MOE_CPU_SWAP=0 to use it")
++                stats_path = None
++        if _exchange_mode:
++            self._split_initial_order = None
++            self._split_stats_prior = [0.0] * self.num_experts
+         if stats_path and self.tid2eid_key:
+             print(f" !! {self.key}: tid2eid remap present, tail placement unpermuted")
+             stats_path = None
+         if stats_path:
+             import json
+-            counts = json.load(open(stats_path)).get(self.key)
++            if _exchange_mode:
++                with open(stats_path) as profile_file:
++                    counts = json.load(profile_file).get(self.key)
++            else:
++                counts = json.load(open(stats_path)).get(self.key)
+             if counts is not None and len(counts) == self.num_experts:
+                 perm = sorted(range(self.num_experts), key = lambda e: -counts[e])
+                 self._split_perm = perm
++                if _exchange_mode:
++                    from ..model.moe_score import rate, validated_counts
++                    counts = validated_counts(counts, self.num_experts)
++                    self._split_stats_prior = rate(counts, self.num_experts_per_tok)
++                    if self._split_dynamic:
++                        # Keep original router IDs; the inverse map names resident slots.
++                        self._split_initial_order = perm
++                        self._split_perm = None
+                 if self.gated:
+                     self.gates = [self.gates[e] for e in perm]
+                 self.ups = [self.ups[e] for e in perm]
+@@ -600,6 +676,26 @@
+         reg = ip.moe_cpu_swap_modules
+         if reg[0] is not self:
+             return
++        if _exchange_mode:
++            if torch.cuda.is_current_stream_capturing():
++                return
++            cadence = os.environ.get("EXL3_MOE_CPU_SWAP_CADENCE", "exact")
++            if cadence not in ("exact", "served"):
++                raise ValueError("swap cadence must be exact or served")
++            if cadence == "exact":
++                interval = self._score_settings['k'] if getattr(self, "_score_policy", False) else max(1, int(os.environ.get("EXL3_MOE_CPU_SWAP_INTERVAL", 128)))
++                if self._swap_tick_count >= interval:
++                    ip.moe_cpu_swap_pending = True
++                    if _score_mode:
++                        ip._score_inline_sweep = True
++                        try:
++                            run_pending_swap_sweeps(ip)
++                        finally:
++                            ip._score_inline_sweep = False
++                    else:
++                        run_pending_swap_sweeps(ip)
++                self._swap_tick_count += 1
++                return
+         self._swap_tick_count += 1
+         interval = int(os.environ.get("EXL3_MOE_CPU_SWAP_INTERVAL", 128))
+         if self._swap_tick_count < interval:
+@@ -626,6 +722,10 @@
+         by map update alone, since the worker holds every expert. Skips shape-mismatched
+         pairs (per-expert quant width differences). Decays the counts afterwards so the
+         stats track recent routing."""
++        if _exchange_mode:
++            if getattr(self, "_score_policy", False):
++                from ..model.moe_score import sweep_layer
++                return sweep_layer(self, budget)
+         first = self.cpu_split_first
+         hyst = float(os.environ.get("EXL3_MOE_CPU_SWAP_HYST", 2.0))
+         mp = self._split_map.cpu()
+@@ -660,6 +760,9 @@
+         """Promote router expert r_hot into the GPU slot of r_cold (checkpoint read +
+         in-place tensor copy), demote r_cold by map update. mp is the host-side map, updated
+         on success."""
++        if _exchange_mode:
++            from ..model.moe_exchange import exchange_experts
++            return exchange_experts(self, r_cold, r_hot, mp)
+         stc = self.config.stc
+         slot = int(mp[r_cold])
+         full_g, full_u, full_d = self._split_saved_lists_ref()

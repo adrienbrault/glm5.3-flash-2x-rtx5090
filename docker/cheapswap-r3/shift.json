@@ -1,0 +1,206 @@
+{
+  "r869-to-r860b": {
+    "score": {
+      "before": {
+        "cpu_picks": 41.105979425632235,
+        "cpu_share": 0.12233922448104832,
+        "swaps": 0.6662023146163738,
+        "sweeps": 0.03118302614659237,
+        "predicted_tps": 59.20576310707673
+      },
+      "after": {
+        "cpu_picks": 46.0230179028133,
+        "cpu_share": 0.13697326756789674,
+        "swaps": 0.6947387650712459,
+        "sweeps": 0.03123858238947753,
+        "predicted_tps": 58.29165275745203
+      },
+      "recovery": {
+        "terminal_512_share": 0.19594610305059523,
+        "first_128_share": 0.12030319940476189,
+        "within_5pct_confirmed_after_steps": null,
+        "no_more_than_5pct_above_confirmed_after_steps": 255,
+        "rolling_window": 128,
+        "confirmation_windows": 128,
+        "lower_share_counts_as_recovered": false
+      }
+    },
+    "static": {
+      "before": {
+        "cpu_picks": 41.4661380197171,
+        "cpu_share": 0.12341112505868185,
+        "swaps": 0.0,
+        "sweeps": 0.0,
+        "predicted_tps": 61.64338115504173
+      },
+      "after": {
+        "cpu_picks": 86.22323712093534,
+        "cpu_share": 0.2566167771456409,
+        "swaps": 0.0,
+        "sweeps": 0.0,
+        "predicted_tps": 54.105814930709194
+      },
+      "recovery": {
+        "terminal_512_share": 0.3317289806547619,
+        "first_128_share": 0.12374441964285712,
+        "within_5pct_confirmed_after_steps": 5118,
+        "no_more_than_5pct_above_confirmed_after_steps": 255,
+        "rolling_window": 128,
+        "confirmation_windows": 128,
+        "lower_share_counts_as_recovered": false
+      }
+    },
+    "B-safe": {
+      "before": {
+        "cpu_picks": 44.32104586369481,
+        "cpu_share": 0.1319078745943298,
+        "swaps": 0.28332618945563653,
+        "sweeps": 0.015537933990570081,
+        "predicted_tps": 59.948284454641986
+      },
+      "after": {
+        "cpu_picks": 51.865546218487395,
+        "cpu_share": 0.15436174469787917,
+        "swaps": 0.3878333942272561,
+        "sweeps": 0.015710632078918523,
+        "predicted_tps": 58.40291493576824
+      },
+      "recovery": {
+        "terminal_512_share": 0.21645972842261907,
+        "first_128_share": 0.1395786830357143,
+        "within_5pct_confirmed_after_steps": 3425,
+        "no_more_than_5pct_above_confirmed_after_steps": 255,
+        "rolling_window": 128,
+        "confirmation_windows": 128,
+        "lower_share_counts_as_recovered": false
+      }
+    },
+    "B-fast": {
+      "before": {
+        "cpu_picks": 42.568688384054866,
+        "cpu_share": 0.12669252495254424,
+        "swaps": 1.2826832404629234,
+        "sweeps": 0.016502357479639948,
+        "predicted_tps": 58.262741899138625
+      },
+      "after": {
+        "cpu_picks": 40.79247351114359,
+        "cpu_share": 0.12140617116411782,
+        "swaps": 1.1850566313481914,
+        "sweeps": 0.015893313847278042,
+        "predicted_tps": 58.778566982472796
+      },
+      "recovery": {
+        "terminal_512_share": 0.15274483816964285,
+        "first_128_share": 0.1195824032738095,
+        "within_5pct_confirmed_after_steps": null,
+        "no_more_than_5pct_above_confirmed_after_steps": 255,
+        "rolling_window": 128,
+        "confirmation_windows": 128,
+        "lower_share_counts_as_recovered": false
+      }
+    }
+  },
+  "r860b-to-r869": {
+    "score": {
+      "before": {
+        "cpu_picks": 39.472597734746074,
+        "cpu_share": 0.11747796944864904,
+        "swaps": 0.6994884910485933,
+        "sweeps": 0.03123858238947753,
+        "predicted_tps": 59.42820433391583
+      },
+      "after": {
+        "cpu_picks": 48.6237676810973,
+        "cpu_share": 0.14471359428898006,
+        "swaps": 0.7629661380197171,
+        "sweeps": 0.03118302614659237,
+        "predicted_tps": 57.722688826641075
+      },
+      "recovery": {
+        "terminal_512_share": 0.11843145461309523,
+        "first_128_share": 0.1929873511904762,
+        "within_5pct_confirmed_after_steps": 3351,
+        "no_more_than_5pct_above_confirmed_after_steps": 2366,
+        "rolling_window": 128,
+        "confirmation_windows": 128,
+        "lower_share_counts_as_recovered": false
+      }
+    },
+    "static": {
+      "before": {
+        "cpu_picks": 38.48483741322616,
+        "cpu_share": 0.11453820658698262,
+        "swaps": 0.0,
+        "sweeps": 0.0,
+        "predicted_tps": 62.2207673543611
+      },
+      "after": {
+        "cpu_picks": 80.20777968281183,
+        "cpu_share": 0.23871363000836854,
+        "swaps": 0.0,
+        "sweeps": 0.0,
+        "predicted_tps": 55.009863967915436
+      },
+      "recovery": {
+        "terminal_512_share": 0.2765299479166667,
+        "first_128_share": 0.15450613839285715,
+        "within_5pct_confirmed_after_steps": 1414,
+        "no_more_than_5pct_above_confirmed_after_steps": 255,
+        "rolling_window": 128,
+        "confirmation_windows": 128,
+        "lower_share_counts_as_recovered": false
+      }
+    },
+    "B-safe": {
+      "before": {
+        "cpu_picks": 41.03964194373402,
+        "cpu_share": 0.12214179149920838,
+        "swaps": 0.1795761782974059,
+        "sweeps": 0.015527950310559006,
+        "predicted_tps": 60.76453162741964
+      },
+      "after": {
+        "cpu_picks": 52.157093870552934,
+        "cpu_share": 0.1552294460433123,
+        "swaps": 0.39573510501500214,
+        "sweeps": 0.015645092156022288,
+        "predicted_tps": 58.3398642797279
+      },
+      "recovery": {
+        "terminal_512_share": 0.1232270740327381,
+        "first_128_share": 0.17636253720238096,
+        "within_5pct_confirmed_after_steps": null,
+        "no_more_than_5pct_above_confirmed_after_steps": 3509,
+        "rolling_window": 128,
+        "confirmation_windows": 128,
+        "lower_share_counts_as_recovered": false
+      }
+    },
+    "B-fast": {
+      "before": {
+        "cpu_picks": 39.40244793569602,
+        "cpu_share": 0.11726919028480957,
+        "swaps": 1.0823894775301426,
+        "sweeps": 0.015893313847278042,
+        "predicted_tps": 59.22367385171913
+      },
+      "after": {
+        "cpu_picks": 43.96495927989713,
+        "cpu_share": 0.13084809309493192,
+        "swaps": 1.345049292756108,
+        "sweeps": 0.016502357479639948,
+        "predicted_tps": 57.906673058117065
+      },
+      "recovery": {
+        "terminal_512_share": 0.10564313616071429,
+        "first_128_share": 0.19942801339285715,
+        "within_5pct_confirmed_after_steps": 3380,
+        "no_more_than_5pct_above_confirmed_after_steps": 961,
+        "rolling_window": 128,
+        "confirmation_windows": 128,
+        "lower_share_counts_as_recovered": false
+      }
+    }
+  }
+}

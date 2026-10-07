@@ -33,6 +33,7 @@ Enforced by `scripts/check-prose.sh`, which `scripts/check-public-hygiene.sh` ru
 - No evaluative or promotional words, no rhetorical devices, no exclamation marks, no questions in running text. The banned list is in the script; extend it when a new one gets through.
 - Numbers carry their conditions: content kind (code, prose, chat) for every decode rate, prompt tokens and tokens per second for every prefill figure, concurrency, forced length, sampler, results directory.
 - One paragraph is one line in the source; no manual wrapping.
+- Exempt: `bench/results/`, and the delivered package docs under `docker/<overlay>/` (kept verbatim; the package SHA256SUMS covers them). Each overlay's own `README.md` follows these rules.
 - A line that must keep a flagged word (a quoted error string, a proper name) carries `prose-ok: <reason>`.
 
 ## Credit

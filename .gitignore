@@ -2,3 +2,9 @@ __pycache__/
 *.pyc
 out/
 *.log
+# Published records that are logs by name (no boot logs): overlay test logs listed in SHA256SUMS, checker and gate outputs.
+!docker/cheapswap-r3/*-tests.log
+!bench/results/**/*toolcheck*.log
+!bench/results/**/T/*.log
+!bench/results/**/stats.log
+!bench/results/**/original-plain-probe.log

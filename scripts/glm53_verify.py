@@ -18,12 +18,13 @@ def offload(settings, log):
         if ls != expected:
             raise ValueError(f'actual whole-layer registrations {sorted(ls)} != {sorted(expected)}')
     else:
-        rows = re.findall(r'CPU split experts \(worker, dynamic\): model\.language_model\.layers\.(\d+)\.mlp\s+\[(\d+)\.\.(\d+)\) of (\d+)', text)
+        mode = s.get('placement', 'dynamic')
+        rows = re.findall(r'CPU split experts \(worker, ' + mode + r'\): model\.language_model\.layers\.(\d+)\.mlp\s+\[(\d+)\.\.(\d+)\) of (\d+)', text)
         layers = {int(l) for l, *_ in rows}
         expected = set(range(3, 45 + s['draft']))
         if layers != expected or any((int(a), int(b), int(e)) != (288-s['n'],288,288) for _,a,b,e in rows):
-            raise ValueError(f'actual dynamic split registrations {sorted(layers)} != {sorted(expected)} or bad expert interval')
-    print('OFFLOAD VERIFIED', s['mode'], s['n'], 'MTP', s['draft'], flush=True)
+            raise ValueError(f'actual {mode} split registrations {sorted(layers)} != {sorted(expected)} or bad expert interval')
+    print('OFFLOAD VERIFIED', s['mode'], s['n'], 'MTP', s['draft'], s.get('placement', 'dynamic'), flush=True)
 
 def daily(path):
     d = json.loads(Path(path).read_text())[0]

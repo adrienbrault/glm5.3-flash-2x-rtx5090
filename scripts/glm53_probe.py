@@ -167,11 +167,26 @@ PROMPTS = {  # R859 c1 decode content kinds (decode rate is content-dependent; M
     'code': 'Write a long detailed Python tutorial with complete code and tests. Keep elaborating.',
     'prose': 'Write a long, detailed essay on the history of the printing press in Europe. Keep elaborating.',
     'chat': 'Explain step by step, in a friendly conversational tone, how to plan a two-week trip to Japan on a budget. Keep elaborating.',
+    # R860: long single-file code generation, the shape of a real agent "write the file" turn (2026-10-07 pagoda session)
+    'html': ('Write a complete single-file HTML page with inline JavaScript that uses three.js from a CDN to render a detailed '
+             'voxel-art scene of a Japanese pagoda in a garden with cherry blossom trees, a koi pond, a wooden bridge, stone '
+             'lanterns and falling petals, with orbit controls and soft lighting. Output only the code.'),
 }
+KIND_TOKENS = {'html': 2048}
+# R864: the agent "edit a file" shape, where prompt lookup can copy spans from the prompt. The source is this
+# directory's own helper modules (~1.7k tokens), read lazily so other kinds do not depend on them.
+EDIT_SOURCES = ('glm53_verify.py', 'r860_score.py', 'glm53_resources.py', 'glm53_follow.py')
+def edit_prompt():
+    here = os.path.dirname(os.path.abspath(__file__))
+    src = '\n\n'.join(open(os.path.join(here, f)).read() for f in EDIT_SOURCES)
+    return ('Here is a Python module:\n```python\n' + src + '\n```\nReturn the complete module unchanged except: rename '
+            'the function `score` to `score_kinds` everywhere it is used, and add a one-line docstring to every function '
+            'that lacks one. Output only the code.')
 
 def c1_decode(a, kind, run, tokens=1024):
     salt = uuid.uuid4().hex
-    body = {'messages':[{'role':'user','content':f'Run {salt}. {PROMPTS[kind]}'}],
+    text = edit_prompt() if kind == 'edit' else PROMPTS[kind]
+    body = {'messages':[{'role':'user','content':f'Run {salt}. {text}'}],
             'max_tokens':tokens, 'min_tokens':tokens, 'ban_eos_token':True, 'temperature':0,
             'chat_template_kwargs':{'reasoning_effort':'low'}}
     r = stream(a, f'c1-{kind}-r{run}', body)
@@ -217,27 +232,66 @@ def depth(a, target, gen=256):
              'accept_rate':(ac/(ac+rej) if ac is not None and rej is not None and ac+rej else None),
              'finish_reason':r['finish_reason']})
 
+def png_rgb(pixel, w=256, h=256):
+    """PNG from pixel(x, y) -> (r, g, b)."""
+    import struct, zlib
+    rows = b''.join(b'\x00' + b''.join(bytes(pixel(x, y)) for x in range(w)) for y in range(h))
+    chunk = lambda t, d: struct.pack('>I', len(d)) + t + d + struct.pack('>I', zlib.crc32(t + d) & 0xffffffff)
+    return (b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', w, h, 8, 2, 0, 0, 0))
+            + chunk(b'IDAT', zlib.compress(rows)) + chunk(b'IEND', b''))
+
+RED, GREEN, BLUE = (220, 20, 20), (20, 170, 40), (20, 40, 220)
+VISION_CASES = [  # name, pixel fn, question, accepted answers (lowercase substrings)
+    ('red', lambda x, y: RED, 'What single colour fills this image? Answer with one word.', ('red',)),
+    ('blue', lambda x, y: BLUE, 'What single colour fills this image? Answer with one word.', ('blue',)),
+    ('green', lambda x, y: GREEN, 'What single colour fills this image? Answer with one word.', ('green',)),
+    ('split', lambda x, y: RED if x < 128 else BLUE, 'This image has two halves. What colour is the RIGHT half? Answer with one word.', ('blue',)),
+]
+
+def vision(a):
+    """Serving check (user 2026-10-07: "Need vision"). R864-R871 used 64 px solid squares (a handful of image tokens) and
+    saw blue answered as "White" twice; 256 px images, three colours and a left/right split are a sturdier check."""
+    import base64
+    bad = []
+    for name, pixel, question, ok_words in VISION_CASES:
+        url = 'data:image/png;base64,' + base64.b64encode(png_rgb(pixel)).decode()
+        body = {'messages':[{'role':'user','content':[{'type':'text','text':question},
+                                                       {'type':'image_url','image_url':{'url':url}}]}],
+                'max_tokens':512, 'temperature':0, 'chat_template_kwargs':{'reasoning_effort':'low'}}
+        r = stream(a, f'vision-{name}', body)
+        text = (r.get('content') or '').lower()
+        ok = any(w in text for w in ok_words)
+        emit(a, {'phase':'vision', 'expect':name, 'ok':ok, 'text':(r.get('content') or '')[-200:], 'ttft_s':r['ttft_s'],
+                 'prompt_tokens':(r.get('usage') or {}).get('prompt_tokens')})
+        if not ok:
+            bad.append(f'{name}: {(r.get("content") or "")[-80:]!r}')
+    if bad:
+        raise ValueError('vision check failed: ' + '; '.join(bad))
+
 def c1(a):
     kinds = [k for k in a.kinds.split(',') if k]
     for run in range(a.runs):
         for kind in kinds:
-            c1_decode(a, kind, run)
+            c1_decode(a, kind, run, KIND_TOKENS.get(kind, 1024))
     for t in [int(x) for x in a.depths.split(',') if x]:
         depth(a, t)
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--url', required=True); ap.add_argument('--model', required=True)
+    ap.add_argument('--max-batch', type=int, default=4)
     ap.add_argument('--out', required=True)
-    ap.add_argument('--phase', choices=['warmup','sanity','measure','c1'], required=True)
+    ap.add_argument('--phase', choices=['warmup','sanity','measure','c1','vision'], required=True)
     ap.add_argument('--runs',type=int,default=3)
     ap.add_argument('--kinds', default='code,prose,chat')
     ap.add_argument('--depths', default='')
     a = ap.parse_args()
     if a.phase == 'sanity': sanity(a)
     elif a.phase == 'c1': c1(a)
+    elif a.phase == 'vision': vision(a)
     elif a.phase == 'warmup':
-        for c in (1,2,4): decode_round(a,c,0,32,'warmup')
+        # R865: c4 cannot share a decode window when max_batch_size < 4 (MAX_BATCH=2 booted fine, then failed here)
+        for c in (c for c in (1,2,4) if c <= a.max_batch): decode_round(a,c,0,32,'warmup')
     else:
         decode(a)
         prefill(a)

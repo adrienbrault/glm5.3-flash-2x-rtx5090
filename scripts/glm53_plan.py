@@ -218,8 +218,9 @@ def settings():
     if not re.fullmatch(r'[2-8],[2-8]', cm):
         raise ValueError('CACHE_MODE must be K,V bits in 2..8')
     split = [float(s.strip()) for s in os.environ.get('GPU_SPLIT', '31,31').split(',')]
-    if len(split) != 2 or not all(math.isfinite(v) and 0 < v <= 31 for v in split):
-        raise ValueError('GPU_SPLIT must be two finite GiB values in (0,31]')
+    # R865: up to 31.8 GiB (a 5090 has 31.84 GiB). R864 at split 31,31 left card 1 with ~2 GiB unused.
+    if len(split) != 2 or not all(math.isfinite(v) and 0 < v <= 31.8 for v in split):
+        raise ValueError('GPU_SPLIT must be two finite GiB values in (0,31.8]')
     draft = integer('DRAFT', 1, 0, 1)
     threads = integer('CPU_THREADS', 8, 1, 16)
     # R859 (2026-10-07): long-context c1 runs. MAX_SEQ defaults to the R858 audition cap; SYSMEM_RC_MB must be > 0:
@@ -229,8 +230,35 @@ def settings():
     sysmem_rc = integer('SYSMEM_RC_MB', 1024, 64, 16384)
     max_batch = integer('MAX_BATCH', 4, 1, 8)
     chunk = integer('CHUNK', 512, 256, 8192)
-    return dict(pack=pack, mode=mode, n=n, cache=cache, cm=cm, split=split, draft=draft, threads=threads,
-                max_seq=max_seq, sysmem_rc=sysmem_rc, max_batch=max_batch, chunk=chunk)
+    # R860: MTP depth (GLM-5.3 has one MTP layer; depth > 1 chains it) and confidence-calibrated draft truncation
+    draft_n = integer('DRAFT_N', 1, 1, 4)
+    dyn_draft = integer('DYN_DRAFT', 0, 0, 1)
+    # R864: VISION=0 drops the vision tower (DeepSeek Harness sends text only) to free VRAM for a lower N;
+    # PLOOKUP=1 sets EXL3_PROMPT_LOOKUP=1 (adaptive prompt lookup beside MTP, R828), which needs fixed-depth MTP.
+    vision = integer('VISION', 1, 0, 1)
+    # R866: expert placement for the CPU split. 'dynamic' is the served default (EXL3_MOE_CPU_SWAP=1); SWAP_INTERVAL /
+    # SWAP_FLOOR (0 = engine default 128 / 8) tune its sweeps. 'static' = EXL3_MOE_CPU_SWAP=0 plus a per-layer counts
+    # file (SPLIT_STATS, host path) that orders experts hot-to-cold once at load (R860b: dynamic placement left the CPU
+    # share at 0.347 vs 0.361 uniform; sim_placement.py).
+    placement = os.environ.get('PLACEMENT', 'dynamic')
+    if placement not in ('dynamic', 'static'):
+        raise ValueError('PLACEMENT must be dynamic or static')
+    swap_interval = integer('SWAP_INTERVAL', 0, 0, 4096)
+    swap_floor = integer('SWAP_FLOOR', 0, 0, 64)
+    if placement == 'static' and (swap_interval or swap_floor):
+        raise ValueError('SWAP_INTERVAL/SWAP_FLOOR apply to dynamic placement only')
+    plookup = integer('PLOOKUP', 0, 0, 1)
+    if plookup and (not draft or dyn_draft):
+        raise ValueError('PLOOKUP=1 needs DRAFT=1 and DYN_DRAFT=0 (prompt lookup r3 requires fixed-depth MTP)')
+    # R884 (2026-10-08): KEEP_THINKING=1 (default) serves templates/glm53-keep-thinking.jinja, the stock template with
+    # clear_thinking defaulting to false: earlier turns keep their reasoning, so a new user message no longer rewrites
+    # the previous tool loop and the prefix cache keeps matching (TensorFold's default). Requests can still send
+    # template_vars/chat_template_kwargs {"clear_thinking": true}. KEEP_THINKING=0 = the model's own template.
+    keep_thinking = integer('KEEP_THINKING', 1, 0, 1)
+    return dict(keep_thinking=keep_thinking, pack=pack, mode=mode, n=n, cache=cache, cm=cm, split=split, draft=draft, threads=threads,
+                max_seq=max_seq, sysmem_rc=sysmem_rc, max_batch=max_batch, chunk=chunk, draft_n=draft_n,
+                dyn_draft=dyn_draft, vision=vision, plookup=plookup,
+                placement=placement, swap_interval=swap_interval, swap_floor=swap_floor)
 
 def config(s):
     text = f'''model:
@@ -248,7 +276,7 @@ def config(s):
   cpu_moe_split_experts: {s['n'] if s['mode'] == 'split' else 0}
   chunk_size: {s['chunk']}
   output_chunking: true
-  vision: true
+  vision: {'true' if s['vision'] else 'false'}
   vision_offload: false
   # GLM-5.3 emits <tool_call>NAME<arg_key>K</arg_key><arg_value>V</arg_value></tool_call>; without tool_format
   # TabbyAPI returns it as plain content (2026-10-07, DeepSeek Harness bring-up). glm4_5 parses that layout.
@@ -257,11 +285,12 @@ def config(s):
   reasoning_start_token: <think>
   reasoning_end_token: </think>
   start_in_reasoning: auto
-draft_model:
+{"  prompt_template: glm53-keep-thinking" + chr(10) if s.get('keep_thinking') else ''}draft_model:
   draft_mode: {'mtp' if s['draft'] else 'disabled'}
 '''
     if s['draft']:
-        text += '  draft_num_tokens: 1\n  draft_cache_mode: Q8\n  dynamic_draft: false\n'
+        text += (f"  draft_num_tokens: {s['draft_n']}\n  draft_cache_mode: Q8\n"
+                 f"  dynamic_draft: {'true' if s['dyn_draft'] else 'false'}\n")
     text += f"memory:\n  sysmem_recurrent_cache: {s['sysmem_rc']}\n  sysmem_kv_cache: 0\n"
     return text
 

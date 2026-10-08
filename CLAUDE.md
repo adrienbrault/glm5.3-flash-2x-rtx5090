@@ -10,7 +10,7 @@ The LLM stack on that box has a second home in a private infrastructure reposito
 
 ## Visibility — read this before pushing anywhere
 
-This repository is **prepared locally and not pushed yet** (created 2026-10-07). It is meant to become public on GitHub as `adrienbrault/glm5.3-flash-2x-rtx5090`. Write every commit as if it were public already: once pushed, GitHub keeps serving a commit by its SHA after a history rewrite.
+This repository is **public** on GitHub as `adrienbrault/glm5.3-flash-2x-rtx5090` (created 2026-10-07, first pushed 2026-10-08). Write every commit as if it were public already: once pushed, GitHub keeps serving a commit by its SHA after a history rewrite.
 
 - Commits use the GitHub noreply address (`git config user.email adrienbrault@users.noreply.github.com` in this checkout).
 - Run `scripts/check-public-hygiene.sh` before every commit and `scripts/check-public-hygiene.sh --tree` before the first push.

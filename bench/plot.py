@@ -25,9 +25,10 @@ import matplotlib.pyplot as plt  # noqa: E402
 ROOT = Path(__file__).resolve().parent.parent
 RESULTS = ROOT / "bench" / "results"
 OUT = ROOT / "docs" / "img"
-SERVED = RESULTS / "2026-10-07-r882b-glm53-swap-agent" / "XA"  # the configuration README.md describes
+SERVED = RESULTS / "2026-10-08-r914-glm53-promote-combo" / "CF"  # the configuration README.md describes (R914 arm CF)
+PREFILL_SRC = RESULTS / "2026-10-07-r882b-glm53-swap-agent" / "XA"  # last cold-prefill measurement (previous configuration)
 
-DECODE, AGG, PREFILL = "#0969da", "#cf222e", "#8250df"
+DECODE, AGG, PREFILL, AGG_ONE = "#0969da", "#cf222e", "#8250df", "#f0a8ad"
 plt.rcParams.update({
     "figure.dpi": 110,
     "font.size": 10,
@@ -42,14 +43,18 @@ plt.rcParams.update({
     "svg.fonttype": "none",
 })
 
-# (round, c1 score tok/s or None, sum over 4 streams tok/s or None, write-up in bench/results/)
+# (round, c1 score tok/s or None, sum over 4 streams tok/s or None, c4 method, write-up in bench/results/)
+# c4 method "one": every stream the same prompt (R858 to R883); "distinct": code/prose/chat/html per stream (R911 on).
+# The two are not comparable: R899 measured 104.8 (one prompt) against 95.7 (distinct) on the same configuration.
 HISTORY = [
-    ("R858", None, 68.6, "r858-glm53-audition.md"),      # MTP depth 1, 104 experts per layer on the CPU, dynamic
-    ("R860", 46.2, None, "r860-glm53-chain.md"),         # MTP off, 104 on the CPU, dynamic
-    ("R864", 48.4, None, "r864-glm53-levers.md"),        # 96 on the CPU, dynamic
-    ("R869", 57.5, None, "r869-glm53-hotset.md"),        # static placement from broad counts
-    ("R873", None, 86.3, "r873-glm53-c4.md"),            # static broad placement with the agent overlay
-    ("R882b", 59.9, 109.9, "r882b-glm53-swap-agent.md"),  # exchange swaps with the agent overlay (served)
+    ("R858", None, 68.6, "one", "r858-glm53-audition.md"),      # MTP depth 1, 104 experts per layer on the CPU, dynamic
+    ("R860", 46.2, None, None, "r860-glm53-chain.md"),          # MTP off, 104 on the CPU, dynamic
+    ("R864", 48.4, None, None, "r864-glm53-levers.md"),         # 96 on the CPU, dynamic
+    ("R869", 57.5, None, None, "r869-glm53-hotset.md"),         # static placement from broad counts
+    ("R873", None, 86.3, "one", "r873-glm53-c4.md"),            # static broad placement with the agent overlay
+    ("R882b", 59.9, 109.9, "one", "r882b-glm53-swap-agent.md"),  # exchange swaps with the agent overlay
+    ("R911 re-run", 58.0, 97.4, "distinct", "r911-glm53-mtpcap-dynamic.md"),  # the R882b configuration again, mean of D0 and D1
+    ("R914", 64.2, 87.7, "distinct", "r914-glm53-promote-combo.md"),   # MTP depth 1 at c1 only, 104 on the CPU (served)
 ]
 
 
@@ -79,14 +84,17 @@ def served():
         kinds.setdefault(r["kind"], []).append(r["tps"])
     kinds = {k: st.median(v) for k, v in kinds.items()}
     conc, prefill = {}, []
-    for line in open(SERVED / "measure.jsonl"):
+    for line in open(SERVED / "dec.jsonl"):
+        r = json.loads(line)
+        if r.get("phase") == "decode-summary":
+            for s in r["summaries"]:
+                assert s.get("distinct"), "the README concurrency figure uses distinct prompts per stream"
+                conc[s["c"]] = (s["ss_per_stream_tps_median"], s["ss_agg_tps_median"])
+    for line in open(PREFILL_SRC / "measure.jsonl"):
         r = json.loads(line)
         u = r.get("usage") or {}
         if str(r.get("tag", "")).startswith("prefill-") and (u.get("prompt_tokens_details") or {}).get("cached_tokens") == 0:
             prefill.append((u["prompt_tokens"], r.get("engine_prefill_tps") or u["prompt_tokens"] / u["prompt_time"]))
-        if r.get("phase") == "decode-summary":
-            for s in r["summaries"]:
-                conc[s["c"]] = (s["ss_per_stream_tps_median"], s["ss_agg_tps_median"])
     return kinds, conc, sorted(prefill)
 
 
@@ -106,9 +114,9 @@ def figure_decode_concurrency(conc):
         a.set_ylim(0, max(ys) * 1.25)
         a.set_xticks(xs)
         style(a)
-    fig.suptitle("Decode rate after the first token against concurrency, served configuration (R882b)", fontsize=11,
-                 fontweight="bold")
-    print("decode by concurrency (R882b, median of 3 rounds):", {c: tuple(round(v, 1) for v in conc[c]) for c in xs})
+    fig.suptitle("Decode rate after the first token against concurrency, distinct prompts per stream, served configuration (R914)",
+                 fontsize=11, fontweight="bold")
+    print("decode by concurrency (R914 CF, distinct prompts, median of 2 rounds):", {c: tuple(round(v, 1) for v in conc[c]) for c in xs})
     save(fig, "decode-concurrency.svg", "Decode rate after the first token against concurrency, sum over streams and per stream")
 
 
@@ -119,12 +127,12 @@ def figure_c1_by_kind(kinds):
     ax.barh(order[::-1], vals[::-1], color=DECODE, height=0.55)
     for y, v in enumerate(vals[::-1]):
         ax.annotate(f"{v:.1f}", (v, y), textcoords="offset points", xytext=(5, -3), fontsize=8.5, color=DECODE)
-    ax.set_title("Single-stream decode by content kind, served configuration (R882b)")
+    ax.set_title("Single-stream decode by content kind, MTP depth 1, served configuration (R914)")
     ax.set_xlabel("decode tokens per second, median of 2 runs")
     ax.set_xlim(0, max(vals) * 1.15)
     ax.grid(axis="x", color="#eaeef2")
     ax.set_axisbelow(True)
-    print("c1 by kind (R882b):", {k: round(kinds[k], 1) for k in order}, "mean", round(st.mean(vals), 1))
+    print("c1 by kind (R914 CF):", {k: round(kinds[k], 1) for k in order}, "mean", round(st.mean(vals), 1))
     save(fig, "c1-by-kind.svg", "Single-stream decode by content kind")
 
 
@@ -134,7 +142,7 @@ def figure_prefill(points):
     fig, ax = plt.subplots(figsize=(8.4, 3.6))
     ax.plot(toks, rate, marker="o", color=PREFILL, linewidth=2)
     annotate(ax, toks, rate, PREFILL, fmt="{:,.0f}", dy=-16)
-    ax.set_title("Cold prefill rate against prompt length, served configuration (R882b)")
+    ax.set_title("Cold prefill rate against prompt length, previous configuration (R882b, 2026-10-07)")
     ax.set_xlabel("prompt tokens")
     ax.set_ylabel("prompt tokens per second, prefill")
     ax.set_xlim(0, 262144)
@@ -146,19 +154,24 @@ def figure_prefill(points):
 
 
 def figure_history():
+    from matplotlib.patches import Patch
     fig, (ax, ax2) = plt.subplots(1, 2, figsize=(10.4, 3.8))
-    for a, idx, color, title in ((ax, 1, DECODE, "One stream, c1 score"), (ax2, 2, AGG, "Four streams, sum of the stream rates")):
+    for a, idx, title in ((ax, 1, "One stream, c1 score"), (ax2, 2, "Four streams, sum of the stream rates")):
         rows = [h for h in HISTORY if h[idx] is not None]
         names, vals = [h[0] for h in rows], [h[idx] for h in rows]
-        a.bar(names, vals, color=color, width=0.5)
+        colors = [DECODE if idx == 1 else (AGG if h[3] == "distinct" else AGG_ONE) for h in rows]
+        a.bar(names, vals, color=colors, width=0.5)
         for i, v in enumerate(vals):
-            a.annotate(f"{v:.1f}", (i, v), textcoords="offset points", xytext=(0, 4), ha="center", fontsize=8.5, color=color)
+            a.annotate(f"{v:.1f}", (i, v), textcoords="offset points", xytext=(0, 4), ha="center", fontsize=8.5,
+                       color=colors[i] if idx == 1 else AGG)
         a.set_title(title)
         a.set_ylabel("decode tokens per second")
-        a.set_ylim(0, max(vals) * 1.2)
+        a.set_ylim(0, max(vals) * (1.2 if idx == 1 else 1.45))  # room for the legend above the bars
         style(a)
-    fig.suptitle("Served configurations, 2026-10-06 to 2026-10-07 (docs/HISTORY.md)", fontsize=11, fontweight="bold")
-    print("history:", [(h[0], h[1], h[2]) for h in HISTORY])
+    ax2.legend(handles=[Patch(color=AGG_ONE, label="same prompt in every stream"),
+                        Patch(color=AGG, label="a different prompt per stream")], fontsize=8, loc="upper left", frameon=False)
+    fig.suptitle("Served configurations, 2026-10-06 to 2026-10-08 (docs/HISTORY.md)", fontsize=11, fontweight="bold")
+    print("history:", [(h[0], h[1], h[2], h[3]) for h in HISTORY])
     save(fig, "history.svg", "Served configurations over time, one stream and four streams")
 
 

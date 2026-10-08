@@ -1,0 +1,341 @@
+diff -ruN base/exllamav3/model/moe_cpu_host.py src/exllamav3/model/moe_cpu_host.py
+--- base/exllamav3/model/moe_cpu_host.py	2026-10-08 10:24:34
++++ src/exllamav3/model/moe_cpu_host.py	2026-10-08 14:26:18
+@@ -7,6 +7,7 @@
+ from multiprocessing import shared_memory
+ import numpy as np
+ import torch
++from . import moe_split_check as split_check
+ 
+ from ..ext import exllamav3_ext as ext
+ from ..util.misc import Cleanupper, install_parent_death_signal
+@@ -713,6 +714,31 @@
+ 
+     def register_layer(self, key, gate_keys, up_keys, down_keys, activation, act_limit, hi, ho, topk,
+                        proj_dims = None, aux = None):
++        if key in self.by_key and os.environ.get("EXL3_MOE_CPU_SPLIT_BY_DEVICE", ""):
++            old_idx = self.by_key[key]
++            old = self.specs[old_idx]
++            # Key-only reuse assumes an identical CPU slice on every autosplit attempt.
++            # Counts AND ordered checkpoint keys must match the immutable native layer.
++            same = (old["gate_keys"] == gate_keys and old["up_keys"] == up_keys and
++                    old["down_keys"] == down_keys and old["activation"] == activation and
++                    old["act_limit"] == act_limit and old["hi"] == hi and old["ho"] == ho and
++                    old["topk"] == topk and old["proj_dims"] == proj_dims)
++            if not same and self.started:
++                raise RuntimeError(f"{key}: CPU split registration changed after worker start")
++            # Even identical slices re-fetch aux tensors. A later retry may return to
++            # an earlier device; folded reconstruction tables must not keep old addresses.
++            for state in list(self._dev_bufs.values()) + list((getattr(self, "sstate", None) or {}).values()):
++                state.get("recon", {}).pop(old_idx, None)
++            if not same:
++                # Append through the ordinary protocol below. Never rewrite/pop an old
++                # index: child native handles, outstanding acks and arena descriptors
++                # share this append-only numbering. The rejected slice remains unused
++                # until shutdown, but release its GPU auxiliaries and cached tables.
++                del self.by_key[key]
++                self.aux.pop(old_idx, None)
++                if split_check.ENABLED:
++                    print(f"[SPLIT-CHECK] layer={key} replace_worker_idx={old_idx} "
++                          f"old_cpu={old['num_experts']} new_cpu={len(up_keys)}", flush = True)
+         if key in self.by_key:
+             # Autosplit rollback retry: the child keeps its copy, reuse the index, but take
+             # the re-fetched aux tensors: the retry runs on a different device, and the stored
+@@ -1086,6 +1112,8 @@
+         worker's next compute could overwrite a slot output the deferred readback had not
+         fetched yet. Caller holds device guard.
+         """
++        if split_check.ENABLED:
++            split_check.host_selection(self, layer_idx, "selected_experts -> handoff", selected_experts)
+         rows = y.shape[0]
+         h_ = y.shape[1]
+         hi = spec["hi"]
+@@ -1318,6 +1346,8 @@
+         path when nothing qualifies.
+         """
+         spec = self.specs[layer_idx]
++        if split_check.ENABLED:
++            split_check.host_selection(self, layer_idx, "selected_experts.cpu_local", selected_experts)
+         rows = y.shape[0]
+         if (rows < self.stream_min_rows or spec.get("expert_bytes") is None
+                 or spec["expert_bytes"] > self.wslot_size or layer_idx not in self.aux):
+@@ -1333,6 +1363,9 @@
+             # sync before the tail-row compression
+             shifted = flat + 1
+             counts1 = torch.zeros(E + 1, dtype = torch.long, device = flat.device)
++            if split_check.ENABLED:
++                split_check.index_range(split_check.layer_name(self, layer_idx), "shifted -> counts1.scatter_add_",
++                                        shifted, 0, E + 1)
+             counts1.scatter_add_(0, shifted, torch.ones_like(shifted))
+             counts1_h = counts1.tolist()
+             neg, counts_h = counts1_h[0], counts1_h[1:]
+@@ -1370,7 +1403,8 @@
+                       for p in (("g", "u", "d") if gated else ("u", "d"))}
+             recon = BatchReconLayer(
+                 pd.get("g"), pd["u"], pd["d"], (False, True), (False, True), (False, True),
+-                spec["activation"], spec["act_limit"], device, scales)
++                spec["activation"], spec["act_limit"], device, scales,
++                layer_key = split_check.layer_name(self, layer_idx) if split_check.ENABLED else None)
+             st["recon"][layer_idx] = recon
+         return recon
+ 
+@@ -1450,6 +1484,9 @@
+         for e in streamed:
+             table[e + 1] = True
+         smask1 = torch.from_numpy(table).to(y.device, non_blocking = True)
++        if split_check.ENABLED:
++            split_check.index_range(split_check.layer_name(self, layer_idx), "shifted -> smask1.index_select",
++                                    shifted, 0, E + 1)
+         is_streamed = smask1.index_select(0, shifted)
+         sel_tail = flat.masked_fill(is_streamed, -1).view(rows, topk)
+         tidx = (sel_tail >= 0).any(dim = 1).nonzero(as_tuple = True)[0]
+diff -ruN base/exllamav3/model/moe_exchange.py src/exllamav3/model/moe_exchange.py
+--- base/exllamav3/model/moe_exchange.py	2026-10-08 10:24:34
++++ src/exllamav3/model/moe_exchange.py	2026-10-08 14:16:36
+@@ -1,6 +1,7 @@
+ """Opt-in, in-place CPU/GPU expert exchange. No checkpoint access or native ABI changes."""
+ import os
+ from ..util import mtp_phase
++from . import moe_split_check as split_check
+ 
+ # Only populated if CUDA itself refuses to drain an interrupted transfer. Retaining the
+ # tensor exporters prevents scratch reuse/unmapping until the operator restarts the process.
+@@ -134,6 +135,8 @@
+     require_healthy(host)
+     if not host.pinned:
+         raise RuntimeError("exchange requires EXL3_MOE_PINNED_ARENA=1")
++    if split_check.ENABLED:
++        split_check.exchange_slots(module, mp, r_cold, r_hot)
+     slot=int(mp[r_cold]); local=int(mp[r_hot])-module.cpu_split_first
+     desc=host.exchange_views[module.cpu_layer_idx][local]
+     names=(["g"] if module.gated else [])+["u","d"]
+diff -ruN base/exllamav3/model/moe_split_check.py src/exllamav3/model/moe_split_check.py
+--- base/exllamav3/model/moe_split_check.py	1970-01-01 01:00:00
++++ src/exllamav3/model/moe_split_check.py	2026-10-08 14:16:36
+@@ -0,0 +1,71 @@
++"""Opt-in synchronous CPU split diagnostics; no Torch/native imports when disabled.
++
++CHECK is for the warmup/probe boot. It validates every checked forward while enabled,
++including new batch shapes and post-exchange maps; reboot with CHECK=0 for timing.
++"""
++import os
++
++ENABLED = os.environ.get("EXL3_MOE_CPU_SPLIT_CHECK", "0") == "1"
++
++
++def fail(layer, tensor, detail):
++    raise RuntimeError(f"[SPLIT-CHECK] layer={layer} tensor={tensor}: {detail}")
++
++
++def values(tensor):
++    if hasattr(tensor, "detach"):
++        # Debug only: read back before the potentially fatal indexing operation.
++        return tensor.detach().cpu().reshape(-1).tolist()
++    return list(tensor)
++
++
++def index_range(layer, name, tensor, lower, upper):
++    vals = values(tensor)
++    if vals and (min(vals) < lower or max(vals) >= upper):
++        fail(layer, name, f"range=[{min(vals)},{max(vals)}] expected=[{lower},{upper})")
++
++
++def layer_name(host, idx):
++    return next((key for key, i in host.by_key.items() if i == idx), f"worker_idx={idx}")
++
++
++def host_selection(host, idx, name, selection):
++    layer = layer_name(host, idx)
++    if not 0 <= idx < len(host.specs):
++        fail(layer, "cpu_layer_idx", f"{idx} outside {len(host.specs)} registrations")
++    index_range(layer, name, selection, -1, host.specs[idx]["num_experts"])
++
++
++def module_layout(module):
++    layer = module.key
++    first, experts = module.cpu_split_first, module.num_experts
++    host, idx = module.cpu_host, module.cpu_layer_idx
++    if not 0 < first < experts or module.num_local_experts != first:
++        fail(layer, "cpu_split_first/num_local_experts", f"first={first} gpu={module.num_local_experts} E={experts}")
++    if not 0 <= idx < len(host.specs):
++        fail(layer, "cpu_layer_idx", f"{idx} outside {len(host.specs)} registrations")
++    count = experts - first
++    spec = host.specs[idx]
++    if spec["num_experts"] != count:
++        fail(layer, "spec.num_experts", f"worker={spec['num_experts']} module={count} first={first} idx={idx}")
++    for name in ("up_keys", "down_keys") + (("gate_keys",) if module.gated else ()):
++        if len(spec[name]) != count:
++            fail(layer, name, f"len={len(spec[name])} expected={count}")
++    for name, tensors in host.aux.get(idx, {}).items():
++        if tensors is not None and len(tensors) != count:
++            fail(layer, f"aux.{name}", f"len={len(tensors)} expected={count}")
++    for name in ("layer_blocks", "exchange_views"):
++        entries = getattr(host, name, ())
++        if idx < len(entries) and entries[idx] is not None and len(entries[idx]) != count:
++            fail(layer, name, f"len={len(entries[idx])} expected={count} idx={idx}")
++    mp = getattr(module, "_split_map", None)
++    if mp is not None and sorted(values(mp)) != list(range(experts)):
++        fail(layer, "_split_map", f"expected permutation of [0,{experts})")
++
++
++def exchange_slots(module, mp, cold, hot):
++    module_layout(module)
++    index_range(module.key, "exchange.router_ids", [cold, hot], 0, module.num_experts)
++    slot, local = int(mp[cold]), int(mp[hot]) - module.cpu_split_first
++    index_range(module.key, "exchange.gpu_slot", [slot], 0, module.cpu_split_first)
++    index_range(module.key, "exchange.cpu_local", [local], 0, module.num_experts - module.cpu_split_first)
+diff -ruN base/exllamav3/modules/block_sparse_mlp.py src/exllamav3/modules/block_sparse_mlp.py
+--- base/exllamav3/modules/block_sparse_mlp.py	2026-10-07 10:26:38
++++ src/exllamav3/modules/block_sparse_mlp.py	2026-10-08 14:21:30
+@@ -876,7 +876,7 @@
+                 (md.in_features, md.out_features, md.K),
+                 mg.q_cb() if mg is not None else None, mu.q_cb(), md.q_cb(),
+                 self.activation_fn, self.act_limit, self.device, scales,
+-                interm_fp32 = self.interm_dtype != torch.half)
++                interm_fp32 = self.interm_dtype != torch.half, layer_key = self.key)
+             self.batch_recon.set_static_pointers(
+                 mg.ptrs_trellis if mg is not None else None, mu.ptrs_trellis, md.ptrs_trellis)
+         return self.batch_recon
+diff -ruN base/exllamav3/modules/block_sparse_mlp_cpu.py src/exllamav3/modules/block_sparse_mlp_cpu.py
+--- base/exllamav3/modules/block_sparse_mlp_cpu.py	2026-10-08 09:05:09
++++ src/exllamav3/modules/block_sparse_mlp_cpu.py	2026-10-08 14:43:02
+@@ -6,6 +6,7 @@
+ _exchange_mode = os.environ.get("EXL3_MOE_CPU_SWAP_MODE", "checkpoint") == "exchange"
+ _score_mode = _exchange_mode and os.environ.get("EXL3_MOE_CPU_SWAP_POLICY", "histogram") == "score"
+ from ..ext import exllamav3_ext as ext
++from ..model import moe_split_check as split_check
+ 
+ # Kernel-fused issue/collect for decode-size split jobs (EXL3_MOE_SPLIT_FUSED=0 restores the
+ # cudaMemcpyAsync path for A/B testing)
+@@ -169,6 +170,14 @@
+                 "moe_cpu_split and moe_cpu_offload are mutually exclusive: the split offloads " \
+                 "a slice of every eligible layer's experts, whole-layer offload takes entire " \
+                 "layers — pick one"
++        # Resolve on every load attempt, including autosplit rollback onto another device.
++        # The base count remains authoritative when this opt-in override is absent.
++        by_dev = os.environ.get("EXL3_MOE_CPU_SPLIT_BY_DEVICE", "")
++        if split_k and by_dev and device is not None and torch.device(device).type == "cuda":
++            vals = [int(v) for v in by_dev.split(",") if v.strip()]
++            idx = torch.device(device).index or 0
++            if idx < len(vals) and vals[idx] > 0:
++                split_k = vals[idx]
+         split_layers = int(os.environ.get("EXL3_MOE_CPU_SPLIT_LAYERS", 0))
+         if split_layers and getattr(ip, "moe_cpu_split_assigned", 0) >= split_layers:
+             split_k = 0
+@@ -236,6 +245,11 @@
+                 reg = []
+                 ip2.moe_cpu_swap_modules = reg
+             reg.append(self)
++        if split_check.ENABLED and self.cpu_split_first is not None:
++            split_check.module_layout(self)
++            print(f"[SPLIT-CHECK] layer={self.key} device={self.device} "
++                  f"first={self.cpu_split_first} cpu={self.num_experts - self.cpu_split_first} "
++                  f"worker_idx={self.cpu_layer_idx}", flush = True)
+ 
+     def cpu_unload(self):
+         if self.cpu_split_first is not None:
+@@ -246,6 +260,14 @@
+              self.num_local_experts, self.routing_first, self.routing_last) = self._split_saved
+             self._split_saved = None
+             self.cpu_split_first = None
++            if os.environ.get("EXL3_MOE_CPU_SPLIT_BY_DEVICE", ""):
++                ip = self.config.infer_params
++                ip.moe_cpu_split_assigned = max(0, getattr(ip, "moe_cpu_split_assigned", 0) - 1)
++                self.cpu_host = None
++                self.cpu_layer_idx = None
++                self._split_selcpu_t = None
++                self._exchange_read_streams = {}
++                self._exchange_copy_stream = None
+             if self._split_map is not None:
+                 reg = getattr(self.config.infer_params, "moe_cpu_swap_modules", None)
+                 if reg is not None and self in reg:
+@@ -278,6 +300,9 @@
+         big prefill batches take the single-phase streamed path, which overlaps internally.
+         Expert ids ship in the worker's local range with -1 sentinels for GPU-resident
+         picks."""
++        if split_check.ENABLED:
++            split_check.module_layout(self)
++            split_check.index_range(self.key, "selected_experts.router", selected_experts, 0, self.num_experts)
+         if self._split_map is not None:
+             if _exchange_mode:
+                 if getattr(self.cpu_host, "exchange_failed", False):
+@@ -342,6 +367,9 @@
+             selected_experts.view(-1), self._split_map,
+             self._score_count_hist if _score_mode else self._split_hist,
+             buf[:n], self.cpu_split_first)
++        if split_check.ENABLED:
++            split_check.index_range(self.key, "selected_experts.physical", selected_experts, 0, self.num_experts)
++            split_check.index_range(self.key, "sel_cpu", sel_cpu, -1, self.num_experts - self.cpu_split_first)
+         return sel_cpu
+ 
+     def cpu_offload_issue(self, shape, y, selected_experts, routing_weights, params):
+diff -ruN base/exllamav3/modules/moe_batch_recon.py src/exllamav3/modules/moe_batch_recon.py
+--- base/exllamav3/modules/moe_batch_recon.py	2026-09-27 12:31:50
++++ src/exllamav3/modules/moe_batch_recon.py	2026-10-08 14:44:44
+@@ -26,6 +26,7 @@
+ import os
+ import numpy as np
+ import torch
++from ..model import moe_split_check as split_check
+ from ..ext import exllamav3_ext as ext
+ 
+ RECON_BATCH = max(1, int(os.environ.get("EXL3_MOE_RECON_BATCH", 16)))
+@@ -113,11 +114,12 @@
+     differ between GPU-resident and streamed experts)."""
+ 
+     def __init__(self, dims_g, dims_u, dims_d, cb_g, cb_u, cb_d, activation, act_limit, device,
+-                 scales, folded = None, interm_fp32 = False):
++                 scales, folded = None, interm_fp32 = False, layer_key = None):
+         # dims: (k, n, K); cb: (mcg, mul1); scales: per projection ("g", "u", "d") a pair of
+         # lists of per-expert suh (k) and svh (n) half tensors, stacked here into [E, dim]
+         # tables
+         self.gated = dims_g is not None
++        self.check_layer = layer_key or "BatchReconLayer"
+         self.dims_g, self.dims_u, self.dims_d = dims_g, dims_u, dims_d
+         self.cb_g, self.cb_u, self.cb_d = cb_g, cb_u, cb_d
+         act = _ACT_IDX[activation] if isinstance(activation, int) else activation
+@@ -181,6 +183,9 @@
+         B, cmax, k = x.shape
+         if not self.folded:
+             suh, svh = self.scales[p]
++            if split_check.ENABLED:
++                split_check.index_range(self.check_layer, f"ids -> {p}.suh rows", ids, 0, suh.shape[0])
++                split_check.index_range(self.check_layer, f"ids -> {p}.svh rows", ids, 0, svh.shape[0])
+             xh = torch.empty_like(x)
+             ext.had_r_128_batch(x.view(B * cmax, k), xh.view(B * cmax, k), suh, None, ids, cmax, 1.0)
+             x = xh
+@@ -196,6 +201,9 @@
+         if self.folded:
+             # Per-matrix suh/svh addresses, gathered by expert id
+             suh_p, svh_p = self.scale_ptrs[p]
++            if split_check.ENABLED:
++                split_check.index_range(self.check_layer, f"ids_d -> {p}.suh_p.index_select", ids_d, 0, suh_p.shape[0])
++                split_check.index_range(self.check_layer, f"ids_d -> {p}.svh_p.index_select", ids_d, 0, svh_p.shape[0])
+             ext.reconstruct_had_batch(
+                 W, ptrs, suh_p.index_select(0, ids_d), svh_p.index_select(0, ids_d), K, *cb)
+         else:
+@@ -251,6 +259,10 @@
+             ptr_g, ptr_u, ptr_d = meta[3], meta[4], meta[5]
+         else:
+             tg, tu, td = self.ptr_tables
++            if split_check.ENABLED:
++                for name, table in (("tg", tg), ("tu", tu), ("td", td)):
++                    if table is not None:
++                        split_check.index_range(self.check_layer, f"ids_d -> {name}.index_select", ids_d, 0, table.shape[0])
+             ptr_g = tg.index_select(0, ids_d) if tg is not None else None
+             ptr_u = tu.index_select(0, ids_d)
+             ptr_d = td.index_select(0, ids_d)
+@@ -259,8 +271,13 @@
+         ar = torch.arange(cmax, device = dev)
+         src = meta[1].unsqueeze(1) + ar.unsqueeze(0)
+         src = torch.where(ar.unsqueeze(0) < meta[2].unsqueeze(1), src, A).view(-1)
++        if split_check.ENABLED:
++            split_check.index_range(self.check_layer, "src -> tok_ext.index_select", src, 0, tok_ext.shape[0])
++            split_check.index_range(self.check_layer, "src -> w_ext.index_select", src, 0, w_ext.shape[0])
+         tok = tok_ext.index_select(0, src)
+         w = w_ext.index_select(0, src)
++        if split_check.ENABLED:
++            split_check.index_range(self.check_layer, "tok -> y_ext.index_select", tok, 0, y_ext.shape[0])
+         x = y_ext.index_select(0, tok).view(B, cmax, ku)
+ 
+         # Gate / up. Weight scratch is prefill-shaped and comes from the caching allocator per

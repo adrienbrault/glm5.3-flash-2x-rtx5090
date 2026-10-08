@@ -1,0 +1,31 @@
+test_actual_folded_reconstruct_gather_names_layer_and_table (__main__.CheckTests.test_actual_folded_reconstruct_gather_names_layer_and_table) ... ok
+test_bad_descriptor_and_aux_counts_are_rejected (__main__.CheckTests.test_bad_descriptor_and_aux_counts_are_rejected) ... ok
+test_checks_name_layer_tensor_and_bad_range (__main__.CheckTests.test_checks_name_layer_tensor_and_bad_range) ... ok
+test_host_check_runs_at_production_prefill_call_site (__main__.CheckTests.test_host_check_runs_at_production_prefill_call_site) ... ok
+test_invalid_map_and_exchange_slot_are_rejected (__main__.CheckTests.test_invalid_map_and_exchange_slot_are_rejected) ... ok
+test_module_contract_rejects_stale_worker_before_scatter (__main__.CheckTests.test_module_contract_rejects_stale_worker_before_scatter) ... ok
+test_production_global_histogram_sweep_mixed_layers_and_mtp (__main__.ExchangeTests.test_production_global_histogram_sweep_mixed_layers_and_mtp) ... ok
+test_real_exchange_call_selects_layer_local_descriptor_after_rollback (__main__.ExchangeTests.test_real_exchange_call_selects_layer_local_descriptor_after_rollback) ... ok
+test_base_defect_exact_index_set_and_silent_wrong_expert (__main__.IndexTests.test_base_defect_exact_index_set_and_silent_wrong_expert) ... ok
+test_no_override_differential_with_base_registration_and_translation (__main__.IndexTests.test_no_override_differential_with_base_registration_and_translation) ... ok
+test_per_device_resolution_on_each_attempt_and_base_fallback (__main__.IndexTests.test_per_device_resolution_on_each_attempt_and_base_fallback) ... ok
+test_profile_permutation_boundaries_and_swaps (__main__.IndexTests.test_profile_permutation_boundaries_and_swaps) ... ok
+test_real_torch_cpu_scatter_if_requested (__main__.IndexTests.test_real_torch_cpu_scatter_if_requested) ... skipped 'use --torch on a Torch-equipped CPU host'
+test_rollback_releases_split_layer_budget_in_by_device_mode (__main__.IndexTests.test_rollback_releases_split_layer_budget_in_by_device_mode) ... ok
+test_static_translation_all_experts_c1_to_c4 (__main__.IndexTests.test_static_translation_all_experts_c1_to_c4) ... ok
+test_changed_layout_cannot_register_after_start (__main__.RegistrationTests.test_changed_layout_cannot_register_after_start) ... ok
+test_identical_retry_drops_cached_aux_pointer_tables_on_all_devices (__main__.RegistrationTests.test_identical_retry_drops_cached_aux_pointer_tables_on_all_devices) ... ok
+test_identical_retry_reuses_worker_and_refreshes_aux (__main__.RegistrationTests.test_identical_retry_reuses_worker_and_refreshes_aux) ... ok
+test_mtp_and_main_mixed_counts_both_mtp_placements (__main__.RegistrationTests.test_mtp_and_main_mixed_counts_both_mtp_placements) ... ok
+test_no_by_device_keeps_original_retry_behavior (__main__.RegistrationTests.test_no_by_device_keeps_original_retry_behavior) ... ok
+test_reverse_rollback_104_to_98_has_correct_experts (__main__.RegistrationTests.test_reverse_rollback_104_to_98_has_correct_experts) ... ok
+test_rollback_98_to_104_real_registration_and_scatter (__main__.RegistrationTests.test_rollback_98_to_104_real_registration_and_scatter) ... ok
+test_same_count_changed_profile_order_is_new_registration (__main__.RegistrationTests.test_same_count_changed_profile_order_is_new_registration) ... ok
+test_superseded_ack_indices_stay_append_only (__main__.RegistrationTests.test_superseded_ack_indices_stay_append_only) ... ok
+test_superseded_aux_and_reconstruction_are_released (__main__.RegistrationTests.test_superseded_aux_and_reconstruction_are_released) ... ok
+
+----------------------------------------------------------------------
+Ran 25 tests in 0.771s
+
+OK (skipped=1)
+ !! --moe_cpu_split 999 exceeds the 288 routed experts per layer, capped to 287 (use --moe_cpu_offload to move whole layers)

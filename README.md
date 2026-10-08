@@ -6,16 +6,22 @@ GLM-5.3-Flash (zai-org; 321 B parameters, about 18 B active per token) served by
 
 Measured 2026-10-07 on the served configuration ([R882b](bench/results/r882b-glm53-swap-agent.md)). Each stream is a chat request forced to 1,024 tokens, temperature 0.
 
+![Decode rate at 1, 2 and 4 concurrent streams: per stream 59.9, 41.1, 27.5 tok/s; sum of the streams 59.9, 82.2, 109.9 tok/s](docs/img/decode-concurrency.svg)
+
+![Single-stream decode by content kind: code 58.1, prose 62.5, chat 64.1, html 63.0, edit 51.6 tok/s](docs/img/c1-by-kind.svg)
+
+<details><summary>The same numbers as tables</summary>
+
 | | 1 stream | 2 streams | 4 streams |
 |---|---|---|---|
 | decode, per stream | 59.9 tok/s | 41.1 tok/s | 27.5 tok/s |
 | decode, sum of the streams | 59.9 tok/s | 82.2 tok/s | 109.9 tok/s |
 
-Single-stream decode by content kind:
-
 | code | prose | chat | html | edit |
 |---|---|---|---|---|
 | 58.1 tok/s | 62.5 tok/s | 64.1 tok/s | 63.0 tok/s | 51.6 tok/s |
+
+</details>
 
 Cold prefill, engine-timed:
 
@@ -23,7 +29,7 @@ Cold prefill, engine-timed:
 |---|---|---|
 | prefill | 1,999 tok/s | 2,146 tok/s |
 
-Method, time to the first token and run-to-run spread: [`bench/RESULTS.md`](bench/RESULTS.md).
+Method, time to the first token and run-to-run spread: [`bench/RESULTS.md`](bench/RESULTS.md). The charts are drawn from the raw records by [`scripts/make_charts.py`](scripts/make_charts.py).
 
 ## What is served
 

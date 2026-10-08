@@ -2,6 +2,8 @@
 
 One entry per change of what serves on :8029, oldest first. Numbers are c1 scores (`bench/RESULTS.md`, Method) unless the entry says otherwise; each entry names its results directory on the box and its write-up.
 
+![Served configurations: c1 score 46.2 (R860), 48.4 (R864), 57.5 (R869), 59.9 (R882b); sum over four streams 68.6 (R858), 86.3 (R873), 109.9 (R882b)](img/history.svg)
+
 - **2026-10-06, R858** (`2026-10-06-r858-glm53-233400-2023872`, `bench/results/r858-glm53-audition.md`). First boot of turboderp's 2.05 bpw EXL3 checkpoint: 104 of 288 routed experts per MoE layer on the CPU, dynamic placement, MTP draft depth 1, 64k cache. Code-tutorial prompt, 1,024 forced tokens: 49.5 tok/s at c1, 68.6 tok/s summed over 4 streams. Fit ladders with 80 experts per layer or 12 whole layers on the CPU did not boot.
 - **2026-10-06, R859** (`2026-10-06-r859-glm53-c1-234732`, `bench/results/r859-glm53-c1.md`). Same placement at a 256k cache, MTP depth 1: code 46 to 51, prose 42 to 47, chat 42 to 50 tok/s; cold prefill 1,383 tok/s at 8,200 tokens to 1,758 at 130,998.
 - **2026-10-07, R860** (`2026-10-07-r860-glm53-chain-010840`, `bench/results/r860-glm53-chain.md`). MTP off (46.2) ties MTP depth 1 (45.7) over code, prose, chat and html; depth 2 and 3 do not fit. Served: MTP off, 8 CPU threads, 104 on the CPU, 256k.

@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="280" viewBox="0 0 640 280" role="img" aria-labelledby="t d">
+<title id="t">Single-stream decode by content kind</title>
+<desc id="d">code 58.1 tok/s, prose 62.5 tok/s, chat 64.1 tok/s, html 63.0 tok/s, edit 51.6 tok/s.</desc>
+<style>
+  .bg { fill: #fcfcfb; }
+  .t1 { fill: #0b0b0b; font: 600 15px system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .t2 { fill: #52514e; font: 12px system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .t3 { fill: #0b0b0b; font: 600 12px system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .grid { stroke: #e6e5e0; stroke-width: 1; }
+  .axis { stroke: #bdbcb5; stroke-width: 1; }
+  .s1 { fill: #2a78d6; } .s1l { stroke: #2a78d6; }
+  .s2 { fill: #eb6834; } .s2l { stroke: #eb6834; }
+  .ring { stroke: #fcfcfb; stroke-width: 2; }
+  @media (prefers-color-scheme: dark) {
+    .bg { fill: #1a1a19; }
+    .t1, .t3 { fill: #ffffff; } .t2 { fill: #c3c2b7; }
+    .grid { stroke: #2e2e2c; } .axis { stroke: #55544f; }
+    .s1 { fill: #3987e5; } .s1l { stroke: #3987e5; }
+    .s2 { fill: #d95926; } .s2l { stroke: #d95926; }
+    .ring { stroke: #1a1a19; }
+  }
+</style>
+<rect class="bg" width="640" height="280" rx="8"/>
+<text class="t1" x="20" y="30">Single-stream decode by content kind</text>
+<text class="t2" x="20" y="50">tok/s, median of 2 runs, 1,024 forced tokens (html 2,048), reasoning effort low (R882b)</text>
+<line class="grid" x1="70.0" x2="70.0" y1="64" y2="254"/>
+<text class="t2" x="70.0" y="270" text-anchor="middle">0</text>
+<line class="grid" x1="141.4" x2="141.4" y1="64" y2="254"/>
+<text class="t2" x="141.4" y="270" text-anchor="middle">10</text>
+<line class="grid" x1="212.9" x2="212.9" y1="64" y2="254"/>
+<text class="t2" x="212.9" y="270" text-anchor="middle">20</text>
+<line class="grid" x1="284.3" x2="284.3" y1="64" y2="254"/>
+<text class="t2" x="284.3" y="270" text-anchor="middle">30</text>
+<line class="grid" x1="355.7" x2="355.7" y1="64" y2="254"/>
+<text class="t2" x="355.7" y="270" text-anchor="middle">40</text>
+<line class="grid" x1="427.1" x2="427.1" y1="64" y2="254"/>
+<text class="t2" x="427.1" y="270" text-anchor="middle">50</text>
+<line class="grid" x1="498.6" x2="498.6" y1="64" y2="254"/>
+<text class="t2" x="498.6" y="270" text-anchor="middle">60</text>
+<line class="grid" x1="570.0" x2="570.0" y1="64" y2="254"/>
+<text class="t2" x="570.0" y="270" text-anchor="middle">70</text>
+<path class="s1" d="M70,70 H480.7 Q484.7,70 484.7,74 V88 Q484.7,92 480.7,92 H70 Z"><title>code: 58.1 tok/s</title></path>
+<text class="t2" x="60" y="85.0" text-anchor="end">code</text>
+<text class="t3" x="492.7" y="85.0">58.1</text>
+<path class="s1" d="M70,106 H512.6 Q516.6,106 516.6,110 V124 Q516.6,128 512.6,128 H70 Z"><title>prose: 62.5 tok/s</title></path>
+<text class="t2" x="60" y="121.0" text-anchor="end">prose</text>
+<text class="t3" x="524.6" y="121.0">62.5</text>
+<path class="s1" d="M70,142 H523.5 Q527.5,142 527.5,146 V160 Q527.5,164 523.5,164 H70 Z"><title>chat: 64.1 tok/s</title></path>
+<text class="t2" x="60" y="157.0" text-anchor="end">chat</text>
+<text class="t3" x="535.5" y="157.0">64.1</text>
+<path class="s1" d="M70,178 H516.3 Q520.3,178 520.3,182 V196 Q520.3,200 516.3,200 H70 Z"><title>html: 63.0 tok/s</title></path>
+<text class="t2" x="60" y="193.0" text-anchor="end">html</text>
+<text class="t3" x="528.3" y="193.0">63.0</text>
+<path class="s1" d="M70,214 H434.4 Q438.4,214 438.4,218 V232 Q438.4,236 434.4,236 H70 Z"><title>edit: 51.6 tok/s</title></path>
+<text class="t2" x="60" y="229.0" text-anchor="end">edit</text>
+<text class="t3" x="446.4" y="229.0">51.6</text>
+<line class="axis" x1="70" x2="70" y1="64" y2="254"/>
+</svg>

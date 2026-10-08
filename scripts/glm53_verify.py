@@ -25,9 +25,15 @@ def offload(settings, log):
         expected = set(range(3, 45 + s['draft']))
         # split-by-device-r1 (R915): EXL3_MOE_CPU_SPLIT_BY_DEVICE="N0,N1" in EXL3_EXTRA gives each GPU's layers their own N
         extra = os.environ.get('EXL3_EXTRA', '')
-        m = re.search(r'EXL3_MOE_CPU_SPLIT_BY_DEVICE=([0-9,]+)', extra)
-        ns = {int(v) for v in m.group(1).split(',') if v} if m else {s['n']}
-        if layers != expected or any(not (int(b) == int(e) == 288 and 288 - int(a) in ns) for _,a,b,e in rows):
+        # dflash-adaptive-r1 (R921): DRAFT_MODEL selects draft_mode model; the main model's MTP layer 45 is loaded only
+        # with EXL3_DRAFTER_CHOICE=1, so a DFlash-only boot may register layers 3..44 alone.
+        ok_sets = [expected]
+        if s.get('draft_model') and 'EXL3_DRAFTER_CHOICE=1' not in extra:
+            ok_sets.append(set(range(3, 45)))
+        # the engine applies the LAST occurrence (a unit appending its own value to the daily's EXL3_EXTRA, R925)
+        ms = re.findall(r'EXL3_MOE_CPU_SPLIT_BY_DEVICE=([0-9,]+)', extra)
+        ns = {int(v) for v in ms[-1].split(',') if v} if ms else {s['n']}
+        if layers not in ok_sets or any(not (int(b) == int(e) == 288 and 288 - int(a) in ns) for _,a,b,e in rows):
             raise ValueError(f'actual {mode} split registrations {sorted(layers)} != {sorted(expected)} or bad expert interval')
     print('OFFLOAD VERIFIED', s['mode'], s['n'], 'MTP', s['draft'], s.get('placement', 'dynamic'), flush=True)
 

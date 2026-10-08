@@ -3,13 +3,13 @@
 # (repo: flan/r858/glm-daily.env), launched with the tools in /srv/qwen5090/glm-daily-tools (r885c-tools + the repo's
 # current launcher/plan/probe). glm_arms.sh units take it as their experiment base at start and re-read it when they
 # restore the daily, so a promotion mid-chain is honored by whichever unit restores last.
-# Run from the repo:  rsync -a flan/r858/{glm-daily.env,launch-glm53.sh,glm53_plan.py,glm53_probe.py,mtp_steps.py} flan:/tmp/glm-daily-src/
+# Run from the repo:  rsync -a flan/r858/{glm-daily.env,launch-glm53.sh,glm53_plan.py,glm53_probe.py,glm53_verify.py,mtp_steps.py} flan:/tmp/glm-daily-src/
 #                     ssh flan 'bash -s' < flan/r858/install-glm-daily.sh
 set -euo pipefail
 S=/tmp/glm-daily-src
 T=/srv/qwen5090/glm-daily-tools
 rm -rf "$T.new"; cp -a /srv/qwen5090/r885c-tools "$T.new"
-cp "$S/launch-glm53.sh" "$S/glm53_plan.py" "$S/glm53_probe.py" "$S/mtp_steps.py" "$T.new/"
+cp "$S/launch-glm53.sh" "$S/glm53_plan.py" "$S/glm53_probe.py" "$S/glm53_verify.py" "$S/mtp_steps.py" "$T.new/"
 bash -n "$T.new/launch-glm53.sh"
 [[ -f "$T.new/split-stats-broad-r869.json" ]]
 rm -rf "$T.old"; [[ -d "$T" ]] && mv "$T" "$T.old"; mv "$T.new" "$T"

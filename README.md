@@ -5,8 +5,11 @@
 - **Model**: 321 B parameters, about 18 B active per token; [turboderp][turboderp]'s [2.05 bpw EXL3 quantisation][ckpt], 76 GB.
 - **Box**: two RTX 5090 (64 GB of VRAM) and 64 GB of DDR5 ([Hardware](#hardware)).
 - **Offload**: the checkpoint does not fit the VRAM, so 96 of the 288 routed experts of every MoE layer run on the CPU ([ExLlamaV3's CPU MoE offload][exl3]).
-- **Swaps**: the experts the traffic uses most move onto the GPUs while it runs ([`docker/cheapswap-r3/`](docker/cheapswap-r3/)).
+- **Swaps**: the experts the traffic uses most move onto the GPUs while it runs.
 - **Exact output**: no expert is skipped.
+- **Patches written here**: two overlays. [`docker/cheapswap-r3/`](docker/cheapswap-r3/) patches ExLlamaV3 for the expert swaps; [`docker/glm-agent-r2/`](docker/glm-agent-r2/) patches TabbyAPI for GLM tool calls in agent harnesses (streamed arguments, tool-call parsing fixes, reasoning-history recovery, keepalive).
+- **Base image**: the served image of [qwen3.8-flash-next-2x-rtx5090][fn], ExLlamaV3 `dev` `5783a93` with that repository's 19 patch sets and TabbyAPI `53da7919`. The launcher clears that image's `EXL3_*` selectors and passes only the GLM offload and swap settings ([`scripts/FLAG-DECISIONS.txt`](scripts/FLAG-DECISIONS.txt)).
+- **Window**: 262,144 tokens, 8-bit KV cache, up to 4 concurrent requests, vision on.
 
 How it got here: [`docs/HISTORY.md`](docs/HISTORY.md). Credits: [`THIRD_PARTY.md`](THIRD_PARTY.md).
 
@@ -16,6 +19,7 @@ How it got here: [`docs/HISTORY.md`](docs/HISTORY.md). Credits: [`THIRD_PARTY.md
 [exl3]: https://github.com/turboderp-org/exllamav3
 [turboderp]: https://huggingface.co/turboderp
 [ckpt]: https://huggingface.co/turboderp/GLM-5.3-Flash-exl3
+[fn]: https://github.com/adrienbrault/qwen3.8-flash-next-2x-rtx5090
 
 ## Speed
 

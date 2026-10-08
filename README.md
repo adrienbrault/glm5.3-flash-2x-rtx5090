@@ -56,7 +56,7 @@ Method and run-to-run spread: [`bench/RESULTS.md`](bench/RESULTS.md). The charts
 
 Measured 2026-10-08 on the served configuration, idle after warmup ([R900](bench/results/r900-glm53-memory-layout.md)). Weights come from the checkpoint's tensor sizes and the served config; the VRAM total comes from `nvidia-smi` and the host total from the container's memory cgroup (anonymous plus shared memory, without the page cache); "other" is the measured total minus the listed items.
 
-![VRAM: 61.1 of 63.7 GiB used, of which routed experts 46.6, other weights 4.6, KV pool 3.0, other 6.8; host DRAM: 32.9 of 60.4 GiB used, of which routed experts 26.4, embedding table 1.2, vision tower 0.5, recurrent-state cache 1.0, other 3.8](docs/img/memory.svg)
+![VRAM: 61.1 of 63.7 GiB used, of which routed experts 46.6, other weights 4.6, KV pool 3.0, other 6.8; host DRAM: 32.9 of 60.4 GiB used, of which routed experts 26.4, embedding table 1.2, vision tower 0.5, other 4.9](docs/img/memory.svg)
 
 ## What is served
 

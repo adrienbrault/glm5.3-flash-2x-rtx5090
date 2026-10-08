@@ -14,3 +14,6 @@ host
   other: runtime, staging, buffers                                          3.85 GiB
 GPU used per device: {0: 30.06, 1: 31.04}
 rc=0 ring=0 ckpt=/srv/qwen5090/models/glm53-flash-exl3-2.05bpw-turboderp
+
+Host categories re-derived 2026-10-08 with scripts/memory_layout.py --rederive (the recurrent-state cache is a cap, not resident; memory.json holds the re-derived split):
+  CPU experts 26.36 GiB; embedding table 1.18 GiB; vision tower 0.49 GiB; other: runtime, staging, buffers, recurrent-state cache (cap 1024 MB) 4.85 GiB

@@ -26,9 +26,8 @@
   "host_categories_bytes": {
     "CPU experts (104 of 288 per layer)": 28300300704.0,
     "embedding table": 1268776960,
-    "recurrent-state cache (configured 1024 MB)": 1073741824,
     "vision tower (vision_offload)": 529898160,
-    "other: runtime, staging, buffers": 4129334192.0
+    "other: runtime, staging, buffers, recurrent-state cache (cap 1024 MB)": 5203076016.0
   },
   "inputs": {
     "cache_tokens": 262144,
@@ -38,7 +37,8 @@
     "vision": true,
     "vision_offload": true,
     "kv_bytes_per_token_per_dsa_layer": 1120,
-    "dsa_layers": 11
+    "dsa_layers": 11,
+    "sysmem_recurrent_cache_cap_mb": 1024
   },
   "checkpoint_bytes_by_category": {
     "embedding": 1268776960,

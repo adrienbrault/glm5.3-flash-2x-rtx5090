@@ -185,7 +185,7 @@ MEMORY_GROUPS = [
     ("embedding table", "#bf8700", ("embedding table",)),
     ("vision tower", "#cf222e", ("vision tower",)),
     ("recurrent-state cache", "#e16f24", ("recurrent-state cache",)),
-    ("other (contexts, graph pools, scratch, runtime, staging)", "#afb8c1", ("other",)),
+    ("other (contexts, graph pools, scratch; host: runtime, staging, recurrent-state cache)", "#afb8c1", ("other",)),
 ]
 
 

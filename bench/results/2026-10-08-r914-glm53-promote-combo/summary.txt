@@ -1,0 +1,24 @@
+GPU lock held; results /srv/qwen5090/results/2026-10-08-r914-glm53-promote-combo-111753; daily DRAFT=1 DRAFT_N=1 MTP_FAST=1 OFFLOAD_N=104 VISION_OFFLOAD=1 GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2 EXL3_EXTRA=EXL3_MTP_MAX_BATCH=1;EXL3_DRAFT_PINNED_STAGING=1;EXL3_MTP_GPU_DRAFT=1;EXL3_MTP_GREEDY_ACCEPT=1;EXL3_MTP_CACHED_REWIND=1 PINNED_ARENA=1 SWAP_MODE=exchange SWAP_POLICY=histogram SWAP_INIT_STATS=/srv/qwen5090/glm-daily-tools/split-stats-broad-r869.json SWAP_CADENCE=exact SWAP_INTERVAL=64 SWAP_MAX=64 SWAP_SCOPE=global SWAP_FLOOR=4 SWAP_HYST=2.0 AGENT=1 KEEP_THINKING=1
+C0 TRY: EXL3_EXTRA=EXL3_MTP_MAX_BATCH=1
+C0 landed: [MTP-OVERHEAD] landed phase_prof=False gpu_draft=False greedy_accept=False max_batch=1
+C0 free MiB after warmup: 1347 365 
+C0 c1 score 65.4 t/s: code 63.8 (acc 0.82); prose 69.1 (acc 0.65); chat 73.1 (acc 0.67); html 66.1 (acc 0.58); edit 54.9 (acc 0.93)
+C0 server step: c1 n=10 ms/step=26.21 tok/step=1.696 ms/tok=15.46
+C0 decode distinct: c1 65.9 c2 75.8 c4 83.5
+C0 vision rc=0 RESULT {"phase": "vision", "expect": "split", "ok": true, "text": "Blue", "ttft_s": 0.610573145095259, "prompt_tokens": 133}
+CF TRY: 
+CF landed: [MTP-OVERHEAD] landed phase_prof=False gpu_draft=True greedy_accept=True max_batch=1
+CF free MiB after warmup: 1347 365 
+CF c1 score 64.2 t/s: code 59.5 (acc 0.89); prose 70.3 (acc 0.65); chat 69.8 (acc 0.67); html 66.1 (acc 0.73); edit 55.5 (acc 0.91)
+CF server step: c1 n=10 ms/step=27.56 tok/step=1.756 ms/tok=15.69
+CF decode distinct: c1 65.3 c2 75.5 c4 87.7
+CF vision rc=0 RESULT {"phase": "vision", "expect": "split", "ok": true, "text": "Blue", "ttft_s": 0.6095043239183724, "prompt_tokens": 133}
+CF sanity rc=0 RESULT {"tag": "sanity-1-repeat", "first": 1128792.348558664, "last": 1128792.560140605, "ttft_s": 0.25890920008532703, "wall_s": 0.47062611510045826, "content"
+C1 TRY: EXL3_EXTRA=EXL3_MTP_MAX_BATCH=1
+C1 landed: [MTP-OVERHEAD] landed phase_prof=False gpu_draft=False greedy_accept=False max_batch=1
+C1 free MiB after warmup: 1349 365 
+C1 c1 score 64.2 t/s: code 61.6 (acc 0.86); prose 67.8 (acc 0.63); chat 71.9 (acc 0.67); html 65.6 (acc 0.73); edit 53.9 (acc 0.95)
+C1 server step: c1 n=10 ms/step=27.58 tok/step=1.753 ms/tok=15.73
+C1 decode distinct: c1 64.2 c2 75.5 c4 88.6
+C1 vision rc=0 RESULT {"phase": "vision", "expect": "split", "ok": true, "text": "Blue", "ttft_s": 0.5978884359356016, "prompt_tokens": 133}
+daily restore skipped: next unit queued (r915-glm53-split-by-device(pid 163365))

@@ -1,0 +1,27 @@
+GPU lock held; results /srv/qwen5090/results/2026-10-08-r911-glm53-mtpcap-dynamic-095005; daily DRAFT=0 OFFLOAD_N=96 GLM_IMG=tabbyapi:cheapswap-r3-agent-r2 PINNED_ARENA=1 SWAP_MODE=exchange SWAP_POLICY=histogram SWAP_INIT_STATS=/srv/qwen5090/r885c-tools/split-stats-broad-r869.json SWAP_CADENCE=exact SWAP_INTERVAL=64 SWAP_MAX=64 SWAP_SCOPE=global SWAP_FLOOR=4 SWAP_HYST=2.0 AGENT=1 KEEP_THINKING=1
+D0 TRY:  EXL3_EXTRA=[]
+D0 up: VRAM 0, 31662 MiB, 489 MiB 1, 31032 MiB, 1119 MiB 
+D0 c1 score 57.1 t/s: code 54.6; prose 61.4; chat 59.6; html 60.5; edit 49.3
+D0 server step: c1 n=10 ms/step=17.50 tok/step=1.000 ms/tok=17.50
+D0 decode distinct: c1 57.3 c4 98.1
+D0 vision rc=0 RESULT {"phase": "vision", "expect": "split", "ok": true, "text": "Blue", "ttft_s": 0.5307936880271882, "prompt_tokens": 133}
+M-n96 TRY: GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2 DRAFT=1 DRAFT_N=1 MTP_FAST=1 VISION_OFFLOAD=1 OFFLOAD_N=96 EXL3_EXTRA=[EXL3_MTP_MAX_BATCH=1]
+M-n96 NO BOOT (Error("Insufficient VRAM in split for model and cache"))
+M-n98 TRY: GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2 DRAFT=1 DRAFT_N=1 MTP_FAST=1 VISION_OFFLOAD=1 OFFLOAD_N=98 EXL3_EXTRA=[EXL3_MTP_MAX_BATCH=1]
+M-n98 NO BOOT (Error("Insufficient VRAM in split for model and cache"))
+M-n100 TRY: GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2 DRAFT=1 DRAFT_N=1 MTP_FAST=1 VISION_OFFLOAD=1 OFFLOAD_N=100 EXL3_EXTRA=[EXL3_MTP_MAX_BATCH=1]
+M-n100 NO BOOT (Error("Insufficient VRAM in split for model and cache"))
+M-n102 TRY: GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2 DRAFT=1 DRAFT_N=1 MTP_FAST=1 VISION_OFFLOAD=1 OFFLOAD_N=102 EXL3_EXTRA=[EXL3_MTP_MAX_BATCH=1]
+M-n102 NO BOOT (Error("Insufficient VRAM in split for model and cache"))
+M-n104 TRY: GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2 DRAFT=1 DRAFT_N=1 MTP_FAST=1 VISION_OFFLOAD=1 OFFLOAD_N=104 EXL3_EXTRA=[EXL3_MTP_MAX_BATCH=1]
+M-n104 up: VRAM 0, 30780 MiB, 1371 MiB 1, 31786 MiB, 365 MiB 
+M-n104 c1 score 64.4 t/s: code 61.3 (acc 0.85); prose 68.9 (acc 0.66); chat 71.1 (acc 0.68); html 67.1 (acc 0.60); edit 53.5 (acc 0.94)
+M-n104 server step: c1 n=10 ms/step=26.82 tok/step=1.714 ms/tok=15.65
+M-n104 decode distinct: c1 66.6 c4 88.9
+M-n104 vision rc=0 RESULT {"phase": "vision", "expect": "split", "ok": true, "text": "Blue", "ttft_s": 0.6181188218761235, "prompt_tokens": 133}
+D1 TRY:  EXL3_EXTRA=[]
+D1 up: VRAM 0, 31662 MiB, 489 MiB 1, 31032 MiB, 1119 MiB 
+D1 c1 score 58.9 t/s: code 56.7; prose 62.0; chat 63.3; html 61.9; edit 50.8
+D1 server step: c1 n=10 ms/step=16.97 tok/step=1.000 ms/tok=16.97
+D1 decode distinct: c1 58.8 c4 96.6
+D1 vision rc=0 RESULT {"phase": "vision", "expect": "split", "ok": true, "text": "Blue", "ttft_s": 0.5103311911225319, "prompt_tokens": 133}

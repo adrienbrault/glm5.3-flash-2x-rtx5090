@@ -1,0 +1,1 @@
+{"keep_thinking": 1, "pack": "glm53-flash-exl3-2.05bpw-turboderp", "mode": "split", "n": 102, "cache": 262144, "cm": "8,8", "split": [31.0, 31.0], "draft": 1, "threads": 8, "max_seq": 262144, "sysmem_rc": 1024, "max_batch": 4, "chunk": 2048, "draft_n": 1, "dyn_draft": 0, "vision": 1, "vision_offload": 1, "plookup": 0, "placement": "dynamic", "swap_interval": 64, "swap_floor": 4}

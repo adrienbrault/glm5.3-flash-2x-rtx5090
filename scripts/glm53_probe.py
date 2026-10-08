@@ -94,7 +94,10 @@ def sanity(a):
 def sparse_warmup(a, c, words=1500, tokens=64):
     # 1,500 'wNNNN' words tokenize to several k tokens: every stream's context crosses index_topk while prefilling and decoding
     barrier = threading.Barrier(c)
-    salt = uuid.uuid4().hex
+    # R910 (2026-10-08): warmups use a fixed salt so every boot sees identical first-use shapes (autotune / tuning-cache
+    # choices are made on first use; random warmup prompts made two boots of one config diverge, codex determinism-r1).
+    # Measurement prompts keep per-invocation salts (benchmark seed uniqueness).
+    salt = f'warmup-c{c}'
     filler = ' '.join(f'w{(i * 7919) % 10007}' for i in range(words))
     def one(i):
         body = {'messages':[{'role':'user','content':f'Warmup {salt} stream {i}. {filler}\nSummarize the list above in one paragraph.'}],
@@ -111,7 +114,7 @@ def sparse_warmup(a, c, words=1500, tokens=64):
 
 def decode_round(a, c, run, tokens, phase):
     barrier = threading.Barrier(c)
-    salt = uuid.uuid4().hex
+    salt = f'warmup-c{c}-r{run}' if phase == 'warmup' else uuid.uuid4().hex
     # R899: --distinct gives each stream a different content kind (code/prose/chat/html cycling). The default sends the same
     # tutorial prompt to every stream, which shares most experts between streams and inflates c2-c8 (Opus offline r1).
     distinct = getattr(a, 'distinct', False)

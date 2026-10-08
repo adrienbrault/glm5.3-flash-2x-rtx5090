@@ -12,11 +12,20 @@ def words(rng, n):
     return ' '.join(rng.choice(vocab) for _ in range(n))
 
 def post(url, body):
+    # Streamed with include_usage: TabbyAPI 53da7919 returns an empty usage on non-streaming chat (R885b: every count
+    # None); upstream f61d7a4 fixed that later. The last SSE chunk carrying usage wins.
     t = time.time()
+    body = dict(body, stream=True, stream_options={'include_usage': True})
     req = urllib.request.Request(url + '/chat/completions', json.dumps(body).encode(), {'Content-Type': 'application/json'})
+    usage = {}
     with urllib.request.urlopen(req, timeout=900) as r:
-        d = json.loads(r.read())
-    return d, time.time() - t
+        for raw in r:
+            line = raw.decode('utf-8', 'replace').strip()
+            if not line.startswith('data:') or line[5:].strip() == '[DONE]':
+                continue
+            d = json.loads(line[5:])
+            usage = d.get('usage') or usage
+    return {'usage': usage}, time.time() - t
 
 def main():
     ap = argparse.ArgumentParser()

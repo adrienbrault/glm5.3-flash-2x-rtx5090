@@ -8,7 +8,7 @@ IMG=${GLM_IMG:-tabbyapi:r828-prompt-lookup-r3}
 # Experiment overlays built FROM a swap-family image are tagged <family>_<name> (e.g. cheapswap-r3-agent-r2_ring1)
 # and inherit its swap/agent capabilities.
 # glm53-cpu-skip-r2 (R886, FROM the r2 swap image) is in the family for diagnostic arms (R896).
-SWAP_FAMILY_RE='^tabbyapi:(cheapswap-r3(-agent-r[0-9][a-z0-9]*)?(_[a-z0-9-]+)?|glm53-cpu-skip-r2)$'
+SWAP_FAMILY_RE='^tabbyapi:(cheapswap-r3(-agent-r[0-9][a-z0-9]*)?(_[a-z0-9-]+)*|glm53-cpu-skip-r2)$'
 [[ "$IMG" =~ $SWAP_FAMILY_RE ]] || case "$IMG" in tabbyapi:r828-prompt-lookup-r3|tabbyapi:r859-route-trace-r1|tabbyapi:r861-glm-agent-r2|tabbyapi:r862-gpucache-r2|tabbyapi:cheapswap-r2|tabbyapi:cheapswap-r3|tabbyapi:r861-glm-agent-r3|tabbyapi:r861-glm-agent-r4|tabbyapi:cheapswap-r3-agent-r4c|tabbyapi:cheapswap-r3-agent-r2|tabbyapi:r861-glm-agent-r4b|tabbyapi:r861-glm-agent-r4c) ;; *) echo "ABORT: GLM_IMG $IMG not allowed" >&2; exit 3;; esac
 PROFILE=${PROFILE:-0}; PINNED_ARENA=${PINNED_ARENA:-0}; ROUTE_TRACE_DIR=${ROUTE_TRACE_DIR:-}
 # R864: AGENT=1 turns on the r861 agent overlay (live tool-call streaming, SSE keepalive, GLM tool fixes; grammar
@@ -32,7 +32,7 @@ if [[ -n "$SWAP_INIT_STATS$SWAP_POLICY" ]]; then
 fi
 [[ "$SWAP_CADENCE" =~ ^(|exact|served)$ && "$SWAP_MAX" =~ ^[0-9]*$ && "$SWAP_SCOPE" =~ ^(|global|layer)$ && "$SWAP_HYST" =~ ^([0-9]+(\.[0-9]+)?)?$ ]] || { echo 'ABORT: bad SWAP_* value' >&2; exit 3; }
 case "$HOST_CONFINE" in 0|1) ;; *) echo 'ABORT: HOST_CONFINE must be 0 or 1' >&2; exit 3;; esac
-case "$AGENT" in 0) ;; 1) [[ "$IMG" =~ ^tabbyapi:(r861-glm-agent-r[234][bc]?|cheapswap-r3-agent-r[0-9][a-z0-9]*(_[a-z0-9-]+)?)$ ]] || { echo 'ABORT: AGENT=1 needs GLM_IMG=tabbyapi:r861-glm-agent-r2|r3|r4' >&2; exit 3; };; *) echo 'ABORT: AGENT must be 0 or 1' >&2; exit 3;; esac
+case "$AGENT" in 0) ;; 1) [[ "$IMG" =~ ^tabbyapi:(r861-glm-agent-r[234][bc]?|cheapswap-r3-agent-r[0-9][a-z0-9]*(_[a-z0-9-]+)*)$ ]] || { echo 'ABORT: AGENT=1 needs GLM_IMG=tabbyapi:r861-glm-agent-r2|r3|r4' >&2; exit 3; };; *) echo 'ABORT: AGENT must be 0 or 1' >&2; exit 3;; esac
 # R877: TAG_TRACE=1 (agent r3/r4 images only) logs GLM stop sources, the EOS trigger id and parser state ([GLM-TAG-R3]).
 TAG_TRACE=${TAG_TRACE:-0}
 # R891: INDEX_RING=1 sets EXL3_DSA_INDEX_RING=1 (needs an *_ring* image from codex-glm-index-ring-r1);
@@ -118,11 +118,35 @@ if [[ "$IMG" == tabbyapi:glm53-cpu-skip-r2 ]]; then
     [[ -z "${!key:-}" ]] || SANITIZED+=("$key=${!key}")
   done
 fi
+# R902 (2026-10-08): EXL3_EXTRA="EXL3_A=1 EXL3_B=x" passes named EXL3_* flags of a codex-round overlay through the sanitizer,
+# for experiment overlays only (tag <family>_<name>[_<name>]); the daily image never receives them.
+EXL3_EXTRA=${EXL3_EXTRA:-}
+if [[ -n "$EXL3_EXTRA" ]]; then
+  [[ "$IMG" == *:*_* ]] || { echo "ABORT: EXL3_EXTRA needs an experiment overlay image (<family>_<name>), got $IMG" >&2; exit 3; }
+  for kv in ${EXL3_EXTRA//;/ }; do  # ";" also separates (the daily file is one space-split line)
+    [[ "$kv" =~ ^EXL3_[A-Z0-9_]+=[A-Za-z0-9_./:,=-]*$ ]] || { echo "ABORT: EXL3_EXTRA entry $kv is not EXL3_NAME=value" >&2; exit 3; }
+    SANITIZED+=("$kv")
+  done
+fi
 RING_MOUNT=()
 if [[ -n "$RING_TRACE_DIR" ]]; then
   IMG_PYTHONPATH=$(python3 -c 'import json,sys; e=dict(kv.partition("=")[::2] for kv in json.load(open(sys.argv[1]))[0]["Config"].get("Env") or []); print(e.get("PYTHONPATH",""))' "$RUN_DIR/image.json")
   RING_MOUNT=(-v "$RING_TRACE_DIR":/ring-results)
   SANITIZED+=("EXL3_RING_TEST_TRACE=/ring-results/$RING_TRACE_NAME.trace.jsonl" "PYTHONPATH=/ring-results/observer:/opt/index-ring/tests${IMG_PYTHONPATH:+:$IMG_PYTHONPATH}")
+fi
+# R906 (2026-10-08): test-only observers of codex rounds (overlay images only): TEST_DIR=<host dir> is mounted at
+# /test-results and TEST_PYTHONPATH=<container path> is prepended to the image's PYTHONPATH (sitecustomize hooks).
+# Pair with EXL3_EXTRA for the observer's own flags. Not combinable with RING_TRACE_DIR.
+TEST_DIR=${TEST_DIR:-}; TEST_PYTHONPATH=${TEST_PYTHONPATH:-}
+if [[ -n "$TEST_DIR$TEST_PYTHONPATH" ]]; then
+  [[ "$IMG" == *:*_* && -z "$RING_TRACE_DIR" ]] || { echo "ABORT: TEST_DIR/TEST_PYTHONPATH need an overlay image and no RING_TRACE_DIR" >&2; exit 3; }
+  [[ -z "$TEST_DIR" || -d "$TEST_DIR" ]] || { echo "ABORT: TEST_DIR $TEST_DIR is not a directory" >&2; exit 3; }
+  [[ -z "$TEST_DIR" ]] || RING_MOUNT+=(-v "$TEST_DIR":/test-results)
+  if [[ -n "$TEST_PYTHONPATH" ]]; then
+    [[ "$TEST_PYTHONPATH" =~ ^[A-Za-z0-9_./:-]+$ ]] || { echo "ABORT: TEST_PYTHONPATH has unexpected characters" >&2; exit 3; }
+    IMG_PYTHONPATH=$(python3 -c 'import json,sys; e=dict(kv.partition("=")[::2] for kv in json.load(open(sys.argv[1]))[0]["Config"].get("Env") or []); print(e.get("PYTHONPATH",""))' "$RUN_DIR/image.json")
+    SANITIZED+=("PYTHONPATH=$TEST_PYTHONPATH${IMG_PYTHONPATH:+:$IMG_PYTHONPATH}")
+  fi
 fi
 STATS_MOUNT=()
 if [[ "$PLACEMENT" == static ]]; then

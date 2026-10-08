@@ -44,7 +44,7 @@ Measured 2026-10-07 on the served configuration ([R882b](bench/results/r882b-glm
 
 ![Cold prefill rate by prompt length: 1,999 tok/s at 8,156 prompt tokens, 2,146 tok/s at 32,811](docs/img/prefill.svg)
 
-Method, time to the first token and run-to-run spread: [`bench/RESULTS.md`](bench/RESULTS.md). The charts are drawn from the raw records by [`scripts/make_charts.py`](scripts/make_charts.py).
+Method, time to the first token and run-to-run spread: [`bench/RESULTS.md`](bench/RESULTS.md). The charts are drawn from the raw records by [`bench/plot.py`](bench/plot.py) (`uv run bench/plot.py`).
 
 ## What is served
 

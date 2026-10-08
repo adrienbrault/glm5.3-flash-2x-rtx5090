@@ -236,6 +236,9 @@ def settings():
     # R864: VISION=0 drops the vision tower (DeepSeek Harness sends text only) to free VRAM for a lower N;
     # PLOOKUP=1 sets EXL3_PROMPT_LOOKUP=1 (adaptive prompt lookup beside MTP, R828), which needs fixed-depth MTP.
     vision = integer('VISION', 1, 0, 1)
+    # R901 (2026-10-08): VISION_OFFLOAD=1 sets TabbyAPI's vision_offload (infer_params.vision_pinned): the ViT weights
+    # (0.494 GiB) stay in pinned system RAM and are streamed to the GPU per image, freeing VRAM for GPU experts.
+    vision_offload = integer('VISION_OFFLOAD', 0, 0, 1)
     # R866: expert placement for the CPU split. 'dynamic' is the served default (EXL3_MOE_CPU_SWAP=1); SWAP_INTERVAL /
     # SWAP_FLOOR (0 = engine default 128 / 8) tune its sweeps. 'static' = EXL3_MOE_CPU_SWAP=0 plus a per-layer counts
     # file (SPLIT_STATS, host path) that orders experts hot-to-cold once at load (R860b: dynamic placement left the CPU
@@ -253,11 +256,13 @@ def settings():
     # R884 (2026-10-08): KEEP_THINKING=1 (default) serves templates/glm53-keep-thinking.jinja, the stock template with
     # clear_thinking defaulting to false: earlier turns keep their reasoning, so a new user message no longer rewrites
     # the previous tool loop and the prefix cache keeps matching (TensorFold's default). Requests can still send
-    # template_vars/chat_template_kwargs {"clear_thinking": true}. KEEP_THINKING=0 = the model's own template.
+    # template_vars/chat_template_kwargs {"clear_thinking": true}. KEEP_THINKING=0 = templates/glm53-stock.jinja, the model's own
+    # template. Both default a missing/unknown reasoning_effort to high, not max (user 2026-10-08: "yes high default, not max";
+    # max loops or ends at the length limit with no answer in three other recipes and in our 53-minute run); explicit max stays max.
     keep_thinking = integer('KEEP_THINKING', 1, 0, 1)
     return dict(keep_thinking=keep_thinking, pack=pack, mode=mode, n=n, cache=cache, cm=cm, split=split, draft=draft, threads=threads,
                 max_seq=max_seq, sysmem_rc=sysmem_rc, max_batch=max_batch, chunk=chunk, draft_n=draft_n,
-                dyn_draft=dyn_draft, vision=vision, plookup=plookup,
+                dyn_draft=dyn_draft, vision=vision, vision_offload=vision_offload, plookup=plookup,
                 placement=placement, swap_interval=swap_interval, swap_floor=swap_floor)
 
 def config(s):
@@ -277,7 +282,7 @@ def config(s):
   chunk_size: {s['chunk']}
   output_chunking: true
   vision: {'true' if s['vision'] else 'false'}
-  vision_offload: false
+  vision_offload: {'true' if s.get('vision_offload') else 'false'}
   # GLM-5.3 emits <tool_call>NAME<arg_key>K</arg_key><arg_value>V</arg_value></tool_call>; without tool_format
   # TabbyAPI returns it as plain content (2026-10-07, DeepSeek Harness bring-up). glm4_5 parses that layout.
   tool_format: glm4_5
@@ -285,7 +290,7 @@ def config(s):
   reasoning_start_token: <think>
   reasoning_end_token: </think>
   start_in_reasoning: auto
-{"  prompt_template: glm53-keep-thinking" + chr(10) if s.get('keep_thinking') else ''}draft_model:
+{"  prompt_template: " + ('glm53-keep-thinking' if s.get('keep_thinking') else 'glm53-stock') + chr(10)}draft_model:
   draft_mode: {'mtp' if s['draft'] else 'disabled'}
 '''
     if s['draft']:

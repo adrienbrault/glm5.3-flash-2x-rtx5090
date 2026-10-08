@@ -1,0 +1,67 @@
+--- a/modules/block_sparse_mlp_cpu.py
++++ b/modules/block_sparse_mlp_cpu.py
+@@ -7,6 +7,27 @@
+ # Kernel-fused issue/collect for decode-size split jobs (EXL3_MOE_SPLIT_FUSED=0 restores the
+ # cudaMemcpyAsync path for A/B testing)
+ _split_fused = os.environ.get("EXL3_MOE_SPLIT_FUSED", "1") != "0"
++
++# EXL3_MTP_FAST=1 (default off): a split layer of another component (the MTP head, which shares
++# the main model's config) joins an existing, not yet started CPU worker of the same checkpoint
++# instead of spawning a second worker process. Two workers pin their thread pools to the same
++# physical-core-first CPU list, and every forward primes every host in the config, so each pool
++# spins on the cores the other one is computing on. One worker serves both components; the
++# expert kernels, thread count and work partition are unchanged, so outputs are bitwise equal.
++_mtp_fast = os.environ.get("EXL3_MTP_FAST", "0") == "1"
++
++
++def _join_host(hosts: dict, model_dir, threads: int, hi: int, ho: int, topk: int):
++    """EXL3_MTP_FAST: an existing unstarted host this layer can share, else None (the caller
++    then creates its own host exactly as before). Started hosts cannot take new layers, and
++    the worker requires uniform expert dims and top-k across its layers."""
++    for comp, host in hosts.items():
++        if host.started or host.model_dir != model_dir or host.threads != threads:
++            continue
++        if any(s["hi"] != hi or s["ho"] != ho or s["topk"] != topk for s in host.specs):
++            continue
++        return comp, host
++    return None, None
+ 
+ # EXL3_SPLIT_PROF=1: CUDA-event brackets around the fused issue enqueue and the collect
+ # wait+readback, reported as stream-time percentiles every ~2048 brackets. The collect
+@@ -528,13 +549,6 @@
+         if hosts is None:
+             hosts = {}
+             self.config.moe_cpu_hosts = hosts
+-        host = hosts.get(comp)
+-        if host is None:
+-            host = MoeCpuHost(self.config)
+-            hosts[comp] = host
+-        self.cpu_host = host
+-        self.cpu_component = comp
+-
+         def dims_of(l):
+             s = stc.list_tensors(l.key)[l.key + ".trellis"]["shape"]
+             return (s[0] * 16, s[1] * 16, s[2] // 16)
+@@ -543,6 +557,22 @@
+         dd = dims_of(self.downs[first])
+         hi, ho = ud[0], dd[1]
+ 
++        host = hosts.get(comp)
++        if host is None and _mtp_fast:
++            from ..model.moe_cpu_host import TUNING
++            ip = self.config.infer_params
++            threads = getattr(ip, "moe_cpu_threads" if comp == "text" else "draft_moe_cpu_threads", None) \
++                or TUNING.threads
++            owner, host = _join_host(hosts, self.config.directory, threads, hi, ho, self.num_experts_per_tok)
++            if host is not None and not getattr(host, "_mtp_fast_joined", False):
++                host._mtp_fast_joined = True
++                print(f" -- EXL3_MTP_FAST: '{comp}' split layers join the '{owner}' CPU worker")
++        if host is None:
++            host = MoeCpuHost(self.config)
++            hosts[comp] = host
++        self.cpu_host = host
++        self.cpu_component = comp
++
+         def fetch_aux(ls, suffix, optional = False):
+             out = [stc.get_tensor(l.key + suffix, self.device, optional = optional,
+                                   float2half = True) for l in ls[first:]]

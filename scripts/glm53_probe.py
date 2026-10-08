@@ -4,7 +4,9 @@ import argparse
 from concurrent.futures import ThreadPoolExecutor
 import json
 import os
+import hashlib
 import random
+import sys
 import re
 import statistics
 import threading
@@ -89,11 +91,34 @@ def sanity(a):
     if not thought:
         raise ValueError('thinking-on produced no reasoning across three prompts; do not claim toggle works')
 
+def sparse_warmup(a, c, words=1500, tokens=64):
+    # 1,500 'wNNNN' words tokenize to several k tokens: every stream's context crosses index_topk while prefilling and decoding
+    barrier = threading.Barrier(c)
+    salt = uuid.uuid4().hex
+    filler = ' '.join(f'w{(i * 7919) % 10007}' for i in range(words))
+    def one(i):
+        body = {'messages':[{'role':'user','content':f'Warmup {salt} stream {i}. {filler}\nSummarize the list above in one paragraph.'}],
+                'max_tokens':tokens, 'min_tokens':tokens, 'ban_eos_token':True, 'temperature':0,
+                'chat_template_kwargs':({'reasoning_effort':'low'} if os.environ.get('R858_ALWAYS_THINK') == '1' else {'enable_thinking':False})}
+        barrier.wait(timeout=60)
+        return stream(a, f'warmup-sparse-c{c}-s{i}', body)
+    with ThreadPoolExecutor(max_workers=c) as pool:
+        rs = list(pool.map(one, range(c)))
+    for r in rs:
+        emit(a, dict(r, phase='warmup-sparse', c=c, prompt_tokens=r['usage'].get('prompt_tokens')))
+        if (r['usage'].get('prompt_tokens') or 0) <= 2048:
+            print(f'WARNING: sparse warmup prompt did not cross index_topk: {r["usage"]}', file=sys.stderr, flush=True)
+
 def decode_round(a, c, run, tokens, phase):
     barrier = threading.Barrier(c)
     salt = uuid.uuid4().hex
+    # R899: --distinct gives each stream a different content kind (code/prose/chat/html cycling). The default sends the same
+    # tutorial prompt to every stream, which shares most experts between streams and inflates c2-c8 (Opus offline r1).
+    distinct = getattr(a, 'distinct', False)
     def one(i):
-        body = {'messages':[{'role':'user','content':f'Run {salt} stream {i}. Write a long detailed Python tutorial with complete code and tests. Keep elaborating.'}],
+        text = (PROMPTS[('code','prose','chat','html')[i % 4]] if distinct else
+                'Write a long detailed Python tutorial with complete code and tests. Keep elaborating.')
+        body = {'messages':[{'role':'user','content':f'Run {salt} stream {i}. {text}'}],
                 'max_tokens':tokens, 'min_tokens':tokens, 'ban_eos_token':True,
                 'temperature':0, 'chat_template_kwargs':({'reasoning_effort':'low'} if os.environ.get('R858_ALWAYS_THINK') == '1' else {'enable_thinking':False})}
         barrier.wait(timeout=30)
@@ -126,9 +151,9 @@ def decode_round(a, c, run, tokens, phase):
 
 def decode(a):
     summaries = []
-    for c in (1,2,4):
+    for c in (int(x) for x in a.concurrency.split(',')):
         rs = [decode_round(a,c,run,1024,'decode') for run in range(a.runs)]
-        summaries.append({'c':c, 'ss_agg_tps_median':statistics.median(r['ss_agg_tps'] for r in rs),
+        summaries.append({'c':c, 'distinct':bool(getattr(a,'distinct',False)), 'ss_agg_tps_median':statistics.median(r['ss_agg_tps'] for r in rs),
                           'ss_per_stream_tps_median':statistics.median(r['ss_per_stream_tps'] for r in rs),
                           'common_windows_s':[r['ss_window_s'] for r in rs]})
     emit(a, {'phase':'decode-summary', 'summaries':summaries})
@@ -184,7 +209,8 @@ def edit_prompt():
             'that lacks one. Output only the code.')
 
 def c1_decode(a, kind, run, tokens=1024):
-    salt = uuid.uuid4().hex
+    # R892: --salt fixes the prompt (greedy fingerprint across boots); default is a fresh salt per request.
+    salt = f'{a.salt}-{kind}-{run}' if getattr(a, 'salt', '') else uuid.uuid4().hex
     text = edit_prompt() if kind == 'edit' else PROMPTS[kind]
     body = {'messages':[{'role':'user','content':f'Run {salt}. {text}'}],
             'max_tokens':tokens, 'min_tokens':tokens, 'ban_eos_token':True, 'temperature':0,
@@ -195,7 +221,8 @@ def c1_decode(a, kind, run, tokens=1024):
     ac, rej = r['accepted'], r['rejected']
     res = {'phase':'c1-decode', 'kind':kind, 'run':run, 'tokens':tokens,
            'tps':(tokens-1)/(r['last']-r['first']), 'ttft_s':r['ttft_s'], 'finish_reason':r['finish_reason'],
-           'accepted':ac, 'rejected':rej, 'accept_rate':(ac/(ac+rej) if ac is not None and rej is not None and ac+rej else None)}
+           'accepted':ac, 'rejected':rej, 'accept_rate':(ac/(ac+rej) if ac is not None and rej is not None and ac+rej else None),
+           'content_sha256':hashlib.sha256((r.get('reasoning','')+'\x00'+r.get('content','')).encode()).hexdigest()}
     emit(a, res)
     return res
 
@@ -281,17 +308,26 @@ def main():
     ap.add_argument('--url', required=True); ap.add_argument('--model', required=True)
     ap.add_argument('--max-batch', type=int, default=4)
     ap.add_argument('--out', required=True)
-    ap.add_argument('--phase', choices=['warmup','sanity','measure','c1','vision'], required=True)
+    ap.add_argument('--phase', choices=['warmup','sanity','measure','c1','vision','decode'], required=True)
+    # R888: decode-only phase and its concurrency list (measure keeps 1,2,4)
+    ap.add_argument('--concurrency', default='1,2,4')
     ap.add_argument('--runs',type=int,default=3)
     ap.add_argument('--kinds', default='code,prose,chat')
     ap.add_argument('--depths', default='')
+    ap.add_argument('--distinct', action='store_true', help='decode/warmup rounds: a different content kind per stream')
+    ap.add_argument('--salt', default='', help='c1: fixed prompt salt (fingerprint runs); empty = fresh per request')
     a = ap.parse_args()
     if a.phase == 'sanity': sanity(a)
     elif a.phase == 'c1': c1(a)
     elif a.phase == 'vision': vision(a)
+    elif a.phase == 'decode': decode(a)
     elif a.phase == 'warmup':
         # R865: c4 cannot share a decode window when max_batch_size < 4 (MAX_BATCH=2 booted fine, then failed here)
-        for c in (c for c in (1,2,4) if c <= a.max_batch): decode_round(a,c,0,32,'warmup')
+        for c in (c for c in (1,2,4,8) if c <= a.max_batch): decode_round(a,c,0,32,'warmup')
+        # Survey 2026-10-08 (anoane recipe, checked at bc_mla.py:524-545): ExLlamaV3 builds the DSA sparse-path graphs
+        # lazily the first time a context exceeds index_topk (2048), per batch size (+5.45 ms/token on that request).
+        # Short warmups never reach it, so the first agent request after every boot paid it. Cross it here.
+        for c in (c for c in (1,2,4,8) if c <= a.max_batch): sparse_warmup(a, c)
     else:
         decode(a)
         prefill(a)

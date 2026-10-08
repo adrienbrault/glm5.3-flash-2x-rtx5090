@@ -69,14 +69,14 @@ SWAP_CADENCE=exact SWAP_INTERVAL=64 SWAP_MAX=64 SWAP_SCOPE=global SWAP_FLOOR=4 S
 bash scripts/launch-glm53.sh
 ```
 
-[`scripts/launch-glm53.sh`](scripts/launch-glm53.sh) writes the TabbyAPI config, removes the image's own `EXL3_*` variables, checks that the offload registered and starts the container. It expects the box's paths (`/storage/data/models/<pack>`, `/srv/qwen5090/`); [`scripts/FLAG-DECISIONS.txt`](scripts/FLAG-DECISIONS.txt) gives the reason for each engine flag.
+[`scripts/launch-glm53.sh`](scripts/launch-glm53.sh) writes the TabbyAPI config, removes the image's own `EXL3_*` variables, checks that the offload registered and starts the container. It expects the box's paths (`/srv/qwen5090/models/<pack>` on NVMe, falling back to `/storage/data/models/<pack>`; `/srv/qwen5090/`); [`scripts/FLAG-DECISIONS.txt`](scripts/FLAG-DECISIONS.txt) gives the reason for each engine flag.
 
 ## Notes
 
 - Agent sessions: since 2026-10-08 the launcher serves [`scripts/templates/glm53-keep-thinking.jinja`](scripts/templates/glm53-keep-thinking.jinja) (`KEEP_THINKING=1`, the default), the model's template with `clear_thinking` defaulting to false, so earlier reasoning stays in the prompt and a new user message does not invalidate the prefix cache ([`docs/GOTCHAS.md`](docs/GOTCHAS.md)). R885 measures it; the numbers above were taken with the model's own template, and `KEEP_THINKING=0` restores it.
 - R882c re-checked the served image: the 256-pixel vision check and 4 of 4 streamed `write_file` tool calls pass ([R882c](bench/results/r882c-glm53-swap-agent.md)). Strict tool-call cases with literal GLM tags in the arguments fail on overlay r2; candidates r4 to r4c are in [`docker/`](docker/) and R885 tests r4c.
 - The first requests after a boot decode slower until the placement has adapted to the traffic (R870, R872). A same-session control in R883 measured 61.1 tok/s single-stream; the mean moves by about 1 to 2 % from boot to boot.
-- The chat template always opens a `<think>` block; `reasoning_effort` (`low`, `high`, default `max`) is its only reasoning control. Tool calls use TabbyAPI's `glm4_5` format, which the launcher sets.
+- The chat template always opens a `<think>` block; `reasoning_effort` (`low`, `high`, `max`) is its only reasoning control. Both served templates default a missing or unknown value to `high`; the model's own template defaults to `max`, which in our runs often reasoned until the length limit. An explicit `max` is kept. Tool calls use TabbyAPI's `glm4_5` format, which the launcher sets.
 - How the configuration got here: [`docs/HISTORY.md`](docs/HISTORY.md). What is being tried next: [`docs/PLAN.md`](docs/PLAN.md). Traps: [`docs/GOTCHAS.md`](docs/GOTCHAS.md).
 
 ## Hardware

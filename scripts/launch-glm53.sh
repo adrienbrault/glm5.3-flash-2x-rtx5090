@@ -5,7 +5,11 @@ HERE=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 IMG=${GLM_IMG:-tabbyapi:r828-prompt-lookup-r3}
 # R859 diagnostic knobs: PROFILE=1 sets EXL3_MOE_CPU_PROF=1; ROUTE_TRACE_DIR (host dir, needs the route-trace image)
 # mounts at /app/route-traces and sets EXL3_ROUTE_TRACE; PINNED_ARENA=1 sets EXL3_MOE_PINNED_ARENA=1.
-case "$IMG" in tabbyapi:r828-prompt-lookup-r3|tabbyapi:r859-route-trace-r1|tabbyapi:r861-glm-agent-r2|tabbyapi:r862-gpucache-r2|tabbyapi:cheapswap-r2|tabbyapi:cheapswap-r3|tabbyapi:r861-glm-agent-r3|tabbyapi:r861-glm-agent-r4|tabbyapi:cheapswap-r3-agent-r2|tabbyapi:r861-glm-agent-r4b|tabbyapi:r861-glm-agent-r4c) ;; *) echo "ABORT: GLM_IMG $IMG not allowed" >&2; exit 3;; esac
+# Experiment overlays built FROM a swap-family image are tagged <family>_<name> (e.g. cheapswap-r3-agent-r2_ring1)
+# and inherit its swap/agent capabilities.
+# glm53-cpu-skip-r2 (R886, FROM the r2 swap image) is in the family for diagnostic arms (R896).
+SWAP_FAMILY_RE='^tabbyapi:(cheapswap-r3(-agent-r[0-9][a-z0-9]*)?(_[a-z0-9-]+)?|glm53-cpu-skip-r2)$'
+[[ "$IMG" =~ $SWAP_FAMILY_RE ]] || case "$IMG" in tabbyapi:r828-prompt-lookup-r3|tabbyapi:r859-route-trace-r1|tabbyapi:r861-glm-agent-r2|tabbyapi:r862-gpucache-r2|tabbyapi:cheapswap-r2|tabbyapi:cheapswap-r3|tabbyapi:r861-glm-agent-r3|tabbyapi:r861-glm-agent-r4|tabbyapi:cheapswap-r3-agent-r4c|tabbyapi:cheapswap-r3-agent-r2|tabbyapi:r861-glm-agent-r4b|tabbyapi:r861-glm-agent-r4c) ;; *) echo "ABORT: GLM_IMG $IMG not allowed" >&2; exit 3;; esac
 PROFILE=${PROFILE:-0}; PINNED_ARENA=${PINNED_ARENA:-0}; ROUTE_TRACE_DIR=${ROUTE_TRACE_DIR:-}
 # R864: AGENT=1 turns on the r861 agent overlay (live tool-call streaming, SSE keepalive, GLM tool fixes; grammar
 # forcing stays off until probe_grammar.py passes on the real tokenizer). Needs GLM_IMG=tabbyapi:r861-glm-agent-r2.
@@ -20,17 +24,30 @@ HOST_CONFINE=${HOST_CONFINE:-0}
 # PLACEMENT=static's SPLIT_STATS) and SWAP_POLICY (histogram|score) picks the selection policy.
 SWAP_MODE=${SWAP_MODE:-}; SWAP_CADENCE=${SWAP_CADENCE:-}; SWAP_MAX=${SWAP_MAX:-}; SWAP_SCOPE=${SWAP_SCOPE:-}; SWAP_HYST=${SWAP_HYST:-}
 SWAP_INIT_STATS=${SWAP_INIT_STATS:-}; SWAP_POLICY=${SWAP_POLICY:-}
-case "$SWAP_MODE" in '') ;; exchange) [[ "$IMG" =~ ^tabbyapi:cheapswap-r[23](-agent-r2)?$ && "${PINNED_ARENA:-0}" == 1 ]] || { echo 'ABORT: SWAP_MODE=exchange needs GLM_IMG=tabbyapi:cheapswap-r2|r3 and PINNED_ARENA=1' >&2; exit 3; };; *) echo 'ABORT: SWAP_MODE must be empty or exchange' >&2; exit 3;; esac
+case "$SWAP_MODE" in '') ;; exchange) [[ ( "$IMG" == tabbyapi:cheapswap-r2 || "$IMG" =~ $SWAP_FAMILY_RE ) && "${PINNED_ARENA:-0}" == 1 ]] || { echo 'ABORT: SWAP_MODE=exchange needs GLM_IMG=tabbyapi:cheapswap-r2|r3 and PINNED_ARENA=1' >&2; exit 3; };; *) echo 'ABORT: SWAP_MODE must be empty or exchange' >&2; exit 3;; esac
 if [[ -n "$SWAP_INIT_STATS$SWAP_POLICY" ]]; then
-  [[ "$IMG" =~ ^tabbyapi:cheapswap-r3(-agent-r2)?$ && -n "$SWAP_MODE" ]] || { echo 'ABORT: SWAP_INIT_STATS/SWAP_POLICY need GLM_IMG=tabbyapi:cheapswap-r3 and SWAP_MODE=exchange' >&2; exit 3; }
+  [[ "$IMG" =~ $SWAP_FAMILY_RE && -n "$SWAP_MODE" ]] || { echo 'ABORT: SWAP_INIT_STATS/SWAP_POLICY need GLM_IMG=tabbyapi:cheapswap-r3 and SWAP_MODE=exchange' >&2; exit 3; }
   [[ -z "$SWAP_INIT_STATS" || -f "$SWAP_INIT_STATS" ]] || { echo 'ABORT: SWAP_INIT_STATS file missing' >&2; exit 3; }
   [[ "$SWAP_POLICY" =~ ^(|histogram|score)$ ]] || { echo 'ABORT: SWAP_POLICY must be histogram or score' >&2; exit 3; }
 fi
 [[ "$SWAP_CADENCE" =~ ^(|exact|served)$ && "$SWAP_MAX" =~ ^[0-9]*$ && "$SWAP_SCOPE" =~ ^(|global|layer)$ && "$SWAP_HYST" =~ ^([0-9]+(\.[0-9]+)?)?$ ]] || { echo 'ABORT: bad SWAP_* value' >&2; exit 3; }
 case "$HOST_CONFINE" in 0|1) ;; *) echo 'ABORT: HOST_CONFINE must be 0 or 1' >&2; exit 3;; esac
-case "$AGENT" in 0) ;; 1) [[ "$IMG" =~ ^tabbyapi:(r861-glm-agent-r[234][bc]?|cheapswap-r3-agent-r2)$ ]] || { echo 'ABORT: AGENT=1 needs GLM_IMG=tabbyapi:r861-glm-agent-r2|r3|r4' >&2; exit 3; };; *) echo 'ABORT: AGENT must be 0 or 1' >&2; exit 3;; esac
+case "$AGENT" in 0) ;; 1) [[ "$IMG" =~ ^tabbyapi:(r861-glm-agent-r[234][bc]?|cheapswap-r3-agent-r[0-9][a-z0-9]*(_[a-z0-9-]+)?)$ ]] || { echo 'ABORT: AGENT=1 needs GLM_IMG=tabbyapi:r861-glm-agent-r2|r3|r4' >&2; exit 3; };; *) echo 'ABORT: AGENT must be 0 or 1' >&2; exit 3;; esac
 # R877: TAG_TRACE=1 (agent r3/r4 images only) logs GLM stop sources, the EOS trigger id and parser state ([GLM-TAG-R3]).
 TAG_TRACE=${TAG_TRACE:-0}
+# R891: INDEX_RING=1 sets EXL3_DSA_INDEX_RING=1 (needs an *_ring* image from codex-glm-index-ring-r1);
+# RING_TRACE_DIR=<host dir> + RING_TRACE_NAME mount the test-only token observer (tests/sitecustomize.py); a fixed copy in
+# <RING_TRACE_DIR>/observer/ shadows the one baked into the image (R891: SeqTensor has no reshape).
+# R892: MTP_FAST=1 sets EXL3_MTP_FAST=1 (MTP layer joins the trunk CPU worker; needs an *_mtpfast* image from
+# opus-glm-mtp-r1); HANDOFF_PROF=1 sets EXL3_MOE_HANDOFF_PROF=1 (per-job CPU worker timing lines).
+# MTP_SYNC=1 sets EXL3_DRAFT_PINNED_STAGING=1 EXL3_BATCH_VERIFY=1 (exact draft/verify sync trims, greedy-identical on Flash-Next R514).
+MTP_FAST=${MTP_FAST:-0}; HANDOFF_PROF=${HANDOFF_PROF:-0}; MTP_SYNC=${MTP_SYNC:-0}
+[[ "$MTP_SYNC" =~ ^[01]$ ]] || { echo 'ABORT: MTP_SYNC must be 0 or 1' >&2; exit 3; }
+[[ "$MTP_FAST" == 0 || ( "$MTP_FAST" == 1 && "$IMG" == *_mtpfast* ) ]] || { echo 'ABORT: MTP_FAST=1 needs an *_mtpfast* image' >&2; exit 3; }
+[[ "$HANDOFF_PROF" =~ ^[01]$ ]] || { echo 'ABORT: HANDOFF_PROF must be 0 or 1' >&2; exit 3; }
+INDEX_RING=${INDEX_RING:-0}; RING_TRACE_DIR=${RING_TRACE_DIR:-}; RING_TRACE_NAME=${RING_TRACE_NAME:-trace}
+[[ "$INDEX_RING" == 0 || ( "$INDEX_RING" == 1 && "$IMG" == *_ring* ) ]] || { echo 'ABORT: INDEX_RING=1 needs an *_ring* image' >&2; exit 3; }
+[[ -z "$RING_TRACE_DIR" || ( "$IMG" == *_ring* && -d "$RING_TRACE_DIR" ) ]] || { echo 'ABORT: RING_TRACE_DIR needs an *_ring* image and an existing dir' >&2; exit 3; }
 case "$TAG_TRACE" in 0) ;; 1) [[ "$IMG" =~ ^tabbyapi:r861-glm-agent-r[34][bc]?$ ]] || { echo 'ABORT: TAG_TRACE=1 needs GLM_IMG=tabbyapi:r861-glm-agent-r3|r4' >&2; exit 3; };; *) echo 'ABORT: TAG_TRACE must be 0 or 1' >&2; exit 3;; esac
 case "$PROFILE$PINNED_ARENA" in 00|01|10|11) ;; *) echo 'ABORT: PROFILE/PINNED_ARENA must be 0 or 1' >&2; exit 3;; esac
 NAME=glm53
@@ -71,7 +88,11 @@ for cmd in sudo docker nvidia-smi curl flock timeout; do command -v "$cmd" >/dev
 # Standalone launch takes the same lock; inherited fd9 avoids deadlocking the audition.
 [[ "$(readlink /proc/self/fd/9 2>/dev/null || true)" == /srv/qwen5090/gpu-exclusive.lock ]] || exec 9>/srv/qwen5090/gpu-exclusive.lock
 flock 9
-CKPT=/storage/data/models/$PACK_NAME
+# NVMe copy first (2026-10-08: from the raidz3 HDD pool a boot took 13 min at ~160 MB/s); .nvme-verified is written by
+# move-glm-ckpt-nvme.sh only after a checksum-verified copy, so a partial copy is never served.
+CKPT=/srv/qwen5090/models/$PACK_NAME
+[[ -f "$CKPT/.nvme-verified" ]] || CKPT=/storage/data/models/$PACK_NAME
+log "checkpoint: $CKPT"
 python3 "$HERE/glm53_plan.py" inspect "$CKPT" > "$RUN_DIR/pack.json"
 python3 "$HERE/glm53_plan.py" template "$CKPT" > "$RUN_DIR/template.json"
 sudo -n docker image inspect "$IMG" > "$RUN_DIR/image.json"
@@ -87,6 +108,22 @@ PY
 SANITIZED=("${UNSET_ENV[@]}" "EXL3_MOE_CPU_THREADS=$CPU_THREADS" "EXL3_MOE_PINNED_ARENA=$PINNED_ARENA" PYTHONUNBUFFERED=1)
 [[ "$PROFILE" == 1 ]] && SANITIZED+=(EXL3_MOE_CPU_PROF=1)
 [[ "$PLOOKUP" == 1 ]] && SANITIZED+=(EXL3_PROMPT_LOOKUP=1)
+SANITIZED+=("EXL3_DSA_INDEX_RING=$INDEX_RING")
+[[ "$MTP_FAST" == 1 ]] && SANITIZED+=(EXL3_MTP_FAST=1)
+[[ "$HANDOFF_PROF" == 1 ]] && SANITIZED+=(EXL3_MOE_HANDOFF_PROF=1)
+[[ "$MTP_SYNC" == 1 ]] && SANITIZED+=(EXL3_DRAFT_PINNED_STAGING=1 EXL3_BATCH_VERIFY=1)
+# R886 CPU-skip policy knobs (lossy; diagnostics only), passed through only for the cpu-skip image.
+if [[ "$IMG" == tabbyapi:glm53-cpu-skip-r2 ]]; then
+  for key in EXL3_MOE_CPU_SKIP EXL3_MOE_CPU_SKIP_SHARE EXL3_MOE_CPU_SKIP_CAP EXL3_MOE_CPU_SKIP_RENORM EXL3_MOE_CPU_SKIP_LOG EXL3_MOE_CPU_SKIP_ROWS; do
+    [[ -z "${!key:-}" ]] || SANITIZED+=("$key=${!key}")
+  done
+fi
+RING_MOUNT=()
+if [[ -n "$RING_TRACE_DIR" ]]; then
+  IMG_PYTHONPATH=$(python3 -c 'import json,sys; e=dict(kv.partition("=")[::2] for kv in json.load(open(sys.argv[1]))[0]["Config"].get("Env") or []); print(e.get("PYTHONPATH",""))' "$RUN_DIR/image.json")
+  RING_MOUNT=(-v "$RING_TRACE_DIR":/ring-results)
+  SANITIZED+=("EXL3_RING_TEST_TRACE=/ring-results/$RING_TRACE_NAME.trace.jsonl" "PYTHONPATH=/ring-results/observer:/opt/index-ring/tests${IMG_PYTHONPATH:+:$IMG_PYTHONPATH}")
+fi
 STATS_MOUNT=()
 if [[ "$PLACEMENT" == static ]]; then
   STATS_MOUNT=(-v "$SPLIT_STATS":/app/split-stats.json:ro); SANITIZED+=(EXL3_MOE_CPU_SWAP=0 EXL3_MOE_CPU_SPLIT_STATS=/app/split-stats.json)
@@ -163,15 +200,16 @@ failed(){ local rc=$?; trap - EXIT
 trap failed EXIT
 trap 'exit 143' TERM HUP
 trap 'exit 130' INT
+# Both served templates (keep-thinking and stock) default reasoning_effort to high; the config names one of them.
 TEMPLATE_MOUNT=()
-if [[ "$(python3 -c 'import json,sys;print(json.loads(sys.argv[1]).get("keep_thinking",0))' "$RESOLVED")" == 1 ]]; then
-  [[ -f "$HERE/templates/glm53-keep-thinking.jinja" ]] || { log "ABORT: KEEP_THINKING=1 but $HERE/templates/glm53-keep-thinking.jinja missing"; exit 3; }
-  TEMPLATE_MOUNT=(-v "$HERE/templates/glm53-keep-thinking.jinja":/app/templates/glm53-keep-thinking.jinja:ro)
-fi
+for t in glm53-keep-thinking glm53-stock; do
+  [[ -f "$HERE/templates/$t.jinja" ]] || { log "ABORT: $HERE/templates/$t.jinja missing"; exit 3; }
+  TEMPLATE_MOUNT+=(-v "$HERE/templates/$t.jinja":/app/templates/$t.jinja:ro)
+done
 STARTED=1
 sudo -n docker run -d --name "$NAME" --gpus all --ipc=host --shm-size=16g --restart no \
   -v "$TUNEDIR":/exl3-cache -e TRITON_CACHE_DIR=/exl3-cache -e EXLLAMAV3_TUNE_CACHE=/exl3-cache \
-  -p 0.0.0.0:8029:8029 -v "$CKPT":/models/"$PACK_NAME":ro -v "$CFG":/app/config.yml:ro "${TRACE_MOUNT[@]}" "${STATS_MOUNT[@]}" "${TEMPLATE_MOUNT[@]}" \
+  -p 0.0.0.0:8029:8029 -v "$CKPT":/models/"$PACK_NAME":ro -v "$CFG":/app/config.yml:ro "${TRACE_MOUNT[@]}" "${STATS_MOUNT[@]}" "${TEMPLATE_MOUNT[@]}" "${RING_MOUNT[@]}" \
   -w /app --entrypoint /usr/bin/env "$IMG" "${SANITIZED[@]}" \
   python3 main.py --host 0.0.0.0 --port 8029 --disable-auth true | tee "$RUN_DIR/container-id.txt"
 python3 -u "$HERE/glm53_follow.py" "$RUN_DIR/docker-stream.log" & LOG_PID=$!

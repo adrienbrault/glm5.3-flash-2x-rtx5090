@@ -1,0 +1,90 @@
+#!/usr/bin/env python3
+"""Memory layout of the served GLM daily: VRAM per GPU and host DRAM, by category (2026-10-08, R900).
+
+Everything is either exact (checkpoint tensor bytes from the safetensors headers, the served config) or measured
+(nvidia-smi per GPU, the container's memory cgroup); what remains is reported as "other", never guessed.
+  - weights by category from the checkpoint; routed experts split GPU/host by the served CPU split N of 288;
+  - KV pool from the cache layout: per token per full-indexer DSA layer 1,120 B at 8,8 (latent 512 + scales 32 +
+    fp16 indexer plane 512 + pooled keys 64), 11 layers; the index ring (INDEX_RING=1) drops the 512 B plane;
+  - VRAM other = measured used - listed GPU items (CUDA contexts, graph pools, scratch, recurrent state, allocator);
+  - host: container memory cgroup (anon + file) vs listed host items (CPU experts, embedding, recurrent cache).
+usage: memory_layout.py --model <ckpt dir> --config <served config.yml> --container glm53 --out memory.json [--ring 0|1]
+Runs on flan's host python (stdlib only).
+"""
+import argparse, json, re, struct, subprocess
+from pathlib import Path
+
+ap = argparse.ArgumentParser()
+ap.add_argument('--model', required=True); ap.add_argument('--config', required=True)
+ap.add_argument('--container', default='glm53'); ap.add_argument('--out', required=True)
+ap.add_argument('--ring', type=int, default=0); ap.add_argument('--dsa-layers', type=int, default=11)
+a = ap.parse_args()
+GiB = 2 ** 30
+model = Path(a.model)
+idx = json.load(open(model / 'model.safetensors.index.json'))['weight_map']
+by_file = {}
+for k, f in idx.items():
+    by_file.setdefault(f, []).append(k)
+cat = {}
+def add(c, b): cat[c] = cat.get(c, 0) + b
+for f, keys in by_file.items():
+    with open(model / f, 'rb') as fh:
+        n = struct.unpack('<Q', fh.read(8))[0]; h = json.loads(fh.read(n))
+    for k in keys:
+        s, e = h[k]['data_offsets']; b = e - s
+        m = re.search(r'layers\.(\d+)\.', k)
+        layer = int(m.group(1)) if m else None
+        if 'visual' in k: add('vision', b)
+        elif 'embed_tokens' in k: add('embedding', b)
+        elif 'lm_head' in k: add('lm_head', b)
+        elif layer is not None and layer >= 45: add('mtp_head', b)
+        elif '.mlp.experts.' in k: add('routed_experts', b)
+        elif 'shared_expert' in k: add('shared_experts', b)
+        else: add('attention_norms_other', b)
+cfg = Path(a.config).read_text()
+def yval(key, default=None):
+    m = re.search(rf'^\s*{key}:\s*(\S+)', cfg, re.M)
+    return m.group(1) if m else default
+cache_tokens = int(yval('cache_size', 0) or 0)
+split_n = int(yval('cpu_moe_split_experts', 0) or 0)
+rc_mb = int(yval('sysmem_recurrent_cache', 0) or 0)
+draft = (yval('draft_mode', 'disabled') or 'disabled') != 'disabled'
+vision_on = 'vision: true' in cfg or re.search(r'^\s*vision:\s*true', cfg, re.M) is not None
+per_tok = 1120 - (512 if a.ring else 0)
+kv = cache_tokens * per_tok * a.dsa_layers
+exp_host = cat['routed_experts'] * split_n / 288
+exp_gpu = cat['routed_experts'] - exp_host
+gpu = {'routed experts on GPU': exp_gpu, 'attention, norms, other weights': cat['attention_norms_other'],
+       'shared experts': cat['shared_experts'], 'lm_head': cat['lm_head'],
+       f'KV pool ({cache_tokens:,} tokens, 8-bit)': kv}
+if vision_on: gpu['vision tower'] = cat['vision']
+if draft: gpu['MTP head'] = cat.get('mtp_head', 0)
+smi = subprocess.run(['nvidia-smi', '--query-gpu=index,memory.used,memory.total', '--format=csv,noheader,nounits'],
+                     capture_output=True, text=True, check=True).stdout.strip().splitlines()
+used = {int(r.split(',')[0]): int(r.split(',')[1]) * 2 ** 20 for r in smi}
+total = {int(r.split(',')[0]): int(r.split(',')[2]) * 2 ** 20 for r in smi}
+gpu_used = sum(used.values())
+gpu['other: CUDA contexts, graph pools, scratch, recurrent state, allocator'] = gpu_used - sum(gpu.values())
+cid = subprocess.run(['sudo', '-n', 'docker', 'inspect', a.container, '--format', '{{.Id}}'], capture_output=True, text=True).stdout.strip()
+mem = {}
+for p in (f'/sys/fs/cgroup/system.slice/docker-{cid}.scope/memory.stat', f'/sys/fs/cgroup/docker/{cid}/memory.stat'):
+    try:
+        mem = dict((l.split()[0], int(l.split()[1])) for l in open(p)); break
+    except OSError:
+        pass
+# anon (heap, pinned arena if anonymous) + shmem (memfd arena); file = page cache of the checkpoint reads, reported apart
+host_used = mem.get('anon', 0) + mem.get('shmem', 0)
+host = {f'CPU experts ({split_n} of 288 per layer)': exp_host, 'embedding table': cat['embedding'],
+        f'recurrent-state cache (configured {rc_mb} MB)': rc_mb * 2 ** 20}
+if not vision_on: host['vision tower'] = cat['vision']
+host['other: runtime, staging, buffers'] = max(0, host_used - sum(host.values()))
+rec = {'gpu_used_bytes': used, 'gpu_total_bytes': total, 'gpu_categories_bytes': gpu,
+       'host_cgroup_bytes': {k: mem.get(k) for k in ('anon', 'file', 'shmem', 'kernel') if k in mem},
+       'host_categories_bytes': host,
+       'inputs': {'cache_tokens': cache_tokens, 'cpu_split_experts': split_n, 'index_ring': a.ring, 'draft': draft,
+                  'vision': vision_on, 'kv_bytes_per_token_per_dsa_layer': per_tok, 'dsa_layers': a.dsa_layers},
+       'checkpoint_bytes_by_category': cat}
+Path(a.out).write_text(json.dumps(rec, indent=2) + '\n')
+for name, d in (('GPU (both)', gpu), ('host', host)):
+    print(name); [print(f'  {k:70s} {v / GiB:7.2f} GiB') for k, v in d.items()]
+print('GPU used per device:', {k: round(v / GiB, 2) for k, v in used.items()})

@@ -112,7 +112,7 @@ For each function call, output the function name and arguments within the follow
     {%- set reasoning_content = content.split('</think>')[0].split('<think>')[-1] %}
     {%- set content = content.split('</think>')[-1] %}
 {%- endif %}
-{%- if ((clear_thinking is not defined or not clear_thinking) or loop.index0 > ns.last_user_index) and reasoning_content is defined -%}
+{%- if ((clear_thinking is defined and not clear_thinking) or loop.index0 > ns.last_user_index) and reasoning_content is defined -%}
 {{ '<think>' + reasoning_content +  '</think>'}}
 {%- else -%}
 {{ '<think></think>' }}

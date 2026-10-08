@@ -3,7 +3,8 @@
 
 Everything is either exact (checkpoint tensor bytes from the safetensors headers, the served config) or measured
 (nvidia-smi per GPU, the container's memory cgroup); what remains is reported as "other", never guessed.
-  - weights by category from the checkpoint; routed experts split GPU/host by the served CPU split N of 288;
+  - weights by category from the checkpoint; routed experts (incl. the MTP layer's when MTP is on) split GPU/host by the
+    served CPU split N of 288; the vision tower is host-side under vision_offload;
   - KV pool from the cache layout: per token per full-indexer DSA layer 1,120 B at 8,8 (latent 512 + scales 32 +
     fp16 indexer plane 512 + pooled keys 64), 11 layers; the index ring (INDEX_RING=1) drops the 512 B plane;
   - VRAM other = measured used - listed GPU items (CUDA contexts, graph pools, scratch, recurrent state, allocator);
@@ -37,7 +38,7 @@ for f, keys in by_file.items():
         if 'visual' in k: add('vision', b)
         elif 'embed_tokens' in k: add('embedding', b)
         elif 'lm_head' in k: add('lm_head', b)
-        elif layer is not None and layer >= 45: add('mtp_head', b)
+        elif layer is not None and layer >= 45: add('mtp_experts' if '.mlp.experts.' in k else 'mtp_head', b)
         elif '.mlp.experts.' in k: add('routed_experts', b)
         elif 'shared_expert' in k: add('shared_experts', b)
         else: add('attention_norms_other', b)
@@ -49,16 +50,20 @@ cache_tokens = int(yval('cache_size', 0) or 0)
 split_n = int(yval('cpu_moe_split_experts', 0) or 0)
 rc_mb = int(yval('sysmem_recurrent_cache', 0) or 0)
 draft = (yval('draft_mode', 'disabled') or 'disabled') != 'disabled'
-vision_on = 'vision: true' in cfg or re.search(r'^\s*vision:\s*true', cfg, re.M) is not None
+vision_on = re.search(r'^\s*vision:\s*true', cfg, re.M) is not None
+# vision_offload (VISION_OFFLOAD=1): the vision tower's weights stay in pinned host RAM
+vision_host = vision_on and re.search(r'^\s*vision_offload:\s*true', cfg, re.M) is not None
 per_tok = 1120 - (512 if a.ring else 0)
 kv = cache_tokens * per_tok * a.dsa_layers
-exp_host = cat['routed_experts'] * split_n / 288
-exp_gpu = cat['routed_experts'] - exp_host
+# the MTP layer's routed experts are split by the same N (MTP_FAST registers layer 45 with the trunk CPU worker)
+mtp_exp = cat.get('mtp_experts', 0) if draft else 0
+exp_host = (cat['routed_experts'] + mtp_exp) * split_n / 288
+exp_gpu = cat['routed_experts'] + mtp_exp - exp_host
 gpu = {'routed experts on GPU': exp_gpu, 'attention, norms, other weights': cat['attention_norms_other'],
        'shared experts': cat['shared_experts'], 'lm_head': cat['lm_head'],
        f'KV pool ({cache_tokens:,} tokens, 8-bit)': kv}
-if vision_on: gpu['vision tower'] = cat['vision']
-if draft: gpu['MTP head'] = cat.get('mtp_head', 0)
+if vision_on and not vision_host: gpu['vision tower'] = cat['vision']
+if draft: gpu['MTP layer (attention, shared expert, norms)'] = cat.get('mtp_head', 0)
 smi = subprocess.run(['nvidia-smi', '--query-gpu=index,memory.used,memory.total', '--format=csv,noheader,nounits'],
                      capture_output=True, text=True, check=True).stdout.strip().splitlines()
 used = {int(r.split(',')[0]): int(r.split(',')[1]) * 2 ** 20 for r in smi}
@@ -76,13 +81,14 @@ for p in (f'/sys/fs/cgroup/system.slice/docker-{cid}.scope/memory.stat', f'/sys/
 host_used = mem.get('anon', 0) + mem.get('shmem', 0)
 host = {f'CPU experts ({split_n} of 288 per layer)': exp_host, 'embedding table': cat['embedding'],
         f'recurrent-state cache (configured {rc_mb} MB)': rc_mb * 2 ** 20}
-if not vision_on: host['vision tower'] = cat['vision']
+if vision_host: host['vision tower (vision_offload)'] = cat['vision']
 host['other: runtime, staging, buffers'] = max(0, host_used - sum(host.values()))
-rec = {'gpu_used_bytes': used, 'gpu_total_bytes': total, 'gpu_categories_bytes': gpu,
+memtotal = int(re.search(r'^MemTotal:\s+(\d+) kB', open('/proc/meminfo').read(), re.M).group(1)) * 1024
+rec = {'gpu_used_bytes': used, 'gpu_total_bytes': total, 'gpu_categories_bytes': gpu, 'host_total_bytes': memtotal,
        'host_cgroup_bytes': {k: mem.get(k) for k in ('anon', 'file', 'shmem', 'kernel') if k in mem},
        'host_categories_bytes': host,
        'inputs': {'cache_tokens': cache_tokens, 'cpu_split_experts': split_n, 'index_ring': a.ring, 'draft': draft,
-                  'vision': vision_on, 'kv_bytes_per_token_per_dsa_layer': per_tok, 'dsa_layers': a.dsa_layers},
+                  'vision': vision_on, 'vision_offload': vision_host, 'kv_bytes_per_token_per_dsa_layer': per_tok, 'dsa_layers': a.dsa_layers},
        'checkpoint_bytes_by_category': cat}
 Path(a.out).write_text(json.dumps(rec, indent=2) + '\n')
 for name, d in (('GPU (both)', gpu), ('host', host)):

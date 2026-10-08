@@ -1,0 +1,16 @@
+GPU (both)
+  routed experts on GPU                                                    46.63 GiB
+  attention, norms, other weights                                           3.65 GiB
+  shared experts                                                            0.49 GiB
+  lm_head                                                                   0.37 GiB
+  KV pool (262,144 tokens, 8-bit)                                           3.01 GiB
+  MTP layer (attention, shared expert, norms)                               0.11 GiB
+  other: CUDA contexts, graph pools, scratch, recurrent state, allocator    6.84 GiB
+host
+  CPU experts (104 of 288 per layer)                                       26.36 GiB
+  embedding table                                                           1.18 GiB
+  recurrent-state cache (configured 1024 MB)                                1.00 GiB
+  vision tower (vision_offload)                                             0.49 GiB
+  other: runtime, staging, buffers                                          3.85 GiB
+GPU used per device: {0: 30.06, 1: 31.04}
+rc=0 ring=0 ckpt=/srv/qwen5090/models/glm53-flash-exl3-2.05bpw-turboderp

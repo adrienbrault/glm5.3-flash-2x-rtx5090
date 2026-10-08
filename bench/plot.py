@@ -26,6 +26,7 @@ ROOT = Path(__file__).resolve().parent.parent
 RESULTS = ROOT / "bench" / "results"
 OUT = ROOT / "docs" / "img"
 SERVED = RESULTS / "2026-10-08-r914-glm53-promote-combo" / "CF"  # the configuration README.md describes (R914 arm CF)
+MEMORY = RESULTS / "2026-10-08-r900-glm53-memory-layout" / "memory.json"  # memory layout of the served configuration (R900)
 PREFILL_SRC = RESULTS / "2026-10-07-r882b-glm53-swap-agent" / "XA"  # last cold-prefill measurement (previous configuration)
 
 DECODE, AGG, PREFILL, AGG_ONE = "#0969da", "#cf222e", "#8250df", "#f0a8ad"
@@ -175,10 +176,60 @@ def figure_history():
     save(fig, "history.svg", "Served configurations over time, one stream and four streams")
 
 
+# Memory categories in drawing order, one colour each (routed experts share one hue on both bars).
+MEMORY_GROUPS = [
+    ("routed experts", "#0969da", ("routed experts on GPU", "CPU experts")),
+    ("other weights (attention, shared experts, lm_head, MTP layer)", "#8250df",
+     ("attention, norms, other weights", "shared experts", "lm_head", "MTP layer")),
+    ("KV pool", "#1a7f37", ("KV pool",)),
+    ("embedding table", "#bf8700", ("embedding table",)),
+    ("vision tower", "#cf222e", ("vision tower",)),
+    ("recurrent-state cache", "#e16f24", ("recurrent-state cache",)),
+    ("other (contexts, graph pools, scratch, runtime, staging)", "#afb8c1", ("other",)),
+]
+
+
+def figure_memory():
+    rec = json.load(open(MEMORY))
+    GiB = 2 ** 30
+    bars = [("VRAM, 2 × RTX 5090", rec["gpu_categories_bytes"], sum(rec["gpu_total_bytes"].values())),
+            ("host DRAM", rec["host_categories_bytes"], rec["host_total_bytes"])]
+    fig, ax = plt.subplots(figsize=(10.4, 2.9))
+    drawn = {}
+    for y, (label, cats, cap) in enumerate(bars):
+        left = 0.0
+        for name, color, prefixes in MEMORY_GROUPS:
+            v = sum(b for k, b in cats.items() if k.startswith(prefixes)) / GiB
+            if v <= 0:
+                continue
+            ax.barh(y, v, left=left, color=color, height=0.55, edgecolor="white", linewidth=1.5)
+            if v >= 2.5:
+                ax.text(left + v / 2, y, f"{v:.1f}", ha="center", va="center", fontsize=8.5, color="white")
+            drawn[name] = color
+            left += v
+        ax.plot([cap / GiB] * 2, [y - 0.36, y + 0.36], color="#24292f", linewidth=1.4)  # the device's capacity
+        ax.text(max(left, cap / GiB) + 0.8, y, f"{left:.1f} of {cap / GiB:.1f} GiB", ha="left", va="center",
+                fontsize=8.5, color="#24292f")
+        print("memory:", label, {n: round(sum(b for k, b in cats.items() if k.startswith(p)) / GiB, 2)
+                                 for n, _, p in MEMORY_GROUPS}, "capacity", round(cap / GiB, 2))
+    ax.set_yticks(range(len(bars)), [b[0] for b in bars])
+    ax.invert_yaxis()
+    ax.set_xlabel("GiB")
+    ax.set_xlim(0, max(b[2] for b in bars) / GiB * 1.18)
+    ax.grid(axis="x", color="#eaeef2")
+    ax.set_axisbelow(True)
+    from matplotlib.patches import Patch
+    ax.legend(handles=[Patch(color=c, label=n) for n, c in drawn.items()], fontsize=8, ncol=3, frameon=False,
+              loc="upper center", bbox_to_anchor=(0.5, -0.32))
+    ax.set_title("Memory of the served configuration by category, GiB (R900; black tick = capacity)")
+    save(fig, "memory.svg", "VRAM and host DRAM of the served configuration by category")
+
+
 if __name__ == "__main__":
     kinds, conc, prefill = served()
     figure_decode_concurrency(conc)
     figure_c1_by_kind(kinds)
     figure_prefill(prefill)
     figure_history()
+    figure_memory()
     print("wrote", ", ".join(sorted(p.name for p in OUT.glob("*.svg"))))

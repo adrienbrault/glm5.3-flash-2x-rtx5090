@@ -1,6 +1,13 @@
 # GLM-5.3-Flash on 2× RTX 5090
 
-GLM-5.3-Flash (zai-org; 321 B parameters, about 18 B active per token) served by TabbyAPI on ExLlamaV3 from one desktop box with two RTX 5090 cards and 64 GB of DDR5. The checkpoint is turboderp's 2.05 bpw EXL3 quantisation (76 GB). It does not fit the 64 GB of VRAM, so 96 of the 288 routed experts of every MoE layer run on the CPU, and the experts the traffic uses most are swapped onto the GPUs while it runs. Output is exact: no expert is skipped.
+[GLM-5.3-Flash][model] ([zai-org][zai]; 321 B parameters, about 18 B active per token) served by [TabbyAPI][tabby] on [ExLlamaV3][exl3] from one desktop box with two RTX 5090 cards and 64 GB of DDR5 ([Hardware](#hardware)). The checkpoint is [turboderp][turboderp]'s [2.05 bpw EXL3 quantisation][ckpt] (76 GB). It does not fit the 64 GB of VRAM, so 96 of the 288 routed experts of every MoE layer run on the CPU ([ExLlamaV3's CPU MoE offload][exl3]), and the experts the traffic uses most are swapped onto the GPUs while it runs ([`docker/cheapswap-r3/`](docker/cheapswap-r3/)). Output is exact: no expert is skipped. How it got here: [`docs/HISTORY.md`](docs/HISTORY.md); credits: [`THIRD_PARTY.md`](THIRD_PARTY.md).
+
+[model]: https://huggingface.co/zai-org/GLM-5.3-Flash
+[zai]: https://huggingface.co/zai-org
+[tabby]: https://github.com/theroyallab/tabbyAPI
+[exl3]: https://github.com/turboderp-org/exllamav3
+[turboderp]: https://huggingface.co/turboderp
+[ckpt]: https://huggingface.co/turboderp/GLM-5.3-Flash-exl3
 
 ## Speed
 
@@ -21,13 +28,13 @@ Measured 2026-10-07 on the served configuration ([R882b](bench/results/r882b-glm
 |---|---|---|---|---|
 | 58.1 tok/s | 62.5 tok/s | 64.1 tok/s | 63.0 tok/s | 51.6 tok/s |
 
-</details>
-
-Cold prefill, engine-timed:
-
-| prompt | 8,156 tokens | 32,811 tokens |
+| prompt, cold, engine-timed | 8,156 tokens | 32,811 tokens |
 |---|---|---|
 | prefill | 1,999 tok/s | 2,146 tok/s |
+
+</details>
+
+![Cold prefill rate by prompt length: 1,999 tok/s at 8,156 prompt tokens, 2,146 tok/s at 32,811](docs/img/prefill.svg)
 
 Method, time to the first token and run-to-run spread: [`bench/RESULTS.md`](bench/RESULTS.md). The charts are drawn from the raw records by [`scripts/make_charts.py`](scripts/make_charts.py).
 

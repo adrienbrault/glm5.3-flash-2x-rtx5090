@@ -71,13 +71,17 @@ def served_numbers():
         r = json.loads(line)
         by_kind.setdefault(r['kind'], []).append(r['tps'])
     kinds = {k: statistics.median(v) for k, v in by_kind.items()}
-    conc = {}
+    conc, prefill = {}, []
     for line in open(SERVED / 'measure.jsonl'):
         r = json.loads(line)
+        u = r.get('usage') or {}
+        if str(r.get('tag', '')).startswith('prefill-') and (u.get('prompt_tokens_details') or {}).get('cached_tokens') == 0:
+            tps = r.get('engine_prefill_tps') or u['prompt_tokens'] / u['prompt_time']
+            prefill.append((u['prompt_tokens'], tps))
         if r.get('phase') == 'decode-summary':
             for s in r['summaries']:
                 conc[s['c']] = (s['ss_per_stream_tps_median'], s['ss_agg_tps_median'])
-    return kinds, conc
+    return kinds, conc, sorted(prefill)
 
 
 def chart_concurrency(conc):
@@ -139,6 +143,31 @@ def chart_kinds(kinds):
                ', '.join(f'{k} {kinds[k]:.1f} tok/s' for k in order) + '.', '\n'.join(out))
 
 
+def chart_prefill(points):
+    """Cold prefill rate against prompt length; the x axis spans the 262,144-token window so longer runs extend it."""
+    w, h, l, r, t, b = 640, 330, 64, 40, 80, 50
+    xmax, vmax = 262144, 2500
+    px = lambda n: l + (w - l - r) * n / xmax
+    py = lambda v: h - b - (h - t - b) * v / vmax
+    out = ['<text class="t1" x="20" y="30">Cold prefill rate by prompt length</text>',
+           '<text class="t2" x="20" y="50">tok/s, engine-timed, no cached tokens (R882b); the axis spans the 262,144-token window</text>']
+    for v in ticks(vmax, 500):
+        out.append(f'<line class="grid" x1="{l}" x2="{w - r}" y1="{py(v):.1f}" y2="{py(v):.1f}"/>')
+        out.append(f'<text class="t2" x="{l - 8}" y="{py(v) + 4:.1f}" text-anchor="end">{v:,}</text>')
+    for n in range(0, xmax + 1, 65536):
+        out.append(f'<text class="t2" x="{px(n):.1f}" y="{h - b + 20}" text-anchor="middle">{f"{n // 1024}k" if n else 0}</text>')
+    out.append(f'<text class="t2" x="{(l + w - r) / 2:.1f}" y="{h - 8}" text-anchor="middle">prompt tokens</text>')
+    if len(points) > 1:
+        pts = ' '.join(f'{px(n):.1f},{py(v):.1f}' for n, v in points)
+        out.append(f'<polyline class="s1l" fill="none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="{pts}"/>')
+    for n, v in points:
+        out.append(f'<circle class="s1 ring" cx="{px(n):.1f}" cy="{py(v):.1f}" r="5"><title>{n:,} prompt tokens: {v:,.0f} tok/s</title></circle>')
+        out.append(f'<text class="t3" x="{px(n):.1f}" y="{py(v) + 24:.1f}" text-anchor="middle">{v:,.0f}</text>')
+    out.append(f'<line class="axis" x1="{l}" x2="{w - r}" y1="{py(0):.1f}" y2="{py(0):.1f}"/>')
+    return svg(w, h, 'Cold prefill rate by prompt length',
+               '; '.join(f'{n:,} prompt tokens: {v:,.0f} tok/s' for n, v in points) + '.', '\n'.join(out))
+
+
 def chart_history():
     w, h = 760, 340
     out = ['<text class="t1" x="20" y="30">Served configurations, 2026-10-06 to 2026-10-07</text>',
@@ -170,11 +199,12 @@ def chart_history():
 
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
-    kinds, conc = served_numbers()
+    kinds, conc, prefill = served_numbers()
     (OUT / 'decode-concurrency.svg').write_text(chart_concurrency(conc))
     (OUT / 'c1-by-kind.svg').write_text(chart_kinds(kinds))
     (OUT / 'history.svg').write_text(chart_history())
-    print('kinds', {k: round(v, 1) for k, v in kinds.items()}, 'conc', {c: tuple(round(x, 1) for x in v) for c, v in conc.items()})
+    (OUT / 'prefill.svg').write_text(chart_prefill(prefill))
+    print('kinds', {k: round(v, 1) for k, v in kinds.items()}, 'conc', {c: tuple(round(x, 1) for x in v) for c, v in conc.items()}, 'prefill', [(n, round(v)) for n, v in prefill])
 
 
 if __name__ == '__main__':

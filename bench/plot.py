@@ -25,8 +25,8 @@ import matplotlib.pyplot as plt  # noqa: E402
 ROOT = Path(__file__).resolve().parent.parent
 RESULTS = ROOT / "bench" / "results"
 OUT = ROOT / "docs" / "img"
-SERVED = RESULTS / "2026-10-08-r914-glm53-promote-combo" / "CF"  # the configuration README.md describes (R914 arm CF)
-MEMORY = RESULTS / "2026-10-08-r900-glm53-memory-layout" / "memory.json"  # memory layout of the served configuration (R900)
+SERVED = RESULTS / "2026-10-08-r927-glm53-dflash-window" / "B-D"  # the configuration README.md describes (R927 control arm B-D)
+MEMORY = RESULTS / "2026-10-08-r900-glm53-memory-layout" / "memory.json"  # memory layout of the configuration served before R915c (R900)
 PREFILL_SRC = RESULTS / "2026-10-07-r882b-glm53-swap-agent" / "XA"  # last cold-prefill measurement (previous configuration)
 
 DECODE, AGG, PREFILL, AGG_ONE = "#0969da", "#cf222e", "#8250df", "#f0a8ad"
@@ -55,7 +55,8 @@ HISTORY = [
     ("R873", None, 86.3, "one", "r873-glm53-c4.md"),            # static broad placement with the agent overlay
     ("R882b", 59.9, 109.9, "one", "r882b-glm53-swap-agent.md"),  # exchange swaps with the agent overlay
     ("R911 re-run", 58.0, 97.4, "distinct", "r911-glm53-mtpcap-dynamic.md"),  # the R882b configuration again, mean of D0 and D1
-    ("R914", 64.2, 87.7, "distinct", "r914-glm53-promote-combo.md"),   # MTP depth 1 at c1 only, 104 on the CPU (served)
+    ("R914", 64.2, 87.7, "distinct", "r914-glm53-promote-combo.md"),   # MTP depth 1 at c1 only, 104 on the CPU
+    ("R915c", 64.9, 90.0, "distinct", "r915c-glm53-splitdev2.md"),     # 100 on the CPU for GPU0's layers, 104 for GPU1's (served)
 ]
 
 
@@ -85,12 +86,15 @@ def served():
         kinds.setdefault(r["kind"], []).append(r["tps"])
     kinds = {k: st.median(v) for k, v in kinds.items()}
     conc, prefill = {}, []
-    for line in open(SERVED / "dec.jsonl"):
-        r = json.loads(line)
-        if r.get("phase") == "decode-summary":
-            for s in r["summaries"]:
-                assert s.get("distinct"), "the README concurrency figure uses distinct prompts per stream"
-                conc[s["c"]] = (s["ss_per_stream_tps_median"], s["ss_agg_tps_median"])
+    # R927 ran the concurrencies as two invocations (dec4.jsonl, then dec12.jsonl); earlier rounds wrote one dec.jsonl.
+    for path in sorted(SERVED.glob("dec*.jsonl")):
+        for line in open(path):
+            r = json.loads(line)
+            if r.get("phase") == "decode-summary":
+                for s in r["summaries"]:
+                    assert s.get("distinct"), "the README concurrency figure uses distinct prompts per stream"
+                    assert s["c"] not in conc, f"concurrency {s['c']} measured twice"
+                    conc[s["c"]] = (s["ss_per_stream_tps_median"], s["ss_agg_tps_median"])
     for line in open(PREFILL_SRC / "measure.jsonl"):
         r = json.loads(line)
         u = r.get("usage") or {}
@@ -115,9 +119,9 @@ def figure_decode_concurrency(conc):
         a.set_ylim(0, max(ys) * 1.25)
         a.set_xticks(xs)
         style(a)
-    fig.suptitle("Decode rate after the first token against concurrency, distinct prompts per stream, served configuration (R914)",
+    fig.suptitle("Decode rate after the first token against concurrency, distinct prompts per stream, served configuration (R927, arm B-D)",
                  fontsize=11, fontweight="bold")
-    print("decode by concurrency (R914 CF, distinct prompts, median of 2 rounds):", {c: tuple(round(v, 1) for v in conc[c]) for c in xs})
+    print("decode by concurrency (R927 B-D, distinct prompts, median of 2 rounds):", {c: tuple(round(v, 1) for v in conc[c]) for c in xs})
     save(fig, "decode-concurrency.svg", "Decode rate after the first token against concurrency, sum over streams and per stream")
 
 
@@ -128,12 +132,12 @@ def figure_c1_by_kind(kinds):
     ax.barh(order[::-1], vals[::-1], color=DECODE, height=0.55)
     for y, v in enumerate(vals[::-1]):
         ax.annotate(f"{v:.1f}", (v, y), textcoords="offset points", xytext=(5, -3), fontsize=8.5, color=DECODE)
-    ax.set_title("Single-stream decode by content kind, MTP depth 1, served configuration (R914)")
+    ax.set_title("Single-stream decode by content kind, MTP depth 1, served configuration (R927, arm B-D)")
     ax.set_xlabel("decode tokens per second, median of 2 runs")
     ax.set_xlim(0, max(vals) * 1.15)
     ax.grid(axis="x", color="#eaeef2")
     ax.set_axisbelow(True)
-    print("c1 by kind (R914 CF):", {k: round(kinds[k], 1) for k in order}, "mean", round(st.mean(vals), 1))
+    print("c1 by kind (R927 B-D):", {k: round(kinds[k], 1) for k in order}, "mean", round(st.mean(vals), 1))
     save(fig, "c1-by-kind.svg", "Single-stream decode by content kind")
 
 
@@ -221,8 +225,8 @@ def figure_memory():
     from matplotlib.patches import Patch
     ax.legend(handles=[Patch(color=c, label=n) for n, c in drawn.items()], fontsize=8, ncol=3, frameon=False,
               loc="upper center", bbox_to_anchor=(0.5, -0.32))
-    ax.set_title("Memory of the served configuration by category, GiB (R900; black tick = capacity)")
-    save(fig, "memory.svg", "VRAM and host DRAM of the served configuration by category")
+    ax.set_title("Memory by category, GiB, configuration served before the per-device count (R900; black tick = capacity)")
+    save(fig, "memory.svg", "VRAM and host DRAM by category, configuration served before the per-device count")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,29 @@
+{
+  "r892-B1-engine.log": {
+    "64_job_windows": 8216,
+    "median_window_means": {
+      "gap_ms": 0.075,
+      "spin_ms": 0.187,
+      "compute_ms": 0.348,
+      "cpu_assign_per_row": 1.4
+    }
+  },
+  "r892-B2-engine.log": {
+    "64_job_windows": 8180,
+    "median_window_means": {
+      "gap_ms": 0.071,
+      "spin_ms": 0.187,
+      "compute_ms": 0.341,
+      "cpu_assign_per_row": 1.39
+    }
+  },
+  "r892-B0-engine.log": {
+    "64_job_windows": 8127,
+    "median_window_means": {
+      "gap_ms": 0.142,
+      "spin_ms": 0.183,
+      "compute_ms": 0.364,
+      "cpu_assign_per_row": 1.45
+    }
+  }
+}

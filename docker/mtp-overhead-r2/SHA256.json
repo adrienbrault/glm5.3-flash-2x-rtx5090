@@ -1,0 +1,46 @@
+{
+  "exllamav3/architecture/glm5_next_mtp.py": {
+    "before": "61c3a10554271f07637d8981ca290f6b87e7e564db5ce6854dca26e9609da467",
+    "after": "d505e03c457e034b7a3645d9e90b0158ec88999958a595d618afaf5b483e5ffe"
+  },
+  "exllamav3/generator/generator.py": {
+    "before": "34f1c2b14253ebd4a7399e05ef27a66f9dab66bcce740d20e80d3b5ee7130d92",
+    "after": "799a595fbb9280b2194fa201fe83fda3525fa19ab1acdf3635876d09db72bc09"
+  },
+  "exllamav3/generator/job.py": {
+    "before": "7cb611e665d65d4ecbf6ea08d02b3d745c8ae3b78bf4228435ef22133d3684de",
+    "after": "4e53ad789990985a8368b9fe3545b7e7962fb1e053c5dbee99eb7308abd2a8f2"
+  },
+  "exllamav3/model/model_ls.py": {
+    "before": "1a99501f2b060e223c0d642b15b58251ef1c1cec738733dcdd7df23195fc7a76",
+    "after": "3a35040ed3b31155fe7ac06ddcb54d8e6b4e8449dd3ef4ecbd349a83b37b9cf5"
+  },
+  "exllamav3/model/moe_cpu_host.py": {
+    "before": "26c13b4f7ef743237e866b5d6cc26b558d573d0e7c257d3b8a3626ed6b7475f0",
+    "after": "dc3a828ce1ffc00625a2c5aa9308ea7bebcbdfece38d03af7fcf29884da94e5c"
+  },
+  "exllamav3/model/moe_exchange.py": {
+    "before": "a9a80179edf9a7406b907e6e2318481a38887674e84249e171743d74e7ca750d",
+    "after": "fb6c6fffbf74cebc08c6f1f2dd3e7b0ba422f68e9ba095d25f17e59d919117f9"
+  },
+  "exllamav3/modules/arch_specific/qwen3_5_mtp.py": {
+    "before": "9e425fd1b754fff6cf5f167192ca3c8a992c03778739f09412f2b2967a98772d",
+    "after": "d41b6f042c9c54d41a268893ca34548049604c06e389bd1db0f087a18f002565"
+  },
+  "exllamav3/modules/embedding.py": {
+    "before": "655d2debea1c7901345c3221e5b57532ef5459faaac9b8ab16638935bf20757b",
+    "after": "797bcac91a24c0837c361de1bcda5fbb85d2e4f55a4c6336f62bbd59a674298b"
+  },
+  "exllamav3/modules/gated_delta_net.py": {
+    "before": "a5b1c3d8c74547989771ffdcced77d813b634f7d0717f39259107bb73d9b7685",
+    "after": "05030aa558743a720a7550f7180054844d24e7f9bb71b83a63bc121574750dcc"
+  },
+  "exllamav3/util/mtp_phase.py": {
+    "before": null,
+    "after": "d9b4afa564627db678a8163bf694ce4f51c6c8588263bcec8e1fa11608c1b317"
+  },
+  "tabbyapi/common/config_models.py": {
+    "before": "169bb91855af2fb5bf54a2184cde7ee95271cd71ae222728d27429e1fb473aee",
+    "after": "5a88b57fe64dc2cb6dedc43e35df1a4def3031378c79d6667f517ea821a9be21"
+  }
+}

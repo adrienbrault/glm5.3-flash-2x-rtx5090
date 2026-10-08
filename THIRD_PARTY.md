@@ -16,8 +16,8 @@ This repository ships no weights. `scripts/templates/glm53-keep-thinking.jinja` 
 
 | item | origin | licence | how it is used |
 |---|---|---|---|
-| ExLlamaV3 (`dev` `5783a93` with the patch stack of https://github.com/adrienbrault/qwen3.8-flash-next-2x-rtx5090, whose served image `tabbyapi:r828-prompt-lookup-r3` is the base of every image here) | turboderp — https://github.com/turboderp-org/exllamav3 | MIT | the inference engine, including the GLM-5.3 architecture code, the CPU MoE offload (`cpu_moe_split_experts`) and the dynamic placement that `docker/cheapswap-r3/` extends; `docker/route-trace-r1/` and `docker/cheapswap-r3/` patch its Python files and are derivatives under MIT. Commit `fa822cf` on its `dev` branch ("CPU MoE: reserve a host core") is the idea R871 tested |
-| TabbyAPI (commit `53da791`) | theroyallab — https://github.com/theroyallab/tabbyAPI | AGPL-3.0 | the OpenAI-compatible server in the image; the agent overlays `docker/glm-agent-r2/`, `glm-agent-r4/`, `glm-agent-r4b/` and `glm-agent-r4c/` patch its Python files and stay under AGPL-3.0 |
+| ExLlamaV3 (`dev` `5783a93` with the patch stack of https://github.com/adrienbrault/qwen3.8-flash-next-2x-rtx5090, whose served image `tabbyapi:r828-prompt-lookup-r3` is the base of every image here) | turboderp — https://github.com/turboderp-org/exllamav3 | MIT | the inference engine, including the GLM-5.3 architecture code, the CPU MoE offload (`cpu_moe_split_experts`) and the dynamic placement that `docker/cheapswap-r3/` extends; `docker/route-trace-r1/`, `docker/cheapswap-r3/`, `docker/mtp-fast-r1/` and `docker/mtp-overhead-r2/` patch its Python files and are derivatives under MIT. Commit `fa822cf` on its `dev` branch ("CPU MoE: reserve a host core") is the idea R871 tested |
+| TabbyAPI (commit `53da791`) | theroyallab — https://github.com/theroyallab/tabbyAPI | AGPL-3.0 | the OpenAI-compatible server in the image; the agent overlays `docker/glm-agent-r2/`, `glm-agent-r4/`, `glm-agent-r4b/` and `glm-agent-r4c/` patch its Python files and stay under AGPL-3.0; `docker/mtp-overhead-r2/` changes its `common/config_models.py` (a draft depth of 0 per batch size), and that part stays under AGPL-3.0 |
 
 ## Code adapted from other projects
 
@@ -44,5 +44,7 @@ This repository ships no weights. `scripts/templates/glm53-keep-thinking.jinja` 
 | Route-trace overlay and simulator design | an OpenAI Codex agent, from the ExLlamaV3 sources | `docker/route-trace-r1/` |
 | Checkpoint-free expert exchange (cheapswap r2 and r3), its simulator and cost model, its gates | an OpenAI Codex agent, from the ExLlamaV3 sources | `docker/cheapswap-r3/` |
 | TabbyAPI agent overlays r2, r4 and r4b with their diagnoses and tests | an OpenAI Codex agent, from the TabbyAPI sources and glm53-tensorfold-spark | `docker/glm-agent-r2/`, `docker/glm-agent-r4/`, `docker/glm-agent-r4b/` |
+| MTP fast mode (the MTP head's CPU-resident experts join the trunk's CPU worker), its diagnosis and test | a Claude agent, from the ExLlamaV3 sources and the R883 and R886 boot logs | `docker/mtp-fast-r1/` |
+| MTP overhead overlay r2: batch cap, GPU draft ids, greedy batched acceptance, cached rewind descriptors, phase profiler, its tests and probes | an OpenAI Codex agent, from the ExLlamaV3 and TabbyAPI sources | `docker/mtp-overhead-r2/` |
 | CPU worker microbenchmark (`cpuworker-r1`) and the decode-timeline profiler and its analysis | an OpenAI Codex agent | R874, R874c and R876; the packages are not in this repository |
 | Code survey of TensorFold, survey of GLM engines with hot-expert placement | a Claude agent | `docs/PLAN.md` |

@@ -1,0 +1,1083 @@
+diff -ruN base/exllamav3/architecture/glm5_next_mtp.py src/exllamav3/architecture/glm5_next_mtp.py
+--- base/exllamav3/architecture/glm5_next_mtp.py	2026-09-27 12:31:50
++++ src/exllamav3/architecture/glm5_next_mtp.py	2026-10-08 08:14:22
+@@ -1,6 +1,7 @@
+ from __future__ import annotations
+ from typing_extensions import override
+ import torch
++from ..util import mtp_phase
+ import weakref
+ 
+ from ..model.config import Config
+@@ -219,6 +220,7 @@
+         return {}
+ 
+ 
++    @mtp_phase.instrument("head_argmax", devices=lambda self, state, params: (state.device,))
+     def sample_from_state(
+         self,
+         state: torch.Tensor,
+diff -ruN base/exllamav3/generator/generator.py src/exllamav3/generator/generator.py
+--- base/exllamav3/generator/generator.py	2026-10-02 19:48:05
++++ src/exllamav3/generator/generator.py	2026-10-08 08:12:12
+@@ -33,11 +33,17 @@
+ import threading
+ from ..tokenizer import MMEmbedding
+ from ..util import profile_opt
++from ..util import mtp_phase
+ 
+ 
+ # Round-4 decode ports. All are literal opt-ins so an unset environment follows
+ # the served branches and preserves served output bytes.
+ _DRAFT_PINNED_STAGING = os.environ.get("EXL3_DRAFT_PINNED_STAGING", "0") == "1"
++_MTP_GPU_DRAFT = os.environ.get("EXL3_MTP_GPU_DRAFT", "0") == "1"
++_MTP_GREEDY_ACCEPT = os.environ.get("EXL3_MTP_GREEDY_ACCEPT", "0") == "1"
++_MTP_MAX_BATCH = int(os.environ.get("EXL3_MTP_MAX_BATCH", "0"))
++if _MTP_MAX_BATCH < 0:
++    raise ValueError("EXL3_MTP_MAX_BATCH must be nonnegative")
+ _BATCH_VERIFY = os.environ.get("EXL3_BATCH_VERIFY", "0") == "1"
+ _MTP_DEVICE_DRAFT = os.environ.get("EXL3_MTP_DEVICE_DRAFT", "0") == "1"
+ # Round-1 pruned embedding mirror for the device draft chain (default off; needs EXL3_MTP_DEVICE_DRAFT=1,
+@@ -235,6 +241,12 @@
+ 
+         # Keep the fallback separate from capacity: a later batch may select a deeper window
+         # than the current one, so buffers and queued jobs must reserve the largest possible depth
++        logger.warning("[MTP-OVERHEAD] landed phase_prof=%s gpu_draft=%s greedy_accept=%s max_batch=%d",
++                       mtp_phase.ENABLED, _MTP_GPU_DRAFT, _MTP_GREEDY_ACCEPT, _MTP_MAX_BATCH)
++        self._mtp_phase_prof = None
++        self._mtp_invalid_hashes = set()
++        self._mtp_no_draft = False
++        self._mtp_gpu_round = False
+         self.num_draft_tokens_by_batch = None
+         self.max_num_draft_tokens = self.num_draft_tokens
+         if num_draft_tokens_by_batch is not None:
+@@ -250,10 +262,12 @@
+                 if not isinstance(rule, (list, tuple)) or len(rule) != 2:
+                     raise ValueError("Each draft policy entry must be (max_batch_size, depth)")
+                 limit, depth = rule
+-                if type(limit) is not int or type(depth) is not int or limit <= 0 or depth <= 0:
+-                    raise ValueError("Draft policy batch limits and depths must be positive integers")
++                if type(limit) is not int or type(depth) is not int or limit <= 0 or depth < 0:
++                    raise ValueError("Draft policy limits must be positive and depths nonnegative integers")
+                 if limit <= previous_limit:
+                     raise ValueError("Draft policy batch limits must be strictly increasing")
++                if depth == 0 and not (draft_model and draft_model.caps.get("mtp_draft") and cache.recurrent_layers):
++                    raise ValueError("Depth zero policy requires an MTP drafter")
+                 rules.append((limit, depth))
+                 previous_limit = limit
+             # Own an immutable copy so caller mutations cannot exceed the allocated capacity
+@@ -390,6 +404,10 @@
+         self.recurrent_checkpoint_interval_pp = ceil_span(recurrent_checkpoint_interval_pp, self.max_chunk_size)
+         self.disk_page_cache = None
+         if _NVME_TIER:
++            if draft_model and draft_model.caps.get("mtp_draft") and (
++                _MTP_MAX_BATCH or any(depth == 0 for _, depth in (self.num_draft_tokens_by_batch or ()))
++            ):
++                raise ValueError("MTP batch suspension is incompatible with persistent NVMe KV (draft validity is process-local)")
+             from .disk_cache import DiskPageCache
+             # EXL3_MTP_KV_WINDOW: as for the CPU tier, only the main cache has page images
+             self.disk_page_cache = DiskPageCache.install(
+@@ -627,6 +645,7 @@
+ 
+ 
+     @torch.inference_mode
++    @mtp_phase.step_guard
+     def iterate(self) -> list[dict]:
+         """
+         Performs inference on available jobs.
+@@ -735,9 +754,42 @@
+                 if self._ls_prefill_yield:
+                     return results
+ 
+-        # Recurrent checkpoints
++        # A dormant draft cache is never read again by an existing job. Resuming would
++        # require replay of target hidden states that ordinary decode does not retain.
++        batch_policy_work = _MTP_MAX_BATCH > 0 or (
++            self.num_draft_tokens_by_batch is not None and
++            any(depth == 0 for _, depth in self.num_draft_tokens_by_batch)
++        )
++        ready = [job for job in self.active_jobs if job.is_prefill_done()] if (
++            batch_policy_work or mtp_phase.ENABLED or self._mtp_invalid_hashes
++        ) else []
++        self._mtp_no_draft = self.mtp_draft and bool(ready) and (
++            (_MTP_MAX_BATCH > 0 and len(self.active_jobs) > _MTP_MAX_BATCH) or
++            self._get_draft_depth(len(ready)) == 0 or
++            any(getattr(job, "_mtp_suspended", False) for job in ready)
++        )
++        if self._mtp_no_draft:
++            if self.recurrent_cache is None:
++                raise ValueError("MTP batch suspension requires a recurrent target (partial-page reuse is unsupported)")
++            for job in ready:
++                job._mtp_suspended = True
++                job.mtp_last_hidden = None
++        if mtp_phase.ENABLED and ready:
++            if self._mtp_phase_prof is None:
++                self._mtp_phase_prof = mtp_phase.PhaseProfiler(self.model.active_devices)
++            self._mtp_phase_prof.begin(
++                "plain_suspended" if self._mtp_no_draft else "mtp" if self.mtp_draft else "plain",
++                sum(len(job.sequences) for job in ready),
++                0 if self._mtp_no_draft else self._get_draft_depth(len(ready)),
++            )
++
++        # Recurrent checkpoints (inside the decode timer, including boundary stash/syncs).
+         if self.recurrent_cache is not None:
+-            self.recurrent_checkpoint()
++            if mtp_phase.ENABLED and mtp_phase.active():
++                with mtp_phase.active().span("checkpoint_housekeeping", mtp_phase.active().devices):
++                    self.recurrent_checkpoint()
++            else:
++                self.recurrent_checkpoint()
+ 
+         # Generation with draft model
+         if self.draft_model:
+@@ -745,7 +797,7 @@
+                 draft_tokens = self.iterate_draftmodel_dflash_gen(results)
+                 self.iterate_gen(results, draft_tokens)
+             elif self.mtp_draft:
+-                draft_tokens = self.iterate_draftmodel_mtp_gen(results)
++                draft_tokens = None if self._mtp_no_draft else self.iterate_draftmodel_mtp_gen(results)
+                 self.iterate_gen(results, draft_tokens)
+             else:
+                 draft_tokens = self.iterate_draftmodel_gen(results)
+@@ -760,6 +812,11 @@
+         else:
+             self.iterate_gen(results)
+ 
++        if mtp_phase.ENABLED and ready:
++            self._mtp_phase_prof.end()
++            if not self.active_jobs:
++                self._mtp_phase_prof.drain(force=True)
++
+         # EXL3_NGRAM_TIMING: periodic PLE exposed-wait summary (instrument only)
+         if _NGRAM_TIMING:
+             self._ngram_timing_maybe_report()
+@@ -790,6 +847,11 @@
+         # numerics) and must never land mid-stream
+         from ..modules.block_sparse_mlp_cpu import run_pending_swap_sweeps
+         run_pending_swap_sweeps(self.model.config.infer_params)
++        if self._mtp_invalid_hashes:
++            reachable = {page.phash for page in self.pagetable.all_pages}
++            if self.cpu_page_cache is not None:
++                reachable.update(self.cpu_page_cache.entries)
++            self._mtp_invalid_hashes.intersection_update(reachable)
+         malloc_trim()
+         if self.disk_page_cache is not None:
+             self.disk_page_cache.on_idle()
+@@ -920,7 +982,7 @@
+         if self.draft_window_slots is None:
+             return
+         tags = None
+-        if keep and self.draft_window_slots.lookup(id(job)) is not None:
++        if keep and not getattr(job, "_mtp_suspended", False) and self.draft_window_slots.lookup(id(job)) is not None:
+             seq = job.sequences[0]
+             hashes = list(seq.page_hashes or ())
+             ids = seq.sequence_ids.torch()
+@@ -1122,6 +1184,9 @@
+ 
+     def iterate_draftmodel_mtp_gen(self, results: list):
+ 
++        if mtp_phase.ENABLED and mtp_phase.active():
++            table_phase = mtp_phase.active().start("draft.tables")
++
+         self._draft_conf_round = None
+         self._prompt_lookup_round = {}
+ 
+@@ -1169,6 +1234,8 @@
+             if job.mtp_last_hidden is None:
+                 # A one-token prompt has no token to prefill before the generation input.
+                 # Run one normal target step first; iterate_gen() will initialize MTP state.
++                if mtp_phase.ENABLED and mtp_phase.active():
++                    mtp_phase.active().stop(table_phase)
+                 return None
+             if job.time_first_token is None:
+                 cuda_sync_active()
+@@ -1191,8 +1258,26 @@
+         target_embed_ref = getattr(self.draft_model, "target_embed", None)
+         target_embed = target_embed_ref() if target_embed_ref is not None else None
+         pruned_embed = self._pruned_embed if _EMBED_GPU_PRUNED else None
++        gpu_verify = (
++            _MTP_GPU_DRAFT and window == 1 and batch_size == 1 and cal is None and
++            not has_indexed_embeddings and not self.model.loaded_tp and
++            not self.draft_model.loaded_tp and not self.model._get_prefetch_layers and
++            type(self.model).__name__ == "Glm5NextModel" and
++            target_embed is self.model.modules[0] and
++            all(ids.shape[-1] == 1 for ids in input_ids_list) and
++            target_embed.multiplier == 1.0 and not target_embed.normalize and
++            target_embed.can_embed_device_ids(temp_hidden.device)
++        )
++        if gpu_verify:
++            head = self.model.modules[self.model.logit_layer_idx]
++            gpu_verify = (torch.device(head.device) == temp_hidden.device and
++                          target_embed.prepare_mtp_mirror(temp_hidden.device))
++        if _MTP_GPU_DRAFT and not getattr(self, "_mtp_gpu_reported", False):
++            logger.warning("[MTP-OVERHEAD] gpu_draft eligible=%s (GLM text c1 d1, full mirror with free VRAM required)", gpu_verify)
++            self._mtp_gpu_reported = True
++        self._mtp_gpu_round = gpu_verify
+         dev_draft = (
+-            _MTP_DEVICE_DRAFT and cal is None and temp_hidden.is_cuda and
++            (_MTP_DEVICE_DRAFT or gpu_verify) and cal is None and temp_hidden.is_cuda and
+             not has_indexed_embeddings and target_embed is not None and
+             (pruned_embed is not None if _EMBED_GPU_PRUNED else
+              target_embed.can_embed_device_ids(temp_hidden.device))
+@@ -1233,6 +1318,8 @@
+                 job.prompt_lookup_adaptive.begin(False)
+         conf_cols = []
+         reach = None
++        if mtp_phase.ENABLED and mtp_phase.active():
++            mtp_phase.active().stop(table_phase)
+         for idx in range(window):
+             step_seqlens = self._draft_step_seqlens("mtp", cache_seqlens, idx)
+             params = self._draft_params({
+@@ -1249,7 +1336,13 @@
+                 params["embed_pruned"] = True
+                 if idx == 0:
+                     params["embed_pruned_host_ids"] = host_ids0
++            if mtp_phase.ENABLED and mtp_phase.active():
++                params["_mtp_phase"] = "draft"
++                forward_phase = mtp_phase.active().start("draft.forward", mtp_phase.active().devices)
+             batch_state = self.draft_model.forward(batch_ids, params)
++            if mtp_phase.ENABLED and mtp_phase.active():
++                mtp_phase.active().stop(forward_phase)
++                sample_phase = mtp_phase.active().start("draft.sample", mtp_phase.active().devices)
+             lm_head = self.model.modules[self.model.logit_layer_idx]
+             batch_state = lm_head.prepare_for_device(batch_state, params)
+             new_ids = self.draft_model.sample_from_state(batch_state, params)
+@@ -1261,8 +1354,15 @@
+                 dev_draft_ids[:, idx:idx+1].copy_(new_ids)
+                 batch_ids = new_ids
+             else:
+-                self.draft_ids_pinned[:batch_size, idx:idx+1].copy_(new_ids)
+-                batch_ids.copy_(new_ids)
++                if mtp_phase.ENABLED and mtp_phase.active():
++                    with mtp_phase.active().span("draft.token_d2h", (new_ids.device,)):
++                        self.draft_ids_pinned[:batch_size, idx:idx+1].copy_(new_ids)
++                        batch_ids.copy_(new_ids)
++                else:
++                    self.draft_ids_pinned[:batch_size, idx:idx+1].copy_(new_ids)
++                    batch_ids.copy_(new_ids)
++            if mtp_phase.ENABLED and mtp_phase.active():
++                mtp_phase.active().stop(sample_phase)
+             # R827: the opener is the served MTP head, including its device/pruned path.
+             # Miss batches keep their full shape. All-hit batches can omit the tail forwards:
+             # accepted MTP positions are repaired by the unchanged target-hidden prefill.
+@@ -1296,6 +1396,25 @@
+                     window = idx + 1
+                     break
+ 
++        if gpu_verify:
++            # Verify uses the real CUDA IDs; host page token bookkeeping follows
++            # the forward enqueue. No placeholder IDs are ever committed to pages.
++            tokens = dev_draft_ids[:, :window]
++            stream = getattr(self, "_mtp_draft_copy_stream", None)
++            if stream is None:
++                stream = self._mtp_draft_copy_stream = torch.cuda.Stream(device=tokens.device)
++            produced = torch.cuda.Event()
++            produced.record(torch.cuda.current_stream(tokens.device))
++            with torch.cuda.stream(stream):
++                stream.wait_event(produced)
++                if mtp_phase.ENABLED and mtp_phase.active():
++                    copy_phase = mtp_phase.active().start("draft.async_d2h", (stream,))
++                self.draft_ids_pinned[:batch_size, :window].copy_(tokens, non_blocking=True)
++                self._mtp_draft_copy_done = torch.cuda.Event()
++                self._mtp_draft_copy_done.record(stream)
++                if mtp_phase.ENABLED and mtp_phase.active():
++                    mtp_phase.active().stop(copy_phase)
++            return tokens
+         if dev_draft:
+             # This is the device chain's only DtoH synchronization. iterate_gen
+             # consumes CPU job tensors immediately, so the readback must be
+@@ -1480,6 +1599,12 @@
+             batch_size += len(job.sequences)
+         if batch_size == 0:
+             return
++        gpu_tokens = draft_tokens if self._mtp_gpu_round else None
++        host_drafts = draft_tokens
++        if gpu_tokens is not None:
++            host_drafts = torch.zeros(gpu_tokens.shape, dtype=torch.long)
++        if mtp_phase.ENABLED and mtp_phase.active():
++            table_phase = mtp_phase.active().start("verify.tables")
+         if draft_tokens is not None:
+             max_seq_len += draft_tokens.shape[-1]
+ 
+@@ -1511,7 +1636,7 @@
+         # EXL3_MTP_KV_WINDOW: the MTP accept prefill below writes the windowed draft cache through the
+         # jobs' slot rows (same pinned staging lifetime as block_index); unset keeps block_index
+         draft_block_index = self.draft_window_rows(batch_row_jobs, max_pages_batch, "mtp_window_verify") \
+-            if self.mtp_draft else None
++            if self.mtp_draft and not self._mtp_no_draft else None
+         if draft_block_index is None:
+             draft_block_index = block_index
+ 
+@@ -1528,7 +1653,7 @@
+             if job.time_first_token is None:
+                 cuda_sync_active()
+                 job.time_first_token = time.time()
+-            job_ids = job.get_input_ids_list(draft_tokens, len(input_ids_list), add_to_cache = True)
++            job_ids = job.get_input_ids_list(host_drafts, len(input_ids_list), add_to_cache = gpu_tokens is None)
+             input_ids_list += job_ids
+             batch_jobs.append(job)
+             active_embeddings += job.embeddings
+@@ -1577,8 +1702,20 @@
+             "recurrent_history": draft_tokens is not None,
+             "pinned_staging": True,
+         }
+-        if self.draft_model:
++        if self.draft_model and not self._mtp_no_draft:
+             params.update(self.draft_model.draft_verifier_params)
++        forward_ids = batch_ids
++        if gpu_tokens is not None:
++            params["mtp_gpu_ids"] = True
++            # Only the known current input IDs upload. The draft column stays on device.
++            current_upload = self._staging("mtp_verify_current", batch_size, 1, torch.long)
++            current_upload.copy_(batch_ids[:, :1])
++            forward_ids = torch.cat((current_upload.to(gpu_tokens.device, non_blocking=True), gpu_tokens), dim=-1)
++        if mtp_phase.ENABLED and mtp_phase.active():
++            mtp_phase.active().stop(table_phase)
++            params["_mtp_phase"] = "verify" if draft_tokens is not None else "plain"
++            mtp_phase.active().label = params["_mtp_phase"]
++            forward_phase = mtp_phase.active().start(params["_mtp_phase"]+".forward", mtp_phase.active().devices)
+         if _NGRAM_PREFETCH2:
+             # The verify window's id history is complete on the host here: the draft tokens
+             # were just read back into draft_ids_pinned. Hand it to the PLE worker now so the
+@@ -1588,9 +1725,23 @@
+             for m in self.model._get_prefetch_layers:
+                 m.prefetch_ids(batch_ids, params)
+         batch_logits = self.model.forward(
+-            input_ids = batch_ids,
++            input_ids = forward_ids,
+             params = params,
+         )
++        if mtp_phase.ENABLED and mtp_phase.active():
++            mtp_phase.active().stop(forward_phase)
++            readback_phase = mtp_phase.active().start("draft.readback_after_verify", mtp_phase.active().devices)
++        if gpu_tokens is not None:
++            draft_tokens = self.draft_ids_pinned[:batch_size, :gpu_tokens.shape[1]]
++            self._mtp_draft_copy_done.synchronize()  # host reads AFTER verify enqueue; DMA overlapped it
++            committed_ids = []
++            for job in batch_jobs:
++                committed_ids += job.get_input_ids_list(draft_tokens, len(committed_ids), add_to_cache=True)
++            torch.cat(committed_ids, dim=0, out=batch_ids)
++            self._mtp_gpu_round = False
++        if mtp_phase.ENABLED and mtp_phase.active():
++            mtp_phase.active().stop(readback_phase)
++            sampling_phase = mtp_phase.active().start("sampling_acceptance", mtp_phase.active().devices)
+ 
+         # Keep only the fields needed below for draft-cache updates and drop the params dict so it cannot extend
+         # references to recurrent state objects past this iteration.
+@@ -1648,6 +1799,9 @@
+                     r -= rp
+             return num_rejected
+ 
++        if mtp_phase.ENABLED:
++            reject_remainder = mtp_phase.instrument("reject_cache")(reject_remainder)
++
+         # Without a draft, each job samples exactly one independent token, so all sampler chains
+         # are launched first and the results collected in a second pass: the first collect
+         # absorbs the whole GPU tail and the remaining reads are cheap, instead of one full
+@@ -1674,7 +1828,11 @@
+                     sampled = (pinned[k:k + 1],) + sampled[1:]
+                 launched.append((job, token_logits, sampled))
+             if launched:
+-                torch.cuda.synchronize(batch_logits.device)
++                if mtp_phase.ENABLED and mtp_phase.active():
++                    with mtp_phase.active().span("sampling.plain_sync"):
++                        torch.cuda.synchronize(batch_logits.device)
++                else:
++                    torch.cuda.synchronize(batch_logits.device)
+ 
+             for job, token_logits, (next_token, next_k_tokens, next_k_probs, next_prob) in launched:
+                 eos, sampled_token, rq = job.receive_sample(
+@@ -1715,9 +1873,11 @@
+                 if a == b:
+                     continue
+                 mode = verification_batch_mode(job) if (
+-                    _BATCH_VERIFY and self.mtp_draft and draft_tokens is not None and
++                    (_BATCH_VERIFY or _MTP_GREEDY_ACCEPT) and self.mtp_draft and draft_tokens is not None and
+                     batch_logits.shape[1] > 1
+                 ) else None
++                if _MTP_GREEDY_ACCEPT and not _BATCH_VERIFY and mode != "greedy":
++                    mode = None
+                 if mode is not None:
+                     decoded_entries.append((job, a, b, draft_row, mode))
+                 draft_row += 1
+@@ -1737,7 +1897,7 @@
+                         self.tokenizer,
+                         logit_mask = job.device_logit_mask,
+                     ).reshape(-1)
+-                    draft_row_ids = draft_tokens[row, :q_verify - 1]
++                    draft_row_ids = (gpu_tokens if gpu_tokens is not None else draft_tokens)[row, :q_verify - 1]
+                     draft_row_ids = draft_row_ids.to(
+                         sampled.device,
+                         non_blocking = (
+@@ -1756,7 +1916,11 @@
+                     ready = torch.cuda.Event()
+                     self.verify_readback_events[device_key] = ready
+                 ready.record(stream)
+-                ready.synchronize()
++                if mtp_phase.ENABLED and mtp_phase.active():
++                    with mtp_phase.active().span("sampling.batch_sync"):
++                        ready.synchronize()
++                else:
++                    ready.synchronize()
+                 for out_row, (job, _, _, _, mode) in enumerate(decoded_entries):
+                     round4_verify[id(job)] = (readback[out_row], mode)
+ 
+@@ -1944,6 +2108,10 @@
+                 accepted_lengths.append(accepted_length)
+                 j += 1
+ 
++        if mtp_phase.ENABLED and mtp_phase.active():
++            mtp_phase.active().stop(sampling_phase)
++            commit_phase = mtp_phase.active().start("cache_commit", mtp_phase.active().devices)
++
+         # Update the draft-confidence calibration with this round's verification outcomes (any
+         # draft-model mode)
+         if self.draft_calibrator is not None and self._draft_conf_round is not None:
+@@ -1984,7 +2152,7 @@
+ 
+         # Accept new target_hidden if MTP. MTP draft models can update their cache from target-model hidden
+         # states for the tokens accepted above, keeping draft and target cache layouts aligned.
+-        if self.mtp_draft:
++        if self.mtp_draft and not self._mtp_no_draft:
+             target_hidden = p_export_states[-1]
+             accepted_idx = 0
+             accept_groups = {}              # accepted_length -> [verify batch row, ...]
+@@ -2067,11 +2235,18 @@
+                     }
+                     if _DRAFT_PINNED_STAGING:
+                         accept_params["pinned_staging_slot"] = f"mtp_accept_{g}"
++                    if mtp_phase.ENABLED and mtp_phase.active():
++                        accept_params["_mtp_phase"] = "accept_prefill"
++                        accept_phase = mtp_phase.active().start("accept_prefill.forward", mtp_phase.active().devices)
+                     self.draft_model.prefill(
+                         accept_ids,
+                         self._draft_params(accept_params),
+                     )
++                    if mtp_phase.ENABLED and mtp_phase.active():
++                        mtp_phase.active().stop(accept_phase)
+ 
++        if mtp_phase.ENABLED and mtp_phase.active():
++            mtp_phase.active().stop(commit_phase)
+         for job in batch_jobs:
+             job.prompt_lookup_adaptive.finish()
+         # EOS results were constructed during receive_sample. Publish final counters now.
+diff -ruN base/exllamav3/generator/job.py src/exllamav3/generator/job.py
+--- base/exllamav3/generator/job.py	2026-10-02 19:48:05
++++ src/exllamav3/generator/job.py	2026-10-08 08:12:12
+@@ -11,6 +11,7 @@
+ from .pagetable import Sequence, tensor_hash_checksum, random_hash
+ from .filter import Filter
+ import random
++from ..util import mtp_phase
+ import time
+ from ..ext import exllamav3_ext as ext
+ from .loop_detect import LoopDetector
+@@ -607,6 +608,7 @@
+         return next_token, next_k_tokens, next_k_probs, next_prob
+ 
+ 
++    @mtp_phase.instrument("receive_sample")
+     def receive_sample(
+         self,
+         logits: torch.Tensor | None,
+@@ -628,7 +630,11 @@
+         enqueue a new one with the current sequence as its prompt, which bounds per-job cache growth and lets long
+         generations pass through prompt-cache allocation again.
+         """
+-        next_token = next_token.cpu()
++        if mtp_phase.ENABLED and (p := mtp_phase.active()) is not None:
++            with p.span("sampling.token_d2h", (next_token.device,) if next_token.is_cuda else ()):
++                next_token = next_token.cpu()
++        else:
++            next_token = next_token.cpu()
+         next_token_i = next_token.item()
+         forced_sample = self.forced_sample
+         self.forced_sample = False
+@@ -669,6 +675,8 @@
+ 
+                 page_ids = seq.sequence_ids.torch_slice(page_before * PAGE_SIZE, page_after * PAGE_SIZE)
+                 new_hash = tensor_hash_checksum(page_ids, last_hash)
++                if getattr(self, "_mtp_suspended", False):
++                    self.generator._mtp_invalid_hashes.add(new_hash)
+ 
+                 # If another referenced page has the same hash, switch to referencing that instead
+                 if new_hash in self.pagetable.referenced_pages:
+@@ -1096,6 +1104,8 @@
+             rq_state = rq_state,
+         )
+ 
++        if getattr(self, "_mtp_suspended", False):
++            rq_job._mtp_suspended = True
+         rq_job.prepare_for_queue(generator, serial_number, rq = True)
+         return rq_job
+ 
+@@ -1233,6 +1243,10 @@
+         recurrent checkpoints when applicable. It emits progress events but does not sample new completion tokens.
+         """
+ 
++        if (self.generator.mtp_draft and not getattr(self, "_mtp_suspended", False)) and self.generator._mtp_invalid_hashes:
++            if any(page.phash in self.generator._mtp_invalid_hashes
++                   for seq in self.sequences for page in seq.allocated_pages):
++                self._mtp_suspended = True
+         if self.time_first_prefill is None:
+             self.time_first_prefill = time.time()
+ 
+@@ -1302,7 +1316,7 @@
+ 
+                 # MTP needs one real target-model token at the end of prompt prefill to recover
+                 # the post-final-norm carry state. Partial-page reuse must not consume that token.
+-                if self.generator.mtp_draft and prefill_end == len(seq.sequence_ids) - 1:
++                if (self.generator.mtp_draft and not getattr(self, "_mtp_suspended", False)) and prefill_end == len(seq.sequence_ids) - 1:
+                     best_match = min(best_match, prefill_ids.shape[-1] - 1)
+ 
+                 if best_match_page and best_match > 1:
+@@ -1424,7 +1438,7 @@
+                     "inv_freq": self.alt_rope_freqs,
+                     "mm_span_prefix": mm_span_prefix,
+                 }
+-                if self.generator.draft_model:
++                if self.generator.draft_model and not getattr(self, "_mtp_suspended", False):
+                     params.update(self.generator.draft_model.draft_verifier_params)
+                 if os.environ.get("EXL3_PREFILL_NOSYNC", "0") == "1":
+                     # Explicit prefill marker: decode/verification never receives it.
+@@ -1434,7 +1448,7 @@
+                     params["_prefill_split"] = pm_split
+                 if getattr(self, "_ls_prefill_pipeline", None) is not None:
+                     self._ls_prefill_pipeline.forward(prefill_ids, params)
+-                elif self.generator.mtp_draft:
++                elif (self.generator.mtp_draft and not getattr(self, "_mtp_suspended", False)):
+                     # MTP needs the target's post-final-norm state for every prompt token.
+                     # Normal prefill stops at the last cache-writing layer, before final norm.
+                     params["last_tokens_only"] = 1
+@@ -1451,8 +1465,8 @@
+                             "cache_seqlens": params["cache_seqlens"],
+                         }
+                     )
+-                elif self.generator.draft_model:
+-                    if self.generator.mtp_draft:
++                elif self.generator.draft_model and not getattr(self, "_mtp_suspended", False):
++                    if (self.generator.mtp_draft and not getattr(self, "_mtp_suspended", False)):
+                         target_hidden = params.get("export_states")[-1]
+                         carry_hidden = seq.mtp_carry_hidden
+                         if carry_hidden is None:
+@@ -1473,7 +1487,7 @@
+                             "block_table": draft_block_table if draft_block_table is not None else seq.block_index_tensor,
+                             "cache": self.generator.draft_cache,
+                             "cache_seqlens": torch.tensor([prefill_start], dtype = torch.int32),
+-                            "indexed_embeddings": self.embeddings if self.generator.mtp_draft else None,
++                            "indexed_embeddings": self.embeddings if (self.generator.mtp_draft and not getattr(self, "_mtp_suspended", False)) else None,
+                         }
+                     )
+ 
+@@ -1490,6 +1504,8 @@
+                 for local_idx in range(p0, p2):
+                     page = seq.allocated_pages[local_idx]
+                     page.kv_position = min(max(prefill_end - local_idx * PAGE_SIZE, 0), PAGE_SIZE)
++                    if page.kv_position == PAGE_SIZE and getattr(self, "_mtp_suspended", False):
++                        self.generator._mtp_invalid_hashes.add(page.phash)
+                     if local_idx == 0:
+                         page.prev_hash = None
+                     else:
+diff -ruN base/exllamav3/model/model_ls.py src/exllamav3/model/model_ls.py
+--- base/exllamav3/model/model_ls.py	2026-09-27 12:31:50
++++ src/exllamav3/model/model_ls.py	2026-10-08 07:50:32
+@@ -16,6 +16,7 @@
+ from ..util.tensor import g_tensor_cache
+ from .config import Config
+ from abc import ABC, abstractmethod
++from ..util import mtp_phase
+ 
+ 
+ 
+@@ -365,17 +366,39 @@
+         for h in getattr(self.config, "moe_cpu_hosts", {}).values():
+             h.begin_pass()
+         ctx = _LSDeviceContext()
++        device_phase = None
++        phase_device = None
+         try:
+             for module, instance, idx in self.fwd_modules:
+                 params["layer_instance"] = instance
+                 pf = (idx, instance) == self.last_kv_module_idx_instance
+                 params["prefill"] = pf
+                 ctx.enter(module.device)
+-                x = module.prepare_for_device(x, params)
+-                x = module.forward(x, params)
++                if mtp_phase.ENABLED and (p := mtp_phase.active()) is not None:
++                    prefix = params.get("_mtp_phase", p.label)
++                    p.label = prefix
++                    dev = module.device
++                    ds = (dev,) if dev is not None and torch.device(dev).type == "cuda" else ()
++                    if params.get("mtp_gpu_ids") and x.is_cuda and idx == 0:
++                        ds = (x.device,)
++                    if ds and ds[0] != phase_device:
++                        if device_phase is not None:
++                            p.stop(device_phase)
++                        phase_device = ds[0]
++                        device_phase = p.start(prefix+".forward_device", ds)
++                    kind = "lm_head" if module.caps.get("logits_output") else "embed" if idx == 0 else "layers"
++                    token = p.start(prefix+"."+kind, ds)
++                    x = module.prepare_for_device(x, params)
++                    x = module.forward(x, params)
++                    p.stop(token)
++                else:
++                    x = module.prepare_for_device(x, params)
++                    x = module.forward(x, params)
+                 if pf:
+                     break
+         finally:
++            if device_phase is not None:
++                mtp_phase.active().stop(device_phase)
+             ctx.restore()
+         del params["prefill"]
+         return None
+@@ -389,15 +412,37 @@
+         for h in getattr(self.config, "moe_cpu_hosts", {}).values():
+             h.begin_pass()
+         ctx = _LSDeviceContext()
++        device_phase = None
++        phase_device = None
+         try:
+             for module, instance, idx in self.fwd_modules:
+                 params["layer_instance"] = instance
+                 if module.caps.get("logits_output") and (num := params.get("last_tokens_only")):
+                     x = x[..., -num:, :].contiguous()
+                 ctx.enter(module.device)
+-                x = module.prepare_for_device(x, params)
+-                x = module.forward(x, params)
++                if mtp_phase.ENABLED and (p := mtp_phase.active()) is not None:
++                    prefix = params.get("_mtp_phase", p.label)
++                    p.label = prefix
++                    dev = module.device
++                    ds = (dev,) if dev is not None and torch.device(dev).type == "cuda" else ()
++                    if params.get("mtp_gpu_ids") and x.is_cuda and idx == 0:
++                        ds = (x.device,)
++                    if ds and ds[0] != phase_device:
++                        if device_phase is not None:
++                            p.stop(device_phase)
++                        phase_device = ds[0]
++                        device_phase = p.start(prefix+".forward_device", ds)
++                    kind = "lm_head" if module.caps.get("logits_output") else "embed" if idx == 0 else "layers"
++                    token = p.start(prefix+"."+kind, ds)
++                    x = module.prepare_for_device(x, params)
++                    x = module.forward(x, params)
++                    p.stop(token)
++                else:
++                    x = module.prepare_for_device(x, params)
++                    x = module.forward(x, params)
+         finally:
++            if device_phase is not None:
++                mtp_phase.active().stop(device_phase)
+             ctx.restore()
+         return x
+ 
+diff -ruN base/exllamav3/model/moe_cpu_host.py src/exllamav3/model/moe_cpu_host.py
+--- base/exllamav3/model/moe_cpu_host.py	2026-10-07 10:26:38
++++ src/exllamav3/model/moe_cpu_host.py	2026-10-08 07:59:27
+@@ -1,5 +1,6 @@
+ from __future__ import annotations
+ import os
++from ..util import mtp_phase
+ 
+ _exchange_mode = os.environ.get("EXL3_MOE_CPU_SWAP_MODE", "checkpoint") == "exchange"
+ import multiprocessing
+@@ -994,6 +995,7 @@
+             self._collect_compute(jobs, out, rtmp, h)
+         return out
+ 
++    @mtp_phase.instrument("cpu_issue", devices=lambda self, layer_idx, y, *a, **kw: (y.device,))
+     def submit_issue_fused(self, layer_idx, y, selected_experts, routing_weights,
+                            split_map, split_hist, first_cpu):
+         """
+@@ -1063,7 +1065,12 @@
+         seq, slot_idx, rows, h_, ho, dev, counts = handle
+         slot = self.slots[slot_idx]
+         with torch.cuda.device(dev):
+-            ext.exl3_moe_flag_wait(slot["done"], seq, self.gpu_base_ptr + 128)
++            if mtp_phase.ENABLED and (p := mtp_phase.active()) is not None:
++                wait = p.start(p.label+".cpu_worker_wait", (dev,))
++                ext.exl3_moe_flag_wait(slot["done"], seq, self.gpu_base_ptr + 128)
++                p.stop(wait)
++            else:
++                ext.exl3_moe_flag_wait(slot["done"], seq, self.gpu_base_ptr + 128)
+             ext.moe_split_collect_add(final_2d, slot["out_dev"], counts, slot_idx, ho)
+             ext.exl3_moe_flag_write(slot["consumed"], seq)
+ 
+@@ -1137,7 +1144,12 @@
+     def _collect_one(self, job, out, rtmp, h):
+         seq, slot_idx, a, b, n = job
+         slot = self.slots[slot_idx]
+-        ext.exl3_moe_flag_wait(slot["done"], seq, self.gpu_base_ptr + 128)
++        if mtp_phase.ENABLED and (p := mtp_phase.active()) is not None:
++            wait = p.start(p.label+".cpu_worker_wait", (out.device,))
++            ext.exl3_moe_flag_wait(slot["done"], seq, self.gpu_base_ptr + 128)
++            p.stop(wait)
++        else:
++            ext.exl3_moe_flag_wait(slot["done"], seq, self.gpu_base_ptr + 128)
+         if rtmp is None:
+             out[a:b].copy_(slot["out"][:n], non_blocking = True)
+         else:
+diff -ruN base/exllamav3/model/moe_exchange.py src/exllamav3/model/moe_exchange.py
+--- base/exllamav3/model/moe_exchange.py	2026-10-07 10:26:38
++++ src/exllamav3/model/moe_exchange.py	2026-10-08 07:50:32
+@@ -1,5 +1,6 @@
+ """Opt-in, in-place CPU/GPU expert exchange. No checkpoint access or native ABI changes."""
+ import os
++from ..util import mtp_phase
+ 
+ # Only populated if CUDA itself refuses to drain an interrupted transfer. Retaining the
+ # tensor exporters prevents scratch reuse/unmapping until the operator restarts the process.
+@@ -47,6 +48,7 @@
+     return gpu is not None and host is not None and gpu.shape == host.shape and gpu.dtype == host.dtype
+ 
+ 
++@mtp_phase.instrument("exchange_copy", devices=lambda pairs, stream, *a, **kw: (stream,))
+ def exchange_tensors(pairs, stream, swizzled=False, verify=False):
+     """pairs=(GPU tensor, shared arena tensor, is_trellis, optional GPU aux mirror).
+ 
+@@ -244,6 +246,7 @@
+     return changed
+ 
+ 
++@mtp_phase.instrument("exchange_sweep")
+ def run_sweep(ip, reg):
+     import torch
+     if torch.cuda.is_current_stream_capturing():
+diff -ruN base/exllamav3/modules/arch_specific/qwen3_5_mtp.py src/exllamav3/modules/arch_specific/qwen3_5_mtp.py
+--- base/exllamav3/modules/arch_specific/qwen3_5_mtp.py	2026-09-27 12:31:50
++++ src/exllamav3/modules/arch_specific/qwen3_5_mtp.py	2026-10-08 07:50:32
+@@ -9,6 +9,9 @@
+ from ...modules import Module, Linear, RMSNorm
+ from ...util.rope import RopeSettings, RoPE
+ from ...util.tensor import get_for_device, to2
++from ...util import mtp_phase
++import os
++_mtp_gpu_embed = os.environ.get("EXL3_MTP_GPU_EMBED", "0") == "1"
+ 
+ class Qwen3_5MTPInputLayer(Module):
+ 
+@@ -101,12 +104,17 @@
+ 
+         # Token embedding
+         if not self.attached_model().loaded_tp:
+-            x = self.attached_model().modules[0].forward(x, params, out_dtype = torch.half)
++            embed = self.attached_model().modules[0]
++            if (_mtp_gpu_embed and not params.get("indexed_embeddings") and
++                embed.multiplier == 1.0 and not embed.normalize and
++                embed.prepare_mtp_mirror(self.device)):
++                x = x.to(self.device, non_blocking=x.device.type == "cpu" and x.is_pinned())
++            x = embed.forward(x, params, out_dtype = torch.half)
+         else:
+             x = self.attached_model().tp_producer.send(x)
+             x = self.attached_model().tp_dispatch_master(mp_model_forward_embedding, (x, params))
+             x = x.half()
+-        x = self.pre_fc_norm_embedding.forward(to_device(x, self.device), params)
++        x = self.pre_fc_norm_embedding.forward(to_device(x, self.device, non_blocking=bool(params.get("pinned_staging")) and x.device.type == "cpu" and x.is_pinned()), params)
+ 
+         # Project
+         x = torch.cat((to_device(x, y.device), y), dim = -1)
+diff -ruN base/exllamav3/modules/embedding.py src/exllamav3/modules/embedding.py
+--- base/exllamav3/modules/embedding.py	2026-09-27 12:31:50
++++ src/exllamav3/modules/embedding.py	2026-10-08 07:50:32
+@@ -10,7 +10,11 @@
+ import os
+ 
+ 
+-_EMBED_GPU = os.environ.get("EXL3_EMBED_GPU", "0") == "1"
++_MTP_GPU_EMBED = os.environ.get("EXL3_MTP_GPU_EMBED", "0") == "1"
++_MTP_GPU_DRAFT = os.environ.get("EXL3_MTP_GPU_DRAFT", "0") == "1"
++if _MTP_GPU_EMBED:
++    print("[MTP-OVERHEAD] gpu_embed=1 (identity embedding, full mirror, guarded VRAM)", flush=True)
++_EMBED_GPU = os.environ.get("EXL3_EMBED_GPU", "0") == "1" or _MTP_GPU_EMBED or _MTP_GPU_DRAFT
+ _EMBED_GPU_MAX_MB = int(os.environ.get("EXL3_EMBED_GPU_MAX_MB", "4096"))
+ # Round-1 pruned mirror (default off): with EXL3_EMBED_GPU=1, mirror only the rows a pruned MTP draft head
+ # can emit (embedding_pruned.py); the full mirror is then never built
+@@ -72,6 +76,7 @@
+         self._gpu_mirror = None
+         self._gpu_mirror_device = None
+         self._pruned_mirror = None
++        self._mtp_mirror_declined = set()
+ 
+     def can_embed_device_ids(self, device: torch.device | str) -> bool:
+         """Whether the opt-in mirror can serve IDs resident on ``device``."""
+@@ -82,6 +87,34 @@
+             return False
+         weight = self.embedding.weight
+         return weight.numel() * weight.element_size() <= _EMBED_GPU_MAX_MB << 20
++
++    def prepare_mtp_mirror(self, device):
++        """Copy-only full mirror. Decline when it would consume the VRAM reserve."""
++        if not self.can_embed_device_ids(device):
++            return False
++        device = torch.device(device)
++        if self._gpu_mirror is not None:
++            return self._gpu_mirror_device == device
++        failed = getattr(self, "_mtp_mirror_declined", set())
++        if str(device) in failed:
++            return False
++        weight = self.embedding.weight
++        nbytes = weight.numel() * weight.element_size()
++        reserve = int(os.environ.get("EXL3_MTP_MIRROR_RESERVE_MB", "256")) << 20
++        if torch.cuda.mem_get_info(device)[0] < nbytes + reserve:
++            self._mtp_mirror_declined = failed | {str(device)}
++            print("[MTP-OVERHEAD] gpu_embedding declined: insufficient VRAM for full exact mirror", flush=True)
++            return False
++        self._gpu_mirror = weight.detach().to(device)
++        self._gpu_mirror_device = device
++        print(f"[MTP-OVERHEAD] gpu_embedding mirror device={device} bytes={nbytes}", flush=True)
++        return True
++
++    @override
++    def prepare_for_device(self, x, params):
++        if params.get("mtp_gpu_ids") and x.is_cuda:
++            return x
++        return super().prepare_for_device(x, params)
+ 
+     def prepare_pruned_mirror(self, device: torch.device | str, keep_ids: torch.Tensor):
+         """
+diff -ruN base/exllamav3/modules/gated_delta_net.py src/exllamav3/modules/gated_delta_net.py
+--- base/exllamav3/modules/gated_delta_net.py	2026-10-01 12:10:36
++++ src/exllamav3/modules/gated_delta_net.py	2026-10-08 07:54:07
+@@ -36,12 +36,16 @@
+     new_checkpoint_handle,
+ )
+ from ..util import profile_opt
++from ..util import mtp_phase
+ from ..cache import prefill_merge as _pm
+ from .attention_fn.bc_attn import MAX_BSZ as _BC_MAX_BSZ, MAX_QLEN as _BC_MAX_QLEN
+ 
+ 
+ # Avoid constructing scalar tensor views solely to obtain rewind descriptor pointers.
+ # No pointer cache: each call uses the live tensor, including its storage offset.
++_mtp_cached_rewind = os.environ.get("EXL3_MTP_CACHED_REWIND", "0") == "1"
++if _mtp_cached_rewind:
++    print("[MTP-OVERHEAD] cached_rewind=1 (live geometry keys, existing batched kernels)", flush=True)
+ _host_gap_rewind = os.environ.get("EXL3_HOST_GAP_REWIND", "0") == "1"
+ 
+ # EXL3_GDN_STATE_BF16=1 stores the Gated-DeltaNet recurrent state (live plane and MTP history planes)
+@@ -91,6 +95,28 @@
+     return jobs_by_device
+ 
+ 
++def cached_rewind_jobs(state, layers, num_tokens):
++    layers = tuple(layers)
++    if not all(isinstance(l, GDNLayerState) for l in layers):
++        return _collect_rewind_jobs(layers, state.slot, state.last_history, num_tokens)
++    tensors = tuple(t for l in layers for t in (l.conv_state, l.recurrent_state))
++    geometry = tuple((id(t), t.data_ptr(), str(t.device), t.shape, t.stride(), t.dtype) for t in tensors)
++    geometry = (geometry, tuple((str(l.device), l.module.conv_kernel_size) for l in layers))
++    key = (state.slot, state.last_history, num_tokens, geometry)
++    cache = getattr(state, "_mtp_rewind_jobs", None)
++    if cache is None or getattr(state, "_mtp_rewind_geometry", None) != geometry:
++        cache = state._mtp_rewind_jobs = {}
++        state._mtp_rewind_geometry = geometry
++    hit = cache.get(key)
++    if hit is None:
++        if len(cache) >= 16:
++            cache.clear()
++        jobs = _collect_rewind_jobs(layers, state.slot, state.last_history, num_tokens)
++        cache[key] = (tensors, jobs)  # retain the storage exporters alongside their pointers
++        return jobs
++    return hit[1]
++
++
+ def _dispatch_rewind_jobs(jobs_by_device):
+     for device_index, (conv_jobs, state_jobs) in jobs_by_device.items():
+         if conv_jobs:
+@@ -147,11 +173,15 @@
+         self.cache.release_state(self)
+ 
+ 
++    @mtp_phase.instrument("rewind")
+     def rewind(self, num_tokens: int):
+         if not self.cache.model.loaded_tp:
+-            _dispatch_rewind_jobs(_collect_rewind_jobs(
+-                self.cache.get_all_recurrent_layers().values(), self.slot, self.last_history, num_tokens
+-            ))
++            layers = self.cache.get_all_recurrent_layers().values()
++            if _mtp_cached_rewind:
++                jobs = cached_rewind_jobs(self, layers, num_tokens)
++            else:
++                jobs = _collect_rewind_jobs(layers, self.slot, self.last_history, num_tokens)
++            _dispatch_rewind_jobs(jobs)
+         else:
+             self.cache.model.tp_dispatch_all(mp_cache_recurrent_rewind, (id(self.cache), self.slot, self.last_history, num_tokens))
+         self.position -= num_tokens
+diff -ruN base/exllamav3/util/mtp_phase.py src/exllamav3/util/mtp_phase.py
+--- base/exllamav3/util/mtp_phase.py	1970-01-01 01:00:00
++++ src/exllamav3/util/mtp_phase.py	2026-10-08 07:59:27
+@@ -0,0 +1,144 @@
++"""Opt-in stream/host timings. No eager CUDA initialization, no per-phase sync."""
++from __future__ import annotations
++import json
++import os
++import time
++from collections import defaultdict, deque
++from contextlib import contextmanager
++import torch
++
++ENABLED = os.environ.get("EXL3_MTP_PHASE_PROF", "0") == "1"
++TRACE = os.environ.get("EXL3_MTP_PHASE_TRACE", "0") == "1" and ENABLED
++INTERVAL = max(1, int(os.environ.get("EXL3_MTP_PHASE_STEPS", "64"))) if ENABLED else 64
++_active = None
++
++
++def active():
++    return _active
++
++
++class PhaseProfiler:
++    def __init__(self, devices):
++        self.devices = tuple(torch.device(f"cuda:{d}" if isinstance(d, int) else d) for d in devices)
++        self.devices = tuple(d for d in self.devices if d.type == "cuda")
++        self.pending = deque()
++        self.buckets = {}
++        self.records = None
++        self.label = "step"
++
++    def begin(self, mode, batch, depth):
++        global _active
++        self.drain()
++        self.label = "draft" if mode == "mtp" else "plain"
++        self.key = (mode, batch, depth)
++        self.records = []
++        _active = self
++        self.total = self.start("step", self.devices)
++
++    def start(self, name, devices=()):
++        host = time.perf_counter_ns()
++        pairs = []
++        for d in devices:
++            stream = d if hasattr(d, "cuda_stream") else None
++            d = torch.device(stream.device if stream is not None else d)
++            if d.type != "cuda":
++                continue
++            stream = stream if stream is not None else torch.cuda.current_stream(d)
++            a = torch.cuda.Event(enable_timing=True)
++            b = torch.cuda.Event(enable_timing=True)
++            a.record(stream)
++            pairs.append((str(stream.device), stream, a, b))
++        annotation = torch.profiler.record_function("MTP/"+name) if TRACE else None
++        if annotation is not None:
++            annotation.__enter__()
++        return name, host, pairs, annotation
++
++    def stop(self, token):
++        name, host, pairs, annotation = token
++        for _, stream, _, b in pairs:
++            b.record(stream)
++        if annotation is not None:
++            annotation.__exit__(None, None, None)
++        self.records.append((name, (time.perf_counter_ns()-host)/1e6, pairs))
++
++    @contextmanager
++    def span(self, name, devices=()):
++        token = self.start(name, devices)
++        try:
++            yield
++        finally:
++            self.stop(token)
++
++    def end(self):
++        global _active
++        self.stop(self.total)
++        self.pending.append((self.key, self.records))
++        self.records = None
++        _active = None
++        self.drain()
++
++    def drain(self, force=False):
++        # Never synchronize in ordinary steps. Queue-tail flush is profiling-only.
++        while self.pending:
++            key, records = self.pending[0]
++            if force:
++                for _, _, pairs in records:
++                    for _, _, _, b in pairs:
++                        b.synchronize()
++            elif not all(b.query() for _, _, pairs in records for _, _, _, b in pairs):
++                break
++            self.pending.popleft()
++            bucket = self.buckets.setdefault(key, [0, defaultdict(lambda: [0.0, 0]), defaultdict(lambda: [0.0, 0])])
++            bucket[0] += 1
++            for name, host_ms, pairs in records:
++                dst = bucket[1][name]; dst[0] += host_ms; dst[1] += 1
++                for device, _, a, b in pairs:
++                    dst = bucket[2][name+"@"+device]; dst[0] += a.elapsed_time(b); dst[1] += 1
++            if bucket[0] >= INTERVAL:
++                self.emit(key)
++        if force:
++            for key in list(self.buckets):
++                if self.buckets[key][0]:
++                    self.emit(key)
++
++    def emit(self, key):
++        n, host, cuda = self.buckets.pop(key)
++        def totals(items):
++            return {k: {"ms_per_step": round(v[0]/n, 6), "calls": v[1]} for k,v in sorted(items.items())}
++        print("[MTP-PHASE] "+json.dumps({"schema": 1, "mode": key[0], "batch": key[1], "depth": key[2],
++              "steps": n, "host": totals(host), "cuda": totals(cuda)}, sort_keys=True), flush=True)
++
++
++def step_guard(fn):
++    if not ENABLED:
++        return fn
++    from functools import wraps
++    @wraps(fn)
++    def wrapped(*args, **kwargs):
++        global _active
++        try:
++            return fn(*args, **kwargs)
++        except BaseException:
++            if _active is not None:
++                _active.records = None
++                _active = None
++            raise
++    return wrapped
++
++
++def instrument(name, devices=None):
++    # Disabled decoration returns the original function: literally no wrapper overhead.
++    def decorate(fn):
++        if not ENABLED:
++            return fn
++        from functools import wraps
++        @wraps(fn)
++        def wrapped(*args, **kwargs):
++            p = _active
++            if p is None:
++                return fn(*args, **kwargs)
++            ds = devices(*args, **kwargs) if devices else p.devices
++            with p.span(p.label+"."+name, ds):
++                return fn(*args, **kwargs)
++        return wrapped
++    return decorate
+diff -ruN base/tabbyapi/common/config_models.py src/tabbyapi/common/config_models.py
+--- base/tabbyapi/common/config_models.py	2026-09-16 05:57:34
++++ src/tabbyapi/common/config_models.py	2026-10-08 07:46:59
+@@ -509,7 +509,7 @@
+ # Strict positive integers prevent booleans, floats and numeric strings from changing policy meaning
+ DraftDepthRule = Tuple[
+     Annotated[int, Field(strict=True, gt=0)],
+-    Annotated[int, Field(strict=True, gt=0)],
++    Annotated[int, Field(strict=True, ge=0)],
+ ]
+ 
+ 
+@@ -585,7 +585,7 @@
+             "Optional ascending [max_batch_size, depth] pairs for exllamav3.\n"
+             "The first inclusive limit covering decode-ready jobs selects the draft ceiling.\n"
+             "Above all limits, draft_num_tokens (or the drafter default) is used.\n"
+-            "Limits and depths must be positive integers; only single-sequence jobs are supported.\n"
++            "Limits must be positive, depths nonnegative; zero suspends MTP for the job lifetime.\n"
+             "Confidence and n-gram matching may shorten the selected ceiling.\n"
+             "The largest mapped or default depth determines buffer and cache-history capacity."
+         ),
+@@ -620,6 +620,8 @@
+             mode = self.draft_mode or "model"
+             if mode == "disabled" or (mode == "model" and not self.draft_model_name):
+                 raise ValueError("draft_num_tokens_by_batch requires an enabled draft mode")
++            if any(depth == 0 for _, depth in self.draft_num_tokens_by_batch) and mode != "mtp":
++                raise ValueError("Depth zero policy requires MTP mode")
+             if self.draft_num_tokens is not None and self.draft_num_tokens <= 0:
+                 raise ValueError("draft_num_tokens must be positive with a batch policy")
+         return self

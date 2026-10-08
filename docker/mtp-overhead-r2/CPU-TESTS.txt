@@ -1,0 +1,34 @@
+test_accept_eligibility_and_rng (__main__.CpuTests.test_accept_eligibility_and_rng) ... ok
+test_actual_gpu_probe_taps_seqtensor_prompt_and_cpu_sample (__main__.CpuTests.test_actual_gpu_probe_taps_seqtensor_prompt_and_cpu_sample) ... ok
+test_cap_c1_drafts (__main__.CpuTests.test_cap_c1_drafts) ... ok
+test_cap_c2_c4_plain (__main__.CpuTests.test_cap_c2_c4_plain) ... ok
+test_cap_counts_prefilling_active (__main__.CpuTests.test_cap_counts_prefilling_active) ... ok
+test_cap_sticky_and_fresh_job (__main__.CpuTests.test_cap_sticky_and_fresh_job) ... ok
+test_default_unmodified_dispatch (__main__.CpuTests.test_default_unmodified_dispatch) ... ok
+test_depth_policy (__main__.CpuTests.test_depth_policy) ... ok
+test_device_verify_enqueued_before_host_commit (__main__.CpuTests.test_device_verify_enqueued_before_host_commit) ... ok
+test_dirty_hashes_survive_cpu_tier_eviction (__main__.CpuTests.test_dirty_hashes_survive_cpu_tier_eviction) ... ok
+test_dirty_prefix_plain_before_prefill (__main__.CpuTests.test_dirty_prefix_plain_before_prefill) ... ok
+test_embedding_mirror_declines_low_vram_without_allocation (__main__.CpuTests.test_embedding_mirror_declines_low_vram_without_allocation) ... ok
+test_embedding_preserves_cuda_ids_at_verify_entry (__main__.CpuTests.test_embedding_preserves_cuda_ids_at_verify_entry) ... ok
+test_profiler_defers_unready_events (__main__.CpuTests.test_profiler_defers_unready_events) ... ok
+test_profiler_nonblocking_and_aggregation (__main__.CpuTests.test_profiler_nonblocking_and_aggregation) ... ok
+test_profiler_off_returns_original_and_no_events (__main__.CpuTests.test_profiler_off_returns_original_and_no_events) ... ok
+test_profiler_uses_explicit_copy_stream (__main__.CpuTests.test_profiler_uses_explicit_copy_stream) ... ok
+test_rewind_cache_matches_real_dispatch_parameters (__main__.CpuTests.test_rewind_cache_matches_real_dispatch_parameters) ... ok
+test_rewind_non_gdn_fallback (__main__.CpuTests.test_rewind_non_gdn_fallback) ... ok
+test_rewind_storage_change_invalidates_and_releases (__main__.CpuTests.test_rewind_storage_change_invalidates_and_releases) ... ok
+test_suspended_prefill_marks_full_prompt_pages (__main__.CpuTests.test_suspended_prefill_marks_full_prompt_pages) ... ok
+test_syntax_all (__main__.CpuTests.test_syntax_all) ... ok
+test_zero_policy (__main__.CpuTests.test_zero_policy) ... ok
+
+----------------------------------------------------------------------
+Ran 23 tests in 0.432s
+
+OK
+
+PASS: patch -p1 --fuzz=0; no offsets; all 10 originals and 11 landing files verified by SHA256.
+PASS: exact-token CLI concatenates requeues, ignores changed serials between boots, accepts identical IDs, rejects divergent IDs.
+PASS: phase CLI weights differing bucket sizes by step count.
+PASS: all artifact Python scripts syntax checked on Python 3.14.7.
+Limits: no GPU, Docker, torch, numpy or pydantic on host; tests execute actual source definitions with mocked CUDA/loader collaborators. Real-image import is enforced by Dockerfile but not run here. CUDA exactness, graph replay, repair merge and throughput await the supplied operator probes.

@@ -1,6 +1,14 @@
 # GLM-5.3-Flash on 2× RTX 5090
 
-[GLM-5.3-Flash][model] ([zai-org][zai]; 321 B parameters, about 18 B active per token) served by [TabbyAPI][tabby] on [ExLlamaV3][exl3] from one desktop box with two RTX 5090 cards and 64 GB of DDR5 ([Hardware](#hardware)). The checkpoint is [turboderp][turboderp]'s [2.05 bpw EXL3 quantisation][ckpt] (76 GB). It does not fit the 64 GB of VRAM, so 96 of the 288 routed experts of every MoE layer run on the CPU ([ExLlamaV3's CPU MoE offload][exl3]), and the experts the traffic uses most are swapped onto the GPUs while it runs ([`docker/cheapswap-r3/`](docker/cheapswap-r3/)). Output is exact: no expert is skipped. How it got here: [`docs/HISTORY.md`](docs/HISTORY.md); credits: [`THIRD_PARTY.md`](THIRD_PARTY.md).
+[GLM-5.3-Flash][model] by [zai-org][zai] served by [TabbyAPI][tabby] on [ExLlamaV3][exl3] from one desktop box.
+
+- **Model**: 321 B parameters, about 18 B active per token; [turboderp][turboderp]'s [2.05 bpw EXL3 quantisation][ckpt], 76 GB.
+- **Box**: two RTX 5090 (64 GB of VRAM) and 64 GB of DDR5 ([Hardware](#hardware)).
+- **Offload**: the checkpoint does not fit the VRAM, so 96 of the 288 routed experts of every MoE layer run on the CPU ([ExLlamaV3's CPU MoE offload][exl3]).
+- **Swaps**: the experts the traffic uses most move onto the GPUs while it runs ([`docker/cheapswap-r3/`](docker/cheapswap-r3/)).
+- **Exact output**: no expert is skipped.
+
+How it got here: [`docs/HISTORY.md`](docs/HISTORY.md). Credits: [`THIRD_PARTY.md`](THIRD_PARTY.md).
 
 [model]: https://huggingface.co/zai-org/GLM-5.3-Flash
 [zai]: https://huggingface.co/zai-org

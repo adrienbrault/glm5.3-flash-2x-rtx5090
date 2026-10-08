@@ -36,4 +36,4 @@ The 4-stream sums up to R882b sent the same prompt to every stream; from R911 on
 - r2 (`docker/glm-agent-r2/`): served with `AGENT=1` from R864 on. R868 showed it returns tool calls that stock TabbyAPI drops when the reasoning quotes a think tag; R877 and R880 showed it passes 0 strict exact-body cases and can lose turns on literal control tags.
 - r3: rejected every prompt quoting a GLM tag (R877). Not published here; r4 replaces it.
 - r4 (`docker/glm-agent-r4/`): 2 of 16 strict cases, no lost turns (R880). Not served.
-- r4b (`docker/glm-agent-r4b/`): did not boot, missing import (R881d). r4c (`docker/glm-agent-r4c/`) adds it; R885 tests it (R881e was merged into R885 before it started).
+- r4b (`docker/glm-agent-r4b/`): did not boot, missing import (R881d). r4c (`docker/glm-agent-r4c/`) adds it. R885 (`2026-10-07-r885-glm53-r4c-keepthink-231912`): 16 of 16 strict cases returned as valid calls, 9 of 16 with the exact file body (the other 7 differ by one escaping level in the model's own output). On the swap image (R885d) it failed one default-temperature request whose valid `write_file` body had 10 of 20 lines. Not served.

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Guards evaluated against actual engine output and Docker inspection."""
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -22,7 +23,11 @@ def offload(settings, log):
         rows = re.findall(r'CPU split experts \(worker, ' + mode + r'\): model\.language_model\.layers\.(\d+)\.mlp\s+\[(\d+)\.\.(\d+)\) of (\d+)', text)
         layers = {int(l) for l, *_ in rows}
         expected = set(range(3, 45 + s['draft']))
-        if layers != expected or any((int(a), int(b), int(e)) != (288-s['n'],288,288) for _,a,b,e in rows):
+        # split-by-device-r1 (R915): EXL3_MOE_CPU_SPLIT_BY_DEVICE="N0,N1" in EXL3_EXTRA gives each GPU's layers their own N
+        extra = os.environ.get('EXL3_EXTRA', '')
+        m = re.search(r'EXL3_MOE_CPU_SPLIT_BY_DEVICE=([0-9,]+)', extra)
+        ns = {int(v) for v in m.group(1).split(',') if v} if m else {s['n']}
+        if layers != expected or any(not (int(b) == int(e) == 288 and 288 - int(a) in ns) for _,a,b,e in rows):
             raise ValueError(f'actual {mode} split registrations {sorted(layers)} != {sorted(expected)} or bad expert interval')
     print('OFFLOAD VERIFIED', s['mode'], s['n'], 'MTP', s['draft'], s.get('placement', 'dynamic'), flush=True)
 

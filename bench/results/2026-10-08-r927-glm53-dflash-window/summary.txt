@@ -1,0 +1,33 @@
+GPU lock held; results /srv/qwen5090/results/2026-10-08-r927-glm53-dflash-window-204220; daily DRAFT=1 DRAFT_N=1 MTP_FAST=1 OFFLOAD_N=104 VISION_OFFLOAD=1 GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2 GPU_SPLIT=31.8,31 EXL3_EXTRA=EXL3_MTP_MAX_BATCH=1;EXL3_DRAFT_PINNED_STAGING=1;EXL3_MTP_GPU_DRAFT=1;EXL3_MTP_GREEDY_ACCEPT=1;EXL3_MTP_CACHED_REWIND=1;EXL3_MOE_CPU_SPLIT_BY_DEVICE=100,104 PINNED_ARENA=1 SWAP_MODE=exchange SWAP_POLICY=histogram SWAP_INIT_STATS=/srv/qwen5090/glm-daily-tools/split-stats-broad-r869.json SWAP_CADENCE=exact SWAP_INTERVAL=64 SWAP_MAX=64 SWAP_SCOPE=global SWAP_FLOOR=4 SWAP_HYST=2.0 AGENT=1 KEEP_THINKING=1
+building tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_dflash1_swa3
+image tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_dflash1_swa3 id sha256:8ca924409b33ce883a12bcda13bff534d6208d365c71a5b2495d2a1bc0c683c0
+C-n104 TRY: GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_dflash1_swa3 DRAFT=1 DRAFT_MODEL=/srv/qwen5090/models/glm53-flash-dflash2-exl3-3.00bpw-r0b0tlab DRAFT_N=5 DRAFT_GPU_SPLIT=1.0,0 MTP_FAST=0 GPU_SPLIT=30.8,31 EXL3_EXTRA=EXL3_MTP_MAX_BATCH=1;EXL3_DRAFT_PINNED_STAGING=1;EXL3_MTP_GPU_DRAFT=1;EXL3_MTP_GREEDY_ACCEPT=1;EXL3_MTP_CACHED_REWIND=1;EXL3_DRAFT_WINDOW_CACHE=1 OFFLOAD_N=104
+C-n104 NO BOOT (Error("Insufficient VRAM in split for model and cache"))
+C-n108 TRY: GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_dflash1_swa3 DRAFT=1 DRAFT_MODEL=/srv/qwen5090/models/glm53-flash-dflash2-exl3-3.00bpw-r0b0tlab DRAFT_N=5 DRAFT_GPU_SPLIT=1.0,0 MTP_FAST=0 GPU_SPLIT=30.8,31 EXL3_EXTRA=EXL3_MTP_MAX_BATCH=1;EXL3_DRAFT_PINNED_STAGING=1;EXL3_MTP_GPU_DRAFT=1;EXL3_MTP_GREEDY_ACCEPT=1;EXL3_MTP_CACHED_REWIND=1;EXL3_DRAFT_WINDOW_CACHE=1 OFFLOAD_N=108
+C-n108 NO BOOT (Error("Insufficient VRAM in split for model and cache"))
+C-n112 TRY: GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_dflash1_swa3 DRAFT=1 DRAFT_MODEL=/srv/qwen5090/models/glm53-flash-dflash2-exl3-3.00bpw-r0b0tlab DRAFT_N=5 DRAFT_GPU_SPLIT=1.0,0 MTP_FAST=0 GPU_SPLIT=30.8,31 EXL3_EXTRA=EXL3_MTP_MAX_BATCH=1;EXL3_DRAFT_PINNED_STAGING=1;EXL3_MTP_GPU_DRAFT=1;EXL3_MTP_GREEDY_ACCEPT=1;EXL3_MTP_CACHED_REWIND=1;EXL3_DRAFT_WINDOW_CACHE=1 OFFLOAD_N=112
+C-n112 free MiB (warmup): GPU0=437 GPU1=1765
+C-n112 drafter lines: DRAFT_WINDOW_CACHE: 4 slots x 10 pages; GPU KV 106.25 MiB; CPU backing 2720.00 MiB 
+C-n112 boots but GPU0 437 / GPU1 1765 MiB free (< 450/300)
+C-n116 TRY: GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_dflash1_swa3 DRAFT=1 DRAFT_MODEL=/srv/qwen5090/models/glm53-flash-dflash2-exl3-3.00bpw-r0b0tlab DRAFT_N=5 DRAFT_GPU_SPLIT=1.0,0 MTP_FAST=0 GPU_SPLIT=30.8,31 EXL3_EXTRA=EXL3_MTP_MAX_BATCH=1;EXL3_DRAFT_PINNED_STAGING=1;EXL3_MTP_GPU_DRAFT=1;EXL3_MTP_GREEDY_ACCEPT=1;EXL3_MTP_CACHED_REWIND=1;EXL3_DRAFT_WINDOW_CACHE=1 OFFLOAD_N=116
+C-n116 free MiB (warmup): GPU0=915 GPU1=2223
+C-n116 drafter lines: DRAFT_WINDOW_CACHE: 4 slots x 10 pages; GPU KV 106.25 MiB; CPU backing 2720.00 MiB 
+VERDICT R927 C DFlash-only: lowest N with headroom = 116
+C-n116 c1 score 47.9 t/s: code 55.5 (acc 0.59); prose 43.6 (acc 0.26); chat 47.1 (acc 0.27); html 45.1 (acc 0.34); edit 48.3 (acc 0.62)
+C-n116 server step: c1 n=10 ms/step=60.67 tok/step=2.827 ms/tok=21.46
+C-n116 decode distinct: c1 54.3 c2 53.1 c4 58.3
+C-n116 vision rc=0 RESULT {"phase": "vision", "expect": "split", "ok": true, "text": "Blue", "ttft_s": 0.702475753845647, "prompt_tokens": 133}
+C-n116 free MiB (final): GPU0=899 GPU1=2215
+B-D TRY: 
+B-D free MiB (warmup): GPU0=847 GPU1=365
+B-D c1 score 64.7 t/s: code 60.0 (acc 0.88); prose 69.2 (acc 0.65); chat 72.7 (acc 0.68); html 66.6 (acc 0.59); edit 54.9 (acc 0.95)
+B-D server step: c1 n=10 ms/step=26.74 tok/step=1.714 ms/tok=15.60
+B-D decode distinct: c1 63.2 c2 78.9 c4 93.5
+B-D vision rc=0 RESULT {"phase": "vision", "expect": "split", "ok": true, "text": "Blue", "ttft_s": 0.597760999808088, "prompt_tokens": 133}
+B-D free MiB (final): GPU0=839 GPU1=363
+C (DFlash-only at N=116) vs B-D (MTP daily 100/104): compare c1 score, server ms/tok, distinct c1/c2/c4 above
+unit used 24 min after the build
+daily restore skipped: next unit queued (r918-glm53-stack-ladder(pid 1553874)
+r922-glm53-sm120-kernels(pid 229064)
+r928-glm53-remote-experts(pid 2720889)
+r929-glm53-ring-splitdev(pid 1042160))

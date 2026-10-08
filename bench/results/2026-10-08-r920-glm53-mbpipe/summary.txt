@@ -1,0 +1,38 @@
+disk before build: /dev/mapper/ubuntu--vg-ubuntu--lv  1.8T  1.4T  409G  77% /
+GPU lock held; results /srv/qwen5090/results/2026-10-08-r920-glm53-mbpipe-133444; daily DRAFT=1 DRAFT_N=1 MTP_FAST=1 OFFLOAD_N=104 VISION_OFFLOAD=1 GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2 EXL3_EXTRA=EXL3_MTP_MAX_BATCH=1;EXL3_DRAFT_PINNED_STAGING=1;EXL3_MTP_GPU_DRAFT=1;EXL3_MTP_GREEDY_ACCEPT=1;EXL3_MTP_CACHED_REWIND=1 PINNED_ARENA=1 SWAP_MODE=exchange SWAP_POLICY=histogram SWAP_INIT_STATS=/srv/qwen5090/glm-daily-tools/split-stats-broad-r869.json SWAP_CADENCE=exact SWAP_INTERVAL=64 SWAP_MAX=64 SWAP_SCOPE=global SWAP_FLOOR=4 SWAP_HYST=2.0 AGENT=1 KEEP_THINKING=1
+building tabbyapi:cheapswap-r3-agent-r2_mtpfast1_mbpipe1
+image tabbyapi:cheapswap-r3-agent-r2_mtpfast1_mbpipe1 id sha256:dadf800f17d8a3d504bfb38db8291bdcfb5be3fde2cc275b057f8e60ba3548b5
+Q quality gate: N=104 frozen-exchange, c4, ctx 4096, 128 tokens, checkpoint /srv/qwen5090/models/glm53-flash-exl3-2.05bpw-turboderp
+Q rc=0 status=PASS passed=True token_gate=True limits={'mean_kl': 2.6329562285831865e-06, 'p99_kl': 4.53216430033101e-05, 'top1': 0.998} normal_repeat_equal=True pipeline_equal=True stage0_calls=267 prefix_pages=15
+Q last arms: [two MBPIPE_GATE records with generated token ids, omitted from the published copy]
+VERDICT R920 quality gate PASS
+F0 TRY: GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_mbpipe1 EXL3_EXTRA=EXL3_MTP_MAX_BATCH=1;EXL3_DRAFT_PINNED_STAGING=1;EXL3_MTP_GPU_DRAFT=1;EXL3_MTP_GREEDY_ACCEPT=1;EXL3_MTP_CACHED_REWIND=1;EXL3_MB_PIPELINE=0
+F0 free MiB (warmup): GPU0=1349 GPU1=365
+F0 c1 score 62.8 t/s: code 58.1 (acc 0.84); prose 68.4 (acc 0.65); chat 70.3 (acc 0.66); html 64.5 (acc 0.58); edit 52.6 (acc 0.92)
+F0 server step: c1 n=10 ms/step=27.29 tok/step=1.695 ms/tok=16.10
+F0 MBPIPE lines during c1: 0 (must be 0: c1 lane entry is a bug)
+F0 decode distinct: c1 63.3 c2 74.7 c4 86.0 | MBPIPE in decode: LAYOUT 0 DRAIN 0 MEMORY 0
+F0 vision rc=0 RESULT {"phase": "vision", "expect": "split", "ok": true, "text": "Blue", "ttft_s": 0.5996512500569224, "prompt_tokens": 133}
+F0 free MiB (final): GPU0=1325 GPU1=351
+P1 TRY: GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_mbpipe1 EXL3_EXTRA=EXL3_MTP_MAX_BATCH=1;EXL3_DRAFT_PINNED_STAGING=1;EXL3_MTP_GPU_DRAFT=1;EXL3_MTP_GREEDY_ACCEPT=1;EXL3_MTP_CACHED_REWIND=1;EXL3_MB_PIPELINE=1
+P1 free MiB (warmup): GPU0=1347 GPU1=365
+P1 layout at boot: MBPIPE_LAYOUT {"devices": ["cuda:0", "cuda:1"], "stages": [["model.language_model.embed_tokens", "hc_expand", "model.language_model.layers.0", "model.language_model.layers.1", "model.language_model.la
+P1 c1 score 63.6 t/s: code 61.3 (acc 0.84); prose 66.5 (acc 0.61); chat 70.7 (acc 0.64); html 64.7 (acc 0.72); edit 54.6 (acc 0.94)
+P1 server step: c1 n=10 ms/step=27.52 tok/step=1.735 ms/tok=15.86
+P1 MBPIPE lines during c1: 0 (must be 0: c1 lane entry is a bug)
+P1 decode distinct: c1 63.7 c2 76.4 c4 78.5 | MBPIPE in decode: LAYOUT 51 DRAIN 51 MEMORY 153
+P1 vision rc=0 RESULT {"phase": "vision", "expect": "split", "ok": true, "text": "Blue", "ttft_s": 0.6057698670774698, "prompt_tokens": 133}
+P1 free MiB (final): GPU0=1323 GPU1=311
+P1 functional rc=0 Functional HTTP PASS; verify MBPIPE_DRAIN, prefix-cache counters, vision color, and swap logs.
+P1 drains in log: 70
+F0b TRY: GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_mbpipe1 EXL3_EXTRA=EXL3_MTP_MAX_BATCH=1;EXL3_DRAFT_PINNED_STAGING=1;EXL3_MTP_GPU_DRAFT=1;EXL3_MTP_GREEDY_ACCEPT=1;EXL3_MTP_CACHED_REWIND=1;EXL3_MB_PIPELINE=0
+F0b free MiB (warmup): GPU0=1347 GPU1=365
+F0b c1 score 64.5 t/s: code 60.9 (acc 0.84); prose 68.3 (acc 0.61); chat 72.3 (acc 0.69); html 66.2 (acc 0.73); edit 54.8 (acc 0.95)
+F0b server step: c1 n=10 ms/step=27.35 tok/step=1.748 ms/tok=15.64
+F0b MBPIPE lines during c1: 0 (must be 0: c1 lane entry is a bug)
+F0b decode distinct: c1 64.6 c2 75.6 c4 88.7 | MBPIPE in decode: LAYOUT 0 DRAIN 0 MEMORY 0
+F0b vision rc=0 RESULT {"phase": "vision", "expect": "split", "ok": true, "text": "Blue", "ttft_s": 0.611401580972597, "prompt_tokens": 133}
+F0b free MiB (final): GPU0=1323 GPU1=311
+VERDICT R920 speed: P1 distinct c4 78.5 vs control 87.3 (-10.1%), c2 76.4 vs 75.2 (+1.7%), c1 score 63.6 vs 63.6 (-0.1%); controls n=2 -> below the gate
+slot used 30 min; no promotion requested by this packet
+daily restore skipped: next unit queued (r916-glm53-determinism-fix(pid 3214145))

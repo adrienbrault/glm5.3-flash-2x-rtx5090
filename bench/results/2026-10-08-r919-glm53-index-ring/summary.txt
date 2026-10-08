@@ -1,0 +1,44 @@
+disk before build: /dev/mapper/ubuntu--vg-ubuntu--lv  1.8T  1.4T  385G  79% /
+GPU lock held; results /srv/qwen5090/results/2026-10-08-r919-glm53-index-ring-190234; daily DRAFT=1 DRAFT_N=1 MTP_FAST=1 OFFLOAD_N=104 VISION_OFFLOAD=1 GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2 GPU_SPLIT=31.8,31 EXL3_EXTRA=EXL3_MTP_MAX_BATCH=1;EXL3_DRAFT_PINNED_STAGING=1;EXL3_MTP_GPU_DRAFT=1;EXL3_MTP_GREEDY_ACCEPT=1;EXL3_MTP_CACHED_REWIND=1;EXL3_MOE_CPU_SPLIT_BY_DEVICE=100,104 PINNED_ARENA=1 SWAP_MODE=exchange SWAP_POLICY=histogram SWAP_INIT_STATS=/srv/qwen5090/glm-daily-tools/split-stats-broad-r869.json SWAP_CADENCE=exact SWAP_INTERVAL=64 SWAP_MAX=64 SWAP_SCOPE=global SWAP_FLOOR=4 SWAP_HYST=2.0 AGENT=1 KEEP_THINKING=1
+image tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_ring2 id sha256:d0c33197fb20fd7183abe32583fee46f67da512234861d7ac43ef91dbc1b356c
+K test_kernels cuda:0 rc=0 PASS slots=8 chunk=2048 ring_rows=2304
+K test_graph_shadow cuda:0 rc=0 [RING-SHADOW] calls=24 compared_rows=8052 mismatches=252 layers=1 coverage={"native_eager":12,"c1":24,"decode":24,"verif
+K test_dispatch_shadow cuda:0 rc=0 [RING-SHADOW] calls=6 compared_rows=36296 mismatches=0 layers=1 coverage={"dispatch":6,"c4":6,"prefill":5,"decode":1,"ve
+K test_kernels cuda:1 rc=0 PASS slots=8 chunk=2048 ring_rows=2304
+K test_graph_shadow cuda:1 rc=0 [RING-SHADOW] calls=24 compared_rows=8052 mismatches=252 layers=1 coverage={"native_eager":12,"c1":24,"decode":24,"verif
+K test_dispatch_shadow cuda:1 rc=0 [RING-SHADOW] calls=6 compared_rows=36296 mismatches=0 layers=1 coverage={"dispatch":6,"c4":6,"prefill":5,"decode":1,"ve
+VERDICT R919 kernel tests PASS on both GPUs
+SH-n104 TRY: GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_ring2 INDEX_RING=1 OFFLOAD_N=104 EXL3_EXTRA=EXL3_MTP_MAX_BATCH=1;EXL3_DRAFT_PINNED_STAGING=1;EXL3_MTP_GPU_DRAFT=1;EXL3_MTP_GREEDY_ACCEPT=1;EXL3_MTP_CACHED_REWIND=1;EXL3_DSA_INDEX_RING_SHADOW=1
+SH-n104 NO BOOT (Error("Insufficient VRAM in split for model and cache"))
+SH-n108: labelled fallback for shadow COVERAGE only (more CPU experts frees VRAM; pool unchanged)
+SH-n108 TRY: GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_ring2 INDEX_RING=1 OFFLOAD_N=108 EXL3_EXTRA=EXL3_MTP_MAX_BATCH=1;EXL3_DRAFT_PINNED_STAGING=1;EXL3_MTP_GPU_DRAFT=1;EXL3_MTP_GREEDY_ACCEPT=1;EXL3_MTP_CACHED_REWIND=1;EXL3_DSA_INDEX_RING_SHADOW=1
+SH-n108 free MiB (warmup): GPU0=1705 GPU1=723
+SH-n108 workload: serve_workload --mode shadow, 50 min
+SH-n108 workload rc=0 requests=31 errors=0
+SH-n108 last summary: [RING-SHADOW] calls=59608 compared_rows=446959710 mismatches=0 layers=12 coverage={"dispatch":25640,"c1":38312,"prefill":4392,"mtp_draft":5125,"native_eager":150,"decode":55216,"verify2":28897,"rewind":5269,"cuda_graph":
+SH-n108 check_shadow rc=0: passed calls 59608 rows 446959710 errors []
+VERDICT R919 shadow PASS (SH-n108): zero mismatches, full served coverage
+P-n96 TRY: GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_ring2 INDEX_RING=1 OFFLOAD_N=96 EXL3_EXTRA=EXL3_MTP_MAX_BATCH=1;EXL3_DRAFT_PINNED_STAGING=1;EXL3_MTP_GPU_DRAFT=1;EXL3_MTP_GREEDY_ACCEPT=1;EXL3_MTP_CACHED_REWIND=1;EXL3_DSA_INDEX_RING_SHADOW=0
+P-n96 NO BOOT (Error("Insufficient VRAM in split for model and cache"))
+P-n97 TRY: GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_ring2 INDEX_RING=1 OFFLOAD_N=97 EXL3_EXTRA=EXL3_MTP_MAX_BATCH=1;EXL3_DRAFT_PINNED_STAGING=1;EXL3_MTP_GPU_DRAFT=1;EXL3_MTP_GREEDY_ACCEPT=1;EXL3_MTP_CACHED_REWIND=1;EXL3_DSA_INDEX_RING_SHADOW=0
+P-n97 NO BOOT (Error("Insufficient VRAM in split for model and cache"))
+P-n98 TRY: GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_ring2 INDEX_RING=1 OFFLOAD_N=98 EXL3_EXTRA=EXL3_MTP_MAX_BATCH=1;EXL3_DRAFT_PINNED_STAGING=1;EXL3_MTP_GPU_DRAFT=1;EXL3_MTP_GREEDY_ACCEPT=1;EXL3_MTP_CACHED_REWIND=1;EXL3_DSA_INDEX_RING_SHADOW=0
+P-n98 free MiB (warmup): GPU0=1315 GPU1=291
+P-n98 REJECT headroom GPU0 1315 / GPU1 291 MiB (need 450 / 300); trying N+1
+P-n99 TRY: GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_ring2 INDEX_RING=1 OFFLOAD_N=99 EXL3_EXTRA=EXL3_MTP_MAX_BATCH=1;EXL3_DRAFT_PINNED_STAGING=1;EXL3_MTP_GPU_DRAFT=1;EXL3_MTP_GREEDY_ACCEPT=1;EXL3_MTP_CACHED_REWIND=1;EXL3_DSA_INDEX_RING_SHADOW=0
+P-n99 free MiB (warmup): GPU0=1453 GPU1=429
+P-n99 c1 score 64.1 t/s: code 57.9 (acc 0.89); prose 69.0 (acc 0.66); chat 72.0 (acc 0.68); html 65.8 (acc 0.59); edit 55.6 (acc 0.85)
+P-n99 server step: c1 n=10 ms/step=26.84 tok/step=1.702 ms/tok=15.77
+P-n99 decode distinct: c1 69.9 c2 76.7 c4 87.4
+P-n99 vision rc=0 RESULT {"phase": "vision", "expect": "split", "ok": true, "text": "Blue", "ttft_s": 0.5649359098169953, "prompt_tokens": 133}
+P-n99 free MiB (final): GPU0=1441 GPU1=425
+VERDICT R919 promotion: lowest booting N=98 (262k, ring on); lowest N with headroom=99
+P-n104-524k TRY: GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_ring2 INDEX_RING=1 OFFLOAD_N=104 CACHE_TOKENS=524288 EXL3_EXTRA=EXL3_MTP_MAX_BATCH=1;EXL3_DRAFT_PINNED_STAGING=1;EXL3_MTP_GPU_DRAFT=1;EXL3_MTP_GREEDY_ACCEPT=1;EXL3_MTP_CACHED_REWIND=1;EXL3_DSA_INDEX_RING_SHADOW=0
+P-n104-524k NO BOOT (Error("Insufficient VRAM in split for model and cache"))
+VERDICT R919 524k pool at N=104: NO BOOT/WARMUP (logs /srv/qwen5090/results/2026-10-08-r919-glm53-index-ring-190234/P-n104-524k/boot)
+unit used 27 min after the build; promotion into glm-daily.env is the operator's
+daily restore skipped: next unit queued (r916-glm53-determinism-fix(pid 3839049)
+r918-glm53-stack-ladder(pid 1721438)
+r922-glm53-sm120-kernels(pid 2564236)
+r927-glm53-dflash-window(pid 4074282)
+r928-glm53-remote-experts(pid 997651))

@@ -1,0 +1,7 @@
+{
+  "bitwise_off_on": true,
+  "compared_tensors": 106,
+  "delta_ms_per_layer": 6.0157775878907915e-05,
+  "illustrative_45_layer_delta_ms_per_round": 0.002707099914550856,
+  "warning": "45x is a topology extrapolation, never an end-to-end serving prediction"
+}

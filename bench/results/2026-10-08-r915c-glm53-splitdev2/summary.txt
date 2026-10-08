@@ -1,0 +1,22 @@
+GPU lock held; results /srv/qwen5090/results/2026-10-08-r915c-splitdev2-131018; daily DRAFT=1 DRAFT_N=1 MTP_FAST=1 OFFLOAD_N=104 VISION_OFFLOAD=1 GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2 EXL3_EXTRA=EXL3_MTP_MAX_BATCH=1;EXL3_DRAFT_PINNED_STAGING=1;EXL3_MTP_GPU_DRAFT=1;EXL3_MTP_GREEDY_ACCEPT=1;EXL3_MTP_CACHED_REWIND=1 PINNED_ARENA=1 SWAP_MODE=exchange SWAP_POLICY=histogram SWAP_INIT_STATS=/srv/qwen5090/glm-daily-tools/split-stats-broad-r869.json SWAP_CADENCE=exact SWAP_INTERVAL=64 SWAP_MAX=64 SWAP_SCOPE=global SWAP_FLOOR=4 SWAP_HYST=2.0 AGENT=1 KEEP_THINKING=1
+C-n98 boot N=98,104 CHECK=1 GPU_SPLIT=31.8,31
+C-n98 free MiB: GPU0=587 GPU1=365 (gate 450/300)
+B-n98 boot N=98,104 CHECK=0 GPU_SPLIT=31.8,31
+B-n98 free MiB: GPU0=587 GPU1=365 (gate 450/300)
+B-n98 c1 score 61.6 t/s: code 58.1 (acc 0.84); prose 65.5 (acc 0.61); chat 67.7 (acc 0.65); html 64.4 (acc 0.58); edit 52.5 (acc 0.95)
+B-n98 free MiB: GPU0=579 GPU1=361 (gate 450/300)
+B-n98 full matrix completed
+B-n96 boot N=96,104 CHECK=0 GPU_SPLIT=31.8,31
+B-n96 NO BOOT
+B-n96 NO BOOT/WARMUP (do not promote)
+B-n100 boot N=100,104 CHECK=0 GPU_SPLIT=31.8,31
+B-n100 free MiB: GPU0=847 GPU1=365 (gate 450/300)
+B-n100 c1 score 64.9 t/s: code 61.0 (acc 0.84); prose 67.9 (acc 0.62); chat 71.6 (acc 0.66); html 67.1 (acc 0.59); edit 57.0 (acc 0.84)
+B-n100 free MiB: GPU0=839 GPU1=361 (gate 450/300)
+B-n100 full matrix completed
+testing elapsed 1239 seconds; returning to current daily
+daily restore skipped: next unit queued (r916-glm53-determinism-fix(pid 1539929)
+r918-glm53-stack-ladder(pid 2525096)
+r919-glm53-index-ring(pid 2526069)
+r920-glm53-mbpipe(pid 2526176)
+r921-glm53-dflash-adaptive(pid 2526666))

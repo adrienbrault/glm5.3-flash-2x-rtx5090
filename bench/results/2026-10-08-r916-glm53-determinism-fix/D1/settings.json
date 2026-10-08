@@ -1,0 +1,12 @@
+{
+  "settings": {
+    "EXL3_EAGER_DECODE": "0",
+    "EXL3_FIXED_STREAM_T": "8",
+    "EXL3_FREEZE_EXCHANGE": "1",
+    "EXL3_HASH_TRACE": "",
+    "EXL3_NO_PREFIX_REUSE": "0",
+    "EXL3_ORDERED_HANDOFF": "0",
+    "EXL3_ORDERED_MOE": "1",
+    "EXL3_STABLE_ROUTING": "0"
+  }
+}

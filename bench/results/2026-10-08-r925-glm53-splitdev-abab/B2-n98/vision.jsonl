@@ -1,0 +1,4 @@
+{"phase": "vision", "expect": "red", "ok": true, "text": "Red", "ttft_s": 0.5630913029890507, "prompt_tokens": 127}
+{"phase": "vision", "expect": "blue", "ok": true, "text": "Blue", "ttft_s": 0.5242677689529955, "prompt_tokens": 127}
+{"phase": "vision", "expect": "green", "ok": true, "text": "Green", "ttft_s": 0.5326417358592153, "prompt_tokens": 127}
+{"phase": "vision", "expect": "split", "ok": true, "text": "Blue", "ttft_s": 0.5602021729573607, "prompt_tokens": 133}

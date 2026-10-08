@@ -1,0 +1,55 @@
+{
+  "passed": true,
+  "calls": 59608,
+  "compared_rows": 446959710,
+  "coverage": {
+    "dispatch": 25640,
+    "c1": 38312,
+    "prefill": 4392,
+    "mtp_draft": 5125,
+    "native_eager": 150,
+    "decode": 55216,
+    "verify2": 28897,
+    "rewind": 5269,
+    "cuda_graph": 33818,
+    "accept": 23628,
+    "mixed_prefill_decode": 42,
+    "c2": 2486,
+    "ragged": 19492,
+    "c3": 253,
+    "c4": 18557,
+    "checkpoint_stash": 1536,
+    "scoring": 56198,
+    "checkpoint_restore": 48,
+    "prefix_hit": 128,
+    "page_reuse": 1381,
+    "vision": 595
+  },
+  "kinds": {
+    "keys": 7793098,
+    "gates": 7793098,
+    "pools": 1930344,
+    "scored_pools": 415971256,
+    "scores": 6705437,
+    "topk": 6705437,
+    "pool_topk": 61040
+  },
+  "layers": [
+    "model.language_model.layers.11.self_attn",
+    "model.language_model.layers.15.self_attn",
+    "model.language_model.layers.19.self_attn",
+    "model.language_model.layers.23.self_attn",
+    "model.language_model.layers.27.self_attn",
+    "model.language_model.layers.3.self_attn",
+    "model.language_model.layers.31.self_attn",
+    "model.language_model.layers.35.self_attn",
+    "model.language_model.layers.39.self_attn",
+    "model.language_model.layers.43.self_attn",
+    "model.language_model.layers.45.self_attn",
+    "model.language_model.layers.7.self_attn"
+  ],
+  "finals": [
+    "shutdown"
+  ],
+  "errors": []
+}

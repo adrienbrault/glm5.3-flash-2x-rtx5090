@@ -1,0 +1,710 @@
+{
+ "args": {
+  "model": "/model",
+  "stats": "/stats.json",
+  "n": 104,
+  "cache": 262144,
+  "split": [
+   31.0,
+   31.0
+  ],
+  "ctx": 4096,
+  "tokens": 128,
+  "concurrency": "4",
+  "placement": "frozen-exchange",
+  "functional_only": false,
+  "trace": false,
+  "vision_offload": true,
+  "out": "/results/quality-c4"
+ },
+ "torch": "2.9.0+cu128",
+ "cuda": "12.8",
+ "stats_sha256": "a8a58ace0ffea4db0ca6ee78a501499ccb32b5315349a3f3cf7c2c6208f8ffa1",
+ "arms": [
+  {
+   "label": "greedy_normal",
+   "c": 4,
+   "wall_s": 31.40502892807126,
+   "pipeline_stage0_calls": 0,
+   "ids": "<omitted: token ids>",
+   "feedback_order": []
+  },
+  {
+   "label": "greedy_normal_repeat",
+   "c": 4,
+   "wall_s": 10.740439157001674,
+   "pipeline_stage0_calls": 0,
+   "ids": "<omitted: token ids>",
+   "feedback_order": []
+  },
+  {
+   "label": "greedy_pipeline",
+   "c": 4,
+   "wall_s": 11.041832976974547,
+   "pipeline_stage0_calls": 254,
+   "ids": "<omitted: token ids>",
+   "feedback_order": [
+    [
+     "A",
+     1
+    ],
+    [
+     "B",
+     1
+    ],
+    [
+     "A",
+     2
+    ],
+    [
+     "B",
+     2
+    ],
+    [
+     "A",
+     3
+    ],
+    [
+     "B",
+     3
+    ],
+    [
+     "A",
+     4
+    ],
+    [
+     "B",
+     4
+    ],
+    [
+     "A",
+     5
+    ],
+    [
+     "B",
+     5
+    ],
+    [
+     "A",
+     6
+    ],
+    [
+     "B",
+     6
+    ],
+    [
+     "A",
+     7
+    ],
+    [
+     "B",
+     7
+    ],
+    [
+     "A",
+     8
+    ],
+    [
+     "B",
+     8
+    ],
+    [
+     "A",
+     9
+    ],
+    [
+     "B",
+     9
+    ],
+    [
+     "A",
+     10
+    ],
+    [
+     "B",
+     10
+    ],
+    [
+     "A",
+     11
+    ],
+    [
+     "B",
+     11
+    ],
+    [
+     "A",
+     12
+    ],
+    [
+     "B",
+     12
+    ]
+   ]
+  },
+  {
+   "label": "teacher_normal",
+   "c": 4,
+   "wall_s": 10.98938604700379,
+   "pipeline_stage0_calls": 0,
+   "ids": "<omitted: token ids>",
+   "feedback_order": []
+  },
+  {
+   "label": "teacher_normal_repeat",
+   "c": 4,
+   "wall_s": 11.851548539940268,
+   "pipeline_stage0_calls": 0,
+   "ids": "<omitted: token ids>",
+   "feedback_order": [],
+   "mean_kl": 7.09955624499167e-07,
+   "p99_kl": 8.570300575306738e-06,
+   "max_kl": 8.026200693184512e-05,
+   "top1": 1.0,
+   "positions": 512,
+   "max_abs": 13.28515625
+  },
+  {
+   "label": "teacher_pipeline",
+   "c": 4,
+   "wall_s": 12.899137672968209,
+   "pipeline_stage0_calls": 254,
+   "ids": "<omitted: token ids>",
+   "feedback_order": [
+    [
+     "A",
+     1
+    ],
+    [
+     "B",
+     1
+    ],
+    [
+     "A",
+     2
+    ],
+    [
+     "B",
+     2
+    ],
+    [
+     "A",
+     3
+    ],
+    [
+     "B",
+     3
+    ],
+    [
+     "A",
+     4
+    ],
+    [
+     "B",
+     4
+    ],
+    [
+     "A",
+     5
+    ],
+    [
+     "B",
+     5
+    ],
+    [
+     "A",
+     6
+    ],
+    [
+     "B",
+     6
+    ],
+    [
+     "A",
+     7
+    ],
+    [
+     "B",
+     7
+    ],
+    [
+     "A",
+     8
+    ],
+    [
+     "B",
+     8
+    ],
+    [
+     "A",
+     9
+    ],
+    [
+     "B",
+     9
+    ],
+    [
+     "A",
+     10
+    ],
+    [
+     "B",
+     10
+    ],
+    [
+     "A",
+     11
+    ],
+    [
+     "B",
+     11
+    ],
+    [
+     "A",
+     12
+    ],
+    [
+     "B",
+     12
+    ]
+   ],
+   "mean_kl": 1.6349241449326192e-06,
+   "p99_kl": 1.9668208906994306e-05,
+   "max_kl": 5.335923381435637e-05,
+   "top1": 1.0,
+   "positions": 512,
+   "max_abs": 11.7265625
+  },
+  {
+   "label": "teacher_normal_bracket",
+   "c": 4,
+   "wall_s": 11.974392143078148,
+   "pipeline_stage0_calls": 0,
+   "ids": "<omitted: token ids>",
+   "feedback_order": [],
+   "mean_kl": 8.776520761943954e-07,
+   "p99_kl": 1.51072143344367e-05,
+   "max_kl": 5.6607945424502475e-05,
+   "top1": 1.0,
+   "positions": 512,
+   "max_abs": 11.78515625
+  }
+ ],
+ "swap_calls": 0,
+ "layout": [
+  {
+   "key": "model.language_model.embed_tokens",
+   "device": "cpu"
+  },
+  {
+   "key": "hc_expand",
+   "device": "cuda:0"
+  },
+  {
+   "key": "model.language_model.layers.0",
+   "device": "cuda:0"
+  },
+  {
+   "key": "model.language_model.layers.1",
+   "device": "cuda:0"
+  },
+  {
+   "key": "model.language_model.layers.2",
+   "device": "cuda:0"
+  },
+  {
+   "key": "model.language_model.layers.3",
+   "device": "cuda:0"
+  },
+  {
+   "key": "model.language_model.layers.4",
+   "device": "cuda:0"
+  },
+  {
+   "key": "model.language_model.layers.5",
+   "device": "cuda:0"
+  },
+  {
+   "key": "model.language_model.layers.6",
+   "device": "cuda:0"
+  },
+  {
+   "key": "model.language_model.layers.7",
+   "device": "cuda:0"
+  },
+  {
+   "key": "model.language_model.layers.8",
+   "device": "cuda:0"
+  },
+  {
+   "key": "model.language_model.layers.9",
+   "device": "cuda:0"
+  },
+  {
+   "key": "model.language_model.layers.10",
+   "device": "cuda:0"
+  },
+  {
+   "key": "model.language_model.layers.11",
+   "device": "cuda:0"
+  },
+  {
+   "key": "model.language_model.layers.12",
+   "device": "cuda:0"
+  },
+  {
+   "key": "model.language_model.layers.13",
+   "device": "cuda:0"
+  },
+  {
+   "key": "model.language_model.layers.14",
+   "device": "cuda:0"
+  },
+  {
+   "key": "model.language_model.layers.15",
+   "device": "cuda:0"
+  },
+  {
+   "key": "model.language_model.layers.16",
+   "device": "cuda:0"
+  },
+  {
+   "key": "model.language_model.layers.17",
+   "device": "cuda:0"
+  },
+  {
+   "key": "model.language_model.layers.18",
+   "device": "cuda:0"
+  },
+  {
+   "key": "model.language_model.layers.19",
+   "device": "cuda:0"
+  },
+  {
+   "key": "model.language_model.layers.20",
+   "device": "cuda:0"
+  },
+  {
+   "key": "model.language_model.layers.21",
+   "device": "cuda:0"
+  },
+  {
+   "key": "model.language_model.layers.22",
+   "device": "cuda:0"
+  },
+  {
+   "key": "model.language_model.layers.23",
+   "device": "cuda:0"
+  },
+  {
+   "key": "model.language_model.layers.24",
+   "device": "cuda:0"
+  },
+  {
+   "key": "model.language_model.layers.25",
+   "device": "cuda:1"
+  },
+  {
+   "key": "model.language_model.layers.26",
+   "device": "cuda:1"
+  },
+  {
+   "key": "model.language_model.layers.27",
+   "device": "cuda:1"
+  },
+  {
+   "key": "model.language_model.layers.28",
+   "device": "cuda:1"
+  },
+  {
+   "key": "model.language_model.layers.29",
+   "device": "cuda:1"
+  },
+  {
+   "key": "model.language_model.layers.30",
+   "device": "cuda:1"
+  },
+  {
+   "key": "model.language_model.layers.31",
+   "device": "cuda:1"
+  },
+  {
+   "key": "model.language_model.layers.32",
+   "device": "cuda:1"
+  },
+  {
+   "key": "model.language_model.layers.33",
+   "device": "cuda:1"
+  },
+  {
+   "key": "model.language_model.layers.34",
+   "device": "cuda:1"
+  },
+  {
+   "key": "model.language_model.layers.35",
+   "device": "cuda:1"
+  },
+  {
+   "key": "model.language_model.layers.36",
+   "device": "cuda:1"
+  },
+  {
+   "key": "model.language_model.layers.37",
+   "device": "cuda:1"
+  },
+  {
+   "key": "model.language_model.layers.38",
+   "device": "cuda:1"
+  },
+  {
+   "key": "model.language_model.layers.39",
+   "device": "cuda:1"
+  },
+  {
+   "key": "model.language_model.layers.40",
+   "device": "cuda:1"
+  },
+  {
+   "key": "model.language_model.layers.41",
+   "device": "cuda:1"
+  },
+  {
+   "key": "model.language_model.layers.42",
+   "device": "cuda:1"
+  },
+  {
+   "key": "model.language_model.layers.43",
+   "device": "cuda:1"
+  },
+  {
+   "key": "model.language_model.layers.44",
+   "device": "cuda:1"
+  },
+  {
+   "key": "hc_head",
+   "device": "cuda:1"
+  },
+  {
+   "key": "model.language_model.norm",
+   "device": "cuda:1"
+  },
+  {
+   "key": "lm_head",
+   "device": "cuda:1"
+  }
+ ],
+ "boot_memory": [
+  {
+   "device": 0,
+   "free": 1416167424,
+   "allocated": 31136159232,
+   "reserved": 31547457536
+  },
+  {
+   "device": 1,
+   "free": 4322820096,
+   "allocated": 28230522368,
+   "reserved": 28642902016
+  }
+ ],
+ "actual_split": [
+  {
+   "key": "model.language_model.layers.3.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.4.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.5.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.6.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.7.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.8.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.9.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.10.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.11.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.12.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.13.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.14.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.15.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.16.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.17.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.18.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.19.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.20.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.21.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.22.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.23.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.24.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.25.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.26.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.27.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.28.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.29.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.30.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.31.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.32.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.33.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.34.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.35.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.36.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.37.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.38.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.39.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.40.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.41.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.42.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.43.mlp",
+   "first": 184
+  },
+  {
+   "key": "model.language_model.layers.44.mlp",
+   "first": 184
+  }
+ ],
+ "prompt_lengths": [
+  4096,
+  4113,
+  4130,
+  4147
+ ],
+ "tokens": "<omitted: token ids>",
+ "quality": [
+  {
+   "c": 4,
+   "passed": true,
+   "token_gate": true,
+   "limits": {
+    "mean_kl": 2.6329562285831865e-06,
+    "p99_kl": 4.53216430033101e-05,
+    "top1": 0.998
+   },
+   "note": "Token gate inconclusive if normal repeat diverges; teacher-forced distribution is decisive."
+  }
+ ],
+ "prefix_cached_pages": 15,
+ "functional": {
+  "cancel": true,
+  "admission_prefill": true,
+  "ragged_finish": true,
+  "prefix_repeat": true,
+  "clear": true,
+  "stage0_calls": 267
+ },
+ "status": "PASS"
+}

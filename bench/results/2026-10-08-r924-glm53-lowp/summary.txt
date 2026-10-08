@@ -1,0 +1,50 @@
+disk before build: /dev/mapper/ubuntu--vg-ubuntu--lv  1.8T  1.4T  396G  78% /
+GPU lock held; results /srv/qwen5090/results/2026-10-08-r924-glm53-lowp-165046; daily DRAFT=1 DRAFT_N=1 MTP_FAST=1 OFFLOAD_N=104 VISION_OFFLOAD=1 GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2 GPU_SPLIT=31.8,31 EXL3_EXTRA=EXL3_MTP_MAX_BATCH=1;EXL3_DRAFT_PINNED_STAGING=1;EXL3_MTP_GPU_DRAFT=1;EXL3_MTP_GREEDY_ACCEPT=1;EXL3_MTP_CACHED_REWIND=1;EXL3_MOE_CPU_SPLIT_BY_DEVICE=100,104 PINNED_ARENA=1 SWAP_MODE=exchange SWAP_POLICY=histogram SWAP_INIT_STATS=/srv/qwen5090/glm-daily-tools/split-stats-broad-r869.json SWAP_CADENCE=exact SWAP_INTERVAL=64 SWAP_MAX=64 SWAP_SCOPE=global SWAP_FLOOR=4 SWAP_HYST=2.0 AGENT=1 KEEP_THINKING=1
+building tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2_lowp1 FROM tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2
+image tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2_lowp1 id sha256:0ab7be7c654260c76f6ac68bdbd69bd9d26ba1deea3e0d420ba900c52f5a72a8; LANDING PASS /opt/lowp-native/exllamav3_ext.so /opt/lowp-native/mxfp8/exllamav3_lowp_ext.so
+import check rc=0 IMPORTS /opt/lowp-native/exllamav3_ext.so /opt/lowp-native/mxfp8/exllamav3_lowp_ext.so 1 sm_120a
+K kernel tests rc=0 {"status": "PASS", "devices": 2, "cases": 16} GPU_KERNEL_TESTS PASS devices=0,1
+OFF1 TRY: GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2_lowp1 EXL3_EXTRA=EXL3_MTP_MAX_BATCH=1;EXL3_DRAFT_PINNED_STAGING=1;EXL3_MTP_GPU_DRAFT=1;EXL3_MTP_GREEDY_ACCEPT=1;EXL3_MTP_CACHED_REWIND=1;EXL3_MOE_CPU_SPLIT_BY_DEVICE=100,104;EXL3_LOWP_MXFP8=0
+OFF1 free MiB (warmup): GPU0=847 GPU1=365 (gate 450/300: pass)
+OFF1 c1 score 61.6 t/s: code 56.6 (acc 0.85); prose 64.5 (acc 0.62); chat 70.8 (acc 0.68); html 63.0 (acc 0.58); edit 53.0 (acc 0.95)
+OFF1 server step: c1 n=10 ms/step=27.88 tok/step=1.699 ms/tok=16.41
+OFF1 decode distinct: c1 63.3 c2 73.3 c4 85.0
+OFF1 prefill cold: 8k 2018 tok/s; 32k 2031 tok/s; 8k 1996 tok/s; 32k 2029 tok/s; 
+OFF1 vision rc=0 RESULT {"phase": "vision", "expect": "split", "ok": true, "text": "Blue", "ttft_s": 0.5948659270070493, "prompt_tokens": 133}
+OFF1 free MiB (final): GPU0=837 GPU1=363 (gate 450/300: pass)
+Q quality N=104 (static uniform, off/on/off-repeat x 6 kinds x 3500, R893 IDs), cap 1260s
+Q N=104 capacity failure; next N
+Q quality N=106 (static uniform, off/on/off-repeat x 6 kinds x 3500, R893 IDs), cap 1209s
+Q quality-n106: status=FAIL converted=11 KL mean=0.047632067188853267 p99=0.42215115739827824 top1=0.907952380952381 | control KL mean=0.018617150219038876 top1=0.9389047619047619 stable=False synthetic=False
+Q   agentic: KL mean=0.04821 p99=0.3669 top1=0.9023 control byte-identical=False
+Q   chat: KL mean=0.13086 p99=0.6347 top1=0.8229 control byte-identical=False
+Q   code: KL mean=0.03139 p99=0.2483 top1=0.9251 control byte-identical=False
+Q   edit-diff: KL mean=0.02136 p99=0.2110 top1=0.9394 control byte-identical=False
+Q   html: KL mean=0.02775 p99=0.2314 top1=0.9357 control byte-identical=False
+Q   prose: KL mean=0.02622 p99=0.1352 top1=0.9223 control byte-identical=False
+ON-n100-104 TRY: GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2_lowp1 OFFLOAD_N=104 EXL3_EXTRA=EXL3_MTP_MAX_BATCH=1;EXL3_DRAFT_PINNED_STAGING=1;EXL3_MTP_GPU_DRAFT=1;EXL3_MTP_GREEDY_ACCEPT=1;EXL3_MTP_CACHED_REWIND=1;EXL3_MOE_CPU_SPLIT_BY_DEVICE=100,104;EXL3_LOWP_MXFP8=1;EXL3_MOE_CPU_SPLIT_BY_DEVICE=100,104
+ON-n100-104 NO BOOT (Error("Insufficient VRAM in split for model and cache"))
+ON-n100-106 TRY: GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2_lowp1 OFFLOAD_N=106 EXL3_EXTRA=EXL3_MTP_MAX_BATCH=1;EXL3_DRAFT_PINNED_STAGING=1;EXL3_MTP_GPU_DRAFT=1;EXL3_MTP_GREEDY_ACCEPT=1;EXL3_MTP_CACHED_REWIND=1;EXL3_MOE_CPU_SPLIT_BY_DEVICE=100,104;EXL3_LOWP_MXFP8=1;EXL3_MOE_CPU_SPLIT_BY_DEVICE=100,106
+ON-n100-106 free MiB (warmup): GPU0=623 GPU1=363 (gate 450/300: pass)
+ON-n100-106 LOWP: converted 11, budget skips 34, per-device total bytes cuda:0=242221056 cuda:1=242221056 
+ON-n100-106 c1 score 64.3 t/s: code 61.4 (acc 0.88); prose 69.6 (acc 0.66); chat 69.5 (acc 0.65); html 66.3 (acc 0.87); edit 54.9 (acc 0.95)
+ON-n100-106 server step: c1 n=10 ms/step=28.26 tok/step=1.804 ms/tok=15.67
+ON-n100-106 decode distinct: c1 65.1 c2 76.7 c4 91.5
+ON-n100-106 prefill cold: 8k 1949 tok/s; 32k 1890 tok/s; 8k 2035 tok/s; 32k 2038 tok/s; 
+ON-n100-106 vision rc=0 RESULT {"phase": "vision", "expect": "split", "ok": true, "text": "Blue", "ttft_s": 0.6051108720712364, "prompt_tokens": 133}
+ON-n100-106 free MiB (final): GPU0=517 GPU1=309 (gate 450/300: pass)
+OFF2 TRY: GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2_lowp1 EXL3_EXTRA=EXL3_MTP_MAX_BATCH=1;EXL3_DRAFT_PINNED_STAGING=1;EXL3_MTP_GPU_DRAFT=1;EXL3_MTP_GREEDY_ACCEPT=1;EXL3_MTP_CACHED_REWIND=1;EXL3_MOE_CPU_SPLIT_BY_DEVICE=100,104;EXL3_LOWP_MXFP8=0
+OFF2 free MiB (warmup): GPU0=847 GPU1=365 (gate 450/300: pass)
+OFF2 c1 score 65.6 t/s: code 63.3 (acc 0.86); prose 69.5 (acc 0.64); chat 71.7 (acc 0.64); html 67.0 (acc 0.60); edit 56.7 (acc 0.88)
+OFF2 server step: c1 n=10 ms/step=26.02 tok/step=1.694 ms/tok=15.36
+OFF2 decode distinct: c1 63.0 c2 75.4 c4 87.2
+OFF2 prefill cold: 8k 2000 tok/s; 32k 2048 tok/s; 8k 1940 tok/s; 32k 2060 tok/s; 
+OFF2 vision rc=0 RESULT {"phase": "vision", "expect": "split", "ok": true, "text": "Blue", "ttft_s": 0.5700923050753772, "prompt_tokens": 133}
+OFF2 free MiB (final): GPU0=833 GPU1=357 (gate 450/300: pass)
+VERDICT R924 lowp MXFP8 o_proj prefill: quality=FAIL KL_mean=0.04763 KL_p99=0.4222 top1=0.9080 (control KL 0.01862, stable=False, N=106; gate 0.001/0.01/0.995, R893 floor 0.00048/0.015/0.9959) | speed ON(N 100,106) vs OFF(N 100,104, n=2): c1 score 64.3 vs 63.6 (+1.1%); c1 65.1 vs 63.1 (+3.0%); c2 76.7 vs 74.3 (+3.1%); c4 91.5 vs 86.1 (+6.3%); ms/tok 15.67 vs 15.88 (-1.4%); prefill8k 1992.1 vs 1988.4 (+0.2%); prefill32k 1964.0 vs 2042.0 (-3.8%) | free MiB GPU0/GPU1 ON 517/309 vs OFF1 837/363 | screen: below the screen
+slot used 38 min; no promotion: numerics-changing, serving is the user's call
+daily restore skipped: next unit queued (r916-glm53-determinism-fix(pid 1008982)
+r918-glm53-stack-ladder(pid 445664)
+r919-glm53-index-ring(pid 934416)
+r922-glm53-sm120-kernels(pid 1096929)
+r927-glm53-dflash-window(pid 1011846))

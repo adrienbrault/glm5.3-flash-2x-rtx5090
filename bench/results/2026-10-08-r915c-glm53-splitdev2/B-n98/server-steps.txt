@@ -1,0 +1,1 @@
+c1 n=15 ms/step=27.83 tok/step=1.520 ms/tok=18.31 | c4 47.2ms/round 84.7tok/s 47.9ms/round 83.5tok/s

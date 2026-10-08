@@ -1,0 +1,38 @@
+disk before build: /dev/mapper/ubuntu--vg-ubuntu--lv  1.8T  1.4T  401G  78% /
+GPU lock held; results /srv/qwen5090/results/2026-10-08-r923-glm53-l2-150647; daily DRAFT=1 DRAFT_N=1 MTP_FAST=1 OFFLOAD_N=104 VISION_OFFLOAD=1 GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2 GPU_SPLIT=31.8,31 EXL3_EXTRA=EXL3_MTP_MAX_BATCH=1;EXL3_DRAFT_PINNED_STAGING=1;EXL3_MTP_GPU_DRAFT=1;EXL3_MTP_GREEDY_ACCEPT=1;EXL3_MTP_CACHED_REWIND=1;EXL3_MOE_CPU_SPLIT_BY_DEVICE=100,104 PINNED_ARENA=1 SWAP_MODE=exchange SWAP_POLICY=histogram SWAP_INIT_STATS=/srv/qwen5090/glm-daily-tools/split-stats-broad-r869.json SWAP_CADENCE=exact SWAP_INTERVAL=64 SWAP_MAX=64 SWAP_SCOPE=global SWAP_FLOOR=4 SWAP_HYST=2.0 AGENT=1 KEEP_THINKING=1
+building tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2_l2 FROM tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2
+image tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2_l2 id sha256:f21d3adff24227a4021384debcfd51978abb1f7997f2b4cf2c4660908845ad25 native "sha256": "09a3f3f055e0bd6ce0d62b388252672b091d326ee284449df84a0b0e1a328469"
+P probe GPU0 rc=0
+P probe GPU1 rc=0
+P SUPPORTED GPU0 supported=True (l2 True stream True graph True) l2_bytes=100663296 max_persisting=62914560 max_window=134217728 microbench off 0.027462 ms, best on 0.025194 ms (budget 16777216 hit 1.0) byte_equal all=True | GPU1 supported=True (l2 True stream True graph True) l2_bytes=100663296 max_persisting=62914560 max_window=134217728 microbench off 0.02808 ms, best on 0.02655 ms (budget 16777216 hit 1.0) byte_equal all=True
+G native chain gate rc=0: {"mode": "1", "rows": 4, "device": 1, "seed": 120, "heads": 20, "int8_mode": "2", "projection_dispatch_codes": [90], "gemv_mode": "2", "l2_support": {"supported": true, "budget": 12582912, "max_window": 134217728, "set_status": 0, "previous
+H hit-rate rc=0 {"hardware_hit_rate":"UNAVAILABLE","reason":"L2 sector hit-rate metric absent"} 
+OFF1 TRY: GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2_l2 EXL3_EXTRA=EXL3_MTP_MAX_BATCH=1;EXL3_DRAFT_PINNED_STAGING=1;EXL3_MTP_GPU_DRAFT=1;EXL3_MTP_GREEDY_ACCEPT=1;EXL3_MTP_CACHED_REWIND=1;EXL3_MOE_CPU_SPLIT_BY_DEVICE=100,104;EXL3_SM120_L2=0
+OFF1 free MiB (warmup): GPU0=847 GPU1=365 (gate 450/300: pass)
+OFF1 c1 score 60.8 t/s: code 57.0 (acc 0.85); prose 67.0 (acc 0.64); chat 68.8 (acc 0.66); html 61.0 (acc 0.70); edit 50.3 (acc 0.95)
+OFF1 server step: c1 n=10 ms/step=29.02 tok/step=1.737 ms/tok=16.71
+OFF1 decode distinct: c1 61.4 c2 71.9 c4 83.6
+OFF1 vision rc=0 RESULT {"phase": "vision", "expect": "split", "ok": true, "text": "Blue", "ttft_s": 0.7058810449671, "prompt_tokens": 133}
+OFF1 free MiB (final): GPU0=839 GPU1=363 (gate 450/300: pass)
+ON TRY: GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2_l2 EXL3_EXTRA=EXL3_MTP_MAX_BATCH=1;EXL3_DRAFT_PINNED_STAGING=1;EXL3_MTP_GPU_DRAFT=1;EXL3_MTP_GREEDY_ACCEPT=1;EXL3_MTP_CACHED_REWIND=1;EXL3_MOE_CPU_SPLIT_BY_DEVICE=100,104;EXL3_SM120_L2=1
+ON free MiB (warmup): GPU0=847 GPU1=365 (gate 450/300: pass)
+ON c1 score 51.2 t/s: code 50.0 (acc 0.85); prose 53.1 (acc 0.64); chat 54.6 (acc 0.66); html 52.4 (acc 0.60); edit 46.2 (acc 0.92)
+ON server step: c1 n=10 ms/step=33.38 tok/step=1.701 ms/tok=19.63
+ON decode distinct: c1 52.8 c2 53.8 c4 75.3
+ON vision rc=0 RESULT {"phase": "vision", "expect": "split", "ok": true, "text": "Blue", "ttft_s": 0.6023419271223247, "prompt_tokens": 133}
+ON free MiB (final): GPU0=833 GPU1=357 (gate 450/300: pass)
+ON L2 evidence: INIT SM120_L2_INIT {"device": 0, "supported": true, "budget": 12582912, "max_window": 134217728, "set_status": 0, "previous": 18874368, "stream_sets": 0} SM120_L2_INIT {"device": 1, "supported": true, "budget": 12582912, "max_window": 134217728, "set_status": 0, "previous": 18874368, "stream_sets": 0}  | SELECT lines 207 applied=false 0 | fallback lines 0
+OFF2 TRY: GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2_l2 EXL3_EXTRA=EXL3_MTP_MAX_BATCH=1;EXL3_DRAFT_PINNED_STAGING=1;EXL3_MTP_GPU_DRAFT=1;EXL3_MTP_GREEDY_ACCEPT=1;EXL3_MTP_CACHED_REWIND=1;EXL3_MOE_CPU_SPLIT_BY_DEVICE=100,104;EXL3_SM120_L2=0
+OFF2 free MiB (warmup): GPU0=847 GPU1=365 (gate 450/300: pass)
+OFF2 c1 score 63.6 t/s: code 61.2 (acc 0.84); prose 65.8 (acc 0.62); chat 72.8 (acc 0.69); html 65.9 (acc 0.59); edit 52.2 (acc 0.95)
+OFF2 server step: c1 n=10 ms/step=27.05 tok/step=1.702 ms/tok=15.89
+OFF2 decode distinct: c1 60.3 c2 76.6 c4 84.6
+OFF2 vision rc=0 RESULT {"phase": "vision", "expect": "split", "ok": true, "text": "Blue", "ttft_s": 0.5698550802189857, "prompt_tokens": 133}
+OFF2 free MiB (final): GPU0=839 GPU1=363 (gate 450/300: pass)
+VERDICT R923 L2 ON vs mean(OFF n=2): c1 score 51.25 vs 62.21 (-17.6%, OFF spread 4.4%); distinct c1 52.78 vs 60.82 (-13.2%, OFF spread 1.8%); distinct c2 53.81 vs 74.24 (-27.5%, OFF spread 6.3%); distinct c4 75.29 vs 84.08 (-10.4%, OFF spread 1.2%); server ms/tok 19.63 vs 16.30 (+20.4%, OFF spread 5.0%); ON init support {0: True, 1: True}, fallback lines 0
+slot used 28 min; no promotion requested by this unit (operator decides; sub-percent needs a repeat slot)
+daily restore skipped: next unit queued (r918-glm53-stack-ladder(pid 2581807)
+r919-glm53-index-ring(pid 3586984)
+r922-glm53-sm120-kernels(pid 731880)
+r924-glm53-lowp(pid 3445513)
+r926-glm53-remote-experts(pid 732427))

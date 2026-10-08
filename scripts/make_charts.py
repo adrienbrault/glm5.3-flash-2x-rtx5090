@@ -102,6 +102,10 @@ def chart_concurrency(conc):
         end = conc[xs[-1]][k]
         out.append(f'<text class="t3" x="{px(len(xs) - 1) + 12:.1f}" y="{py(end) + 4:.1f}">{end:.1f}</text>')
     out.append(f'<text class="t3" x="{px(0):.1f}" y="{py(conc[xs[0]][0]) - 12:.1f}" text-anchor="middle">{conc[xs[0]][0]:.1f}</text>')
+    # middle points: the sum line rises, so its label sits above; the per-stream line falls, so its label sits below
+    for i, c in list(enumerate(xs))[1:-1]:
+        out.append(f'<text class="t3" x="{px(i):.1f}" y="{py(conc[c][1]) - 12:.1f}" text-anchor="middle">{conc[c][1]:.1f}</text>')
+        out.append(f'<text class="t3" x="{px(i):.1f}" y="{py(conc[c][0]) + 22:.1f}" text-anchor="middle">{conc[c][0]:.1f}</text>')
     out.append(f'<line class="axis" x1="{l}" x2="{w - r}" y1="{py(0):.1f}" y2="{py(0):.1f}"/>')
     # legend
     out.append('<circle class="s1" cx="26" cy="72" r="5"/><text class="t2" x="36" y="76">per stream</text>')

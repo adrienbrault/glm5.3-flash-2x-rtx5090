@@ -297,6 +297,8 @@ def config(s):
         text += (f"  draft_num_tokens: {s['draft_n']}\n  draft_cache_mode: Q8\n"
                  f"  dynamic_draft: {'true' if s['dyn_draft'] else 'false'}\n")
     text += f"memory:\n  sysmem_recurrent_cache: {s['sysmem_rc']}\n  sysmem_kv_cache: 0\n"
+    # GLM's generation_config sampling (top_p 0.95) as fallbacks; the launcher mounts sampler_overrides/glm53.yml.
+    text += "sampling:\n  override_preset: glm53\n"
     return text
 
 def main():

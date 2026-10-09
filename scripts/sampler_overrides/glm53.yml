@@ -1,0 +1,11 @@
+# GLM-5.3-Flash daily sampler fallbacks (2026-10-09). Used only when a request does not send the value itself
+# (force: false). The values are the model's own generation_config.json (temperature 1.0, top_p 0.95), which
+# TabbyAPI does not apply on its own: before this preset, clients that send no sampling parameters (DeepSeek
+# Harness) decoded at top_p 1.0, and long reasoning at 45-130k context fell into repetition loops
+# ("bed bed bed ...", loop detector at 01:37 and 02:01 UTC).
+temperature:
+  override: 1.0
+  force: false
+top_p:
+  override: 0.95
+  force: false

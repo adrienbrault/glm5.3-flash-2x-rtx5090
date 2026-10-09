@@ -77,6 +77,7 @@ CFG=$RUN_DIR/config.yml
 LOG=$RUN_DIR/launch.log
 log(){ printf '%s [glm53] %s\n' "$(date -Iseconds 2>/dev/null || date -u +%FT%TZ)" "$*" | tee -a "$LOG"; }
 python3 "$HERE/glm53_plan.py" config > "$CFG"
+[[ -f "$HERE/sampler_overrides/glm53.yml" ]] || { log "ABORT: $HERE/sampler_overrides/glm53.yml missing"; exit 3; }
 printf '%s\n' "$RESOLVED" > "$RUN_DIR/resolved.json"
 cp "$HERE/FLAG-DECISIONS.txt" "$RUN_DIR/FLAG-DECISIONS.txt"
 log "config: $RESOLVED; fixed container $NAME port $PORT_FIXED image $IMG"
@@ -176,7 +177,7 @@ if [[ -n "$ROUTE_TRACE_DIR" ]]; then
 fi
 # LIVE's same config.load path, in the exact running image, before destroying a container.
 timeout --kill-after=15s 90s sudo -n docker run --rm --name glm53-preflight \
-  -v "$CFG":/app/config.yml:ro -w /app --entrypoint /usr/bin/env "$IMG" \
+  -v "$CFG":/app/config.yml:ro -v "$HERE/sampler_overrides/glm53.yml":/app/sampler_overrides/glm53.yml:ro -w /app --entrypoint /usr/bin/env "$IMG" \
   "${SANITIZED[@]}" python3 -c 'from common.tabby_config import config; config.load({})' \
   > "$RUN_DIR/preflight.log" 2>&1 || { cat "$RUN_DIR/preflight.log"; log 'ABORT: image schema preflight failed'; exit 3; }
 # A standalone launch will never take the :8022 daily down behind the operator's back.
@@ -233,7 +234,7 @@ done
 STARTED=1
 sudo -n docker run -d --name "$NAME" --gpus all --ipc=host --shm-size=16g --restart no \
   -v "$TUNEDIR":/exl3-cache -e TRITON_CACHE_DIR=/exl3-cache -e EXLLAMAV3_TUNE_CACHE=/exl3-cache \
-  -p 0.0.0.0:8029:8029 -v "$CKPT":/models/"$PACK_NAME":ro -v "$CFG":/app/config.yml:ro "${TRACE_MOUNT[@]}" "${STATS_MOUNT[@]}" "${TEMPLATE_MOUNT[@]}" "${RING_MOUNT[@]}" \
+  -p 0.0.0.0:8029:8029 -v "$CKPT":/models/"$PACK_NAME":ro -v "$CFG":/app/config.yml:ro -v "$HERE/sampler_overrides/glm53.yml":/app/sampler_overrides/glm53.yml:ro "${TRACE_MOUNT[@]}" "${STATS_MOUNT[@]}" "${TEMPLATE_MOUNT[@]}" "${RING_MOUNT[@]}" \
   -w /app --entrypoint /usr/bin/env "$IMG" "${SANITIZED[@]}" \
   python3 main.py --host 0.0.0.0 --port 8029 --disable-auth true | tee "$RUN_DIR/container-id.txt"
 python3 -u "$HERE/glm53_follow.py" "$RUN_DIR/docker-stream.log" & LOG_PID=$!

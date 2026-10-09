@@ -61,7 +61,8 @@ arms_init(){  # resolve the daily (= experiment base), overlay the tools, instal
     [[ "$LS" == *"("*")" && -n "$DENV" ]] || { note "no SERVING line found; stop"; exit 2; }
     DTOOLS=$(grep -oE '/srv/qwen5090/r[0-9a-z]+-tools' <<<"$DENV" | head -1); DTOOLS=${DTOOLS:-/srv/qwen5090/r885c-tools}
   fi
-  [[ "$DENV" == *INDEX_RING=1* ]] && DTOOLS=/srv/qwen5090/r891-tools
+  # (R891-era rule "INDEX_RING=1 -> /srv/qwen5090/r891-tools" removed 2026-10-09: the daily is a ring image since R929c and
+  #  glm-daily-tools is current; r891-tools has a glm53_verify that rejects per-device CPU splits.)
   STATIC="$STATIC_BASE SPLIT_STATS=$DTOOLS/split-stats-broad-r869.json"
   trap arms_cleanup EXIT
   trap 'note interrupted; exit 130' INT

@@ -25,7 +25,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 ROOT = Path(__file__).resolve().parent.parent
 RESULTS = ROOT / "bench" / "results"
 OUT = ROOT / "docs" / "img"
-SERVED = RESULTS / "2026-10-08-r927-glm53-dflash-window" / "B-D"  # the configuration README.md describes (R927 control arm B-D)
+SERVED = RESULTS / "2026-10-09-r929-glm53-ring-splitdev" / "B-96-100"  # the configuration README.md describes (R929c arm B-96-100)
 MEMORY = RESULTS / "2026-10-08-r900-glm53-memory-layout" / "memory.json"  # memory layout of the configuration served before R915c (R900)
 PREFILL_SRC = RESULTS / "2026-10-07-r882b-glm53-swap-agent" / "XA"  # last cold-prefill measurement (previous configuration)
 
@@ -56,7 +56,8 @@ HISTORY = [
     ("R882b", 59.9, 109.9, "one", "r882b-glm53-swap-agent.md"),  # exchange swaps with the agent overlay
     ("R911 re-run", 58.0, 97.4, "distinct", "r911-glm53-mtpcap-dynamic.md"),  # the R882b configuration again, mean of D0 and D1
     ("R914", 64.2, 87.7, "distinct", "r914-glm53-promote-combo.md"),   # MTP depth 1 at c1 only, 104 on the CPU
-    ("R915c", 64.9, 90.0, "distinct", "r915c-glm53-splitdev2.md"),     # 100 on the CPU for GPU0's layers, 104 for GPU1's (served)
+    ("R915c", 64.9, 90.0, "distinct", "r915c-glm53-splitdev2.md"),     # 100 on the CPU for GPU0's layers, 104 for GPU1's
+    ("R929c", 66.3, 91.4, "distinct", "r929-glm53-ring-splitdev.md"),  # DSA indexer ring, 96 for GPU0's layers, 100 for GPU1's (served)
 ]
 
 
@@ -119,9 +120,9 @@ def figure_decode_concurrency(conc):
         a.set_ylim(0, max(ys) * 1.25)
         a.set_xticks(xs)
         style(a)
-    fig.suptitle("Decode rate after the first token against concurrency, distinct prompts per stream, served configuration (R927, arm B-D)",
+    fig.suptitle("Decode rate after the first token against concurrency, distinct prompts per stream, served configuration (R929c, arm B-96-100)",
                  fontsize=11, fontweight="bold")
-    print("decode by concurrency (R927 B-D, distinct prompts, median of 2 rounds):", {c: tuple(round(v, 1) for v in conc[c]) for c in xs})
+    print("decode by concurrency (R929c B-96-100, distinct prompts, median of 2 rounds):", {c: tuple(round(v, 1) for v in conc[c]) for c in xs})
     save(fig, "decode-concurrency.svg", "Decode rate after the first token against concurrency, sum over streams and per stream")
 
 
@@ -132,12 +133,12 @@ def figure_c1_by_kind(kinds):
     ax.barh(order[::-1], vals[::-1], color=DECODE, height=0.55)
     for y, v in enumerate(vals[::-1]):
         ax.annotate(f"{v:.1f}", (v, y), textcoords="offset points", xytext=(5, -3), fontsize=8.5, color=DECODE)
-    ax.set_title("Single-stream decode by content kind, MTP depth 1, served configuration (R927, arm B-D)")
+    ax.set_title("Single-stream decode by content kind, MTP depth 1, served configuration (R929c, arm B-96-100)")
     ax.set_xlabel("decode tokens per second, median of 2 runs")
     ax.set_xlim(0, max(vals) * 1.15)
     ax.grid(axis="x", color="#eaeef2")
     ax.set_axisbelow(True)
-    print("c1 by kind (R927 B-D):", {k: round(kinds[k], 1) for k in order}, "mean", round(st.mean(vals), 1))
+    print("c1 by kind (R929c B-96-100):", {k: round(kinds[k], 1) for k in order}, "mean", round(st.mean(vals), 1))
     save(fig, "c1-by-kind.svg", "Single-stream decode by content kind")
 
 

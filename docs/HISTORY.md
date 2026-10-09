@@ -2,7 +2,7 @@
 
 One entry per change of what serves on :8029, oldest first. Numbers are c1 scores (`bench/RESULTS.md`, Method) unless the entry says otherwise; each entry names its results directory on the box and its write-up.
 
-![Served configurations: c1 score 46.2 (R860), 48.4 (R864), 57.5 (R869), 59.9 (R882b), 58.0 (R911, the R882b configuration measured again), 64.2 (R914), 64.9 (R915c); sum over four streams with the same prompt in every stream 68.6 (R858), 86.3 (R873), 109.9 (R882b), with a different prompt per stream 97.4 (R911, the R882b configuration), 87.7 (R914) and 90.0 (R915c)](img/history.svg)
+![Served configurations: c1 score 46.2 (R860), 48.4 (R864), 57.5 (R869), 59.9 (R882b), 58.0 (R911, the R882b configuration measured again), 64.2 (R914), 64.9 (R915c), 66.3 (R929c); sum over four streams with the same prompt in every stream 68.6 (R858), 86.3 (R873), 109.9 (R882b), with a different prompt per stream 97.4 (R911, the R882b configuration), 87.7 (R914), 90.0 (R915c) and 91.4 (R929c)](img/history.svg)
 
 The 4-stream sums up to R882b sent the same prompt to every stream; from R911 on each stream gets a different prompt. On one configuration R899 measured 104.8 tok/s with the first method and 95.7 with the second (`2026-10-08-r899-glm53-c4-distinct-061545`), so the two kinds of bar are not comparable.
 

@@ -1,0 +1,12 @@
+*
+!Dockerfile
+!ring3.patch
+!SOURCE-SHA256SUMS
+!PATCHED-SHA256SUMS
+!NATIVE-CHANGED.txt
+!install.sh
+!rebuild_extension.py
+!r929_helpers.py
+!r929-glm53-ring-splitdev.sh
+!tests/
+!tests/**

@@ -1,0 +1,24 @@
+Ring2 + FIX1: all reference PATCHED-SHA256SUMS matched.
+19 ring files ported without overlap or edits.
+Splitdev2 MoE files retained byte-for-byte from base.
+[
+  "exllamav3/architecture/glm5_next_mtp.py",
+  "exllamav3/cache/cache.py",
+  "exllamav3/cache/mla.py",
+  "exllamav3/cache/mla_index_ring.py",
+  "exllamav3/cache/mla_index_shadow.py",
+  "exllamav3/exllamav3_ext/bindings.cpp",
+  "exllamav3/exllamav3_ext/dsa_topk.cu",
+  "exllamav3/exllamav3_ext/dsa_topk.cuh",
+  "exllamav3/generator/generator.py",
+  "exllamav3/generator/job.py",
+  "exllamav3/generator/pagetable.py",
+  "exllamav3/model/model.py",
+  "exllamav3/model/model_ls.py",
+  "exllamav3/modules/attention_fn/bc_attn.py",
+  "exllamav3/modules/attention_fn/bc_mla.py",
+  "exllamav3/modules/attention_fn/dsa_triton.py",
+  "exllamav3/modules/attention_fn/mla_triton.py",
+  "exllamav3/modules/gated_delta_net.py",
+  "exllamav3/modules/mla_attn.py"
+]

@@ -1,0 +1,1369 @@
+diff -ruN base/exllamav3/architecture/glm5_next_mtp.py src/exllamav3/architecture/glm5_next_mtp.py
+--- base/exllamav3/architecture/glm5_next_mtp.py	2026-10-08 10:24:34
++++ src/exllamav3/architecture/glm5_next_mtp.py	2026-10-08 13:28:49
+@@ -217,6 +217,9 @@
+ 
+ 
+     def default_load_params(self, max_chunk_size):
++        from ..cache.mla_index_ring import INDEX_RING
++        if INDEX_RING:
++            return {"_index_ring_slots": (0,)}
+         return {}
+ 
+ 
+diff -ruN base/exllamav3/cache/cache.py src/exllamav3/cache/cache.py
+--- base/exllamav3/cache/cache.py	2026-10-01 16:05:00
++++ src/exllamav3/cache/cache.py	2026-10-08 13:26:50
+@@ -207,6 +207,13 @@
+             for instance in self.model.get_layer_instances(layer.layer_idx):
+                 self.recurrent_layers[instance] = layer.layer_state_cls(layer, max_batch_size, max_history, id(self))
+ 
++        # Index rings are recurrent residue, excluded from paged movement/tiering.
++        for instance, layer in self.layers.items():
++            if getattr(layer, "index_ring_enabled", False):
++                if self.recurrent_state_cls is None and not model.caps.get("mtp_draft"):
++                    raise ValueError("Pooled index rings require a recurrent target or MTP head")
++                layer.index_ring = self.recurrent_layers[instance]
++
+         # Attach
+         self.recurrent_instances = {}
+         self.attach_to_model()
+diff -ruN base/exllamav3/cache/mla.py src/exllamav3/cache/mla.py
+--- base/exllamav3/cache/mla.py	2026-09-27 12:31:50
++++ src/exllamav3/cache/mla.py	2026-10-08 13:57:42
+@@ -69,6 +69,15 @@
+         self.k = None      # latent, (pages, PAGE_SIZE, 1, kv_lora_rank)
+         self.v = None      # rope key, (pages, PAGE_SIZE, 1, qk_rope_head_dim)
+         self.k_idx = None  # indexer keys, (pages, PAGE_SIZE, index_head_dim), roped
++        self.index_ring_enabled = bool(attention and getattr(attention, "index_ring_enabled", False))
++        self.index_ring_layer = attention.layer_idx if attention else None
++        self.index_ring = None
++        self.shadow = None
++        self.index_ring_shadow = bool(attention and getattr(attention, "index_ring_shadow", False))
++        if self.index_ring_enabled:
++            self.index_plane_bytes_saved = int(np.prod(self.shape_i)) * 2
++            if not self.index_ring_shadow:
++                self.shape_i = None  # Do not allocate the paged per-token plane.
+         self.k_pool = None # pooled indexer keys, (pages, PAGE_SIZE // kpool, index_head_dim)
+         self.device = None
+ 
+@@ -80,6 +89,19 @@
+         self.v = torch.zeros(self.shape_r, dtype = torch.half, device = device) if self.shape_r else None
+         self.k_idx = torch.zeros(self.shape_i, dtype = torch.half, device = device) if self.shape_i else None
+         self.k_pool = torch.zeros(self.shape_p, dtype = torch.half, device = device) if self.shape_p else None
++        if self.index_ring_enabled:
++            assert (self.k_idx is not None) == self.index_ring_shadow and self.index_ring is not None
++            if self.index_ring_shadow:
++                from .mla_index_shadow import RingShadow
++                self.shadow = RingShadow(self)
++            print(f" -- EXL3_DSA_INDEX_RING: layer {self.index_ring_layer} on {self.k_pool.device}: "
++                  f"paged_bytes_removed={0 if self.index_ring_shadow else self.index_plane_bytes_saved} "
++                  f"ring_bytes={self.index_ring.storage_size()} "
++                  f"net_bytes_saved={(0 if self.index_ring_shadow else self.index_plane_bytes_saved) - self.index_ring.storage_size() - (self.shadow.pool.numel() * 2 if self.shadow is not None else 0)} "
++                  f"oracle_pool_bytes={self.shadow.pool.numel() * 2 if self.shadow is not None else 0} "
++                  f"shadow={int(self.index_ring_shadow)} "
++                  f"slots={self.index_ring.max_batch_size} rows={self.index_ring.rows} "
++                  f"max_chunk={self.index_ring.max_chunk_size}", flush=True)
+ 
+ 
+     @override
+@@ -89,6 +111,7 @@
+         self.v = None
+         self.k_idx = None
+         self.k_pool = None
++        self.shadow = None
+ 
+ 
+     @override
+@@ -129,16 +152,31 @@
+ 
+ 
+     def update_idx_direct(self, cache_seqlens: torch.Tensor, block_table: torch.Tensor,
+-                          k_idx: torch.Tensor, length: int):
++                          k_idx: torch.Tensor, length: int, slots=None):
+         """Append new indexer-key rows, shaped (bsz, length, index_head_dim), roped."""
+         from ..modules.attention_fn.mla_triton import mla_plane_append
++        if self.index_ring is not None:
++            if length > self.index_ring.max_chunk_size:
++                raise ValueError("Forward exceeds the index ring's configured chunk")
++            if slots is None or len(slots) != k_idx.shape[0] or len(set(slots)) != len(slots):
++                raise ValueError("Index ring append requires distinct active slots")
++            for b, slot in enumerate(slots):
++                if not 0 <= slot < self.index_ring.max_batch_size:
++                    raise ValueError("Invalid index ring slot")
++                mla_plane_append(k_idx[b:b+1], self.get_idx(slot), block_table[b:b+1],
++                                 cache_seqlens[b:b+1], ring_rows=self.index_ring.rows)
++            if self.shadow is not None:
++                mla_plane_append(k_idx, self.k_idx, block_table, cache_seqlens)
++            return
+         mla_plane_append(
+             k_idx.reshape(k_idx.shape[0], length, self.shape_i[-1]),
+             self.k_idx, block_table, cache_seqlens,
+         )
+ 
+ 
+-    def get_idx(self) -> torch.Tensor:
++    def get_idx(self, slot=None) -> torch.Tensor:
++        if self.index_ring is not None:
++            return self.index_ring.ring if slot is None else self.index_ring.ring[slot:slot+1]
+         return self.k_idx
+ 
+ 
+@@ -165,18 +203,21 @@
+             # Pool entries covering the copied tokens (partial-pool entries are never read)
+             n_pool = -(-num_tokens // self.kpool)
+             self.k_pool[to_page, :n_pool, :].copy_(source.k_pool[from_page, :n_pool, :], non_blocking = True)
++            if self.shadow is not None:
++                self.shadow.pool[to_page, :n_pool].copy_(source.shadow.pool[from_page, :n_pool], non_blocking=True)
+ 
+ 
+     @override
+     def get_tensors(self):
+-        return [t for t in [self.k, self.v, self.k_idx, self.k_pool] if t is not None]
++        return [t for t in [self.k, self.v, self.k_idx, self.k_pool,
++                           self.shadow.pool if self.shadow is not None else None] if t is not None]
+ 
+ 
+     @override
+     def storage_size(self):
+         return (np.prod(self.shape_c) + np.prod(self.shape_r) +
+                 (np.prod(self.shape_i) if self.shape_i else 0) +
+-                (np.prod(self.shape_p) if self.shape_p else 0)) * torch.half.itemsize
++                (np.prod(self.shape_p) * (2 if self.index_ring_shadow else 1) if self.shape_p else 0)) * torch.half.itemsize
+ 
+ 
+     @override
+@@ -262,6 +303,15 @@
+         self.sk = None     # fp16 group scales
+         self.v = None      # rope key, fp16
+         self.k_idx = None  # indexer keys, fp16, roped
++        self.index_ring_enabled = bool(attention and getattr(attention, "index_ring_enabled", False))
++        self.index_ring_layer = attention.layer_idx if attention else None
++        self.index_ring = None
++        self.shadow = None
++        self.index_ring_shadow = bool(attention and getattr(attention, "index_ring_shadow", False))
++        if self.index_ring_enabled:
++            self.index_plane_bytes_saved = int(np.prod(self.shape_i)) * 2
++            if not self.index_ring_shadow:
++                self.shape_i = None  # Do not allocate the paged per-token plane.
+         self.k_pool = None # pooled indexer keys, fp16
+         self.device = None
+         self._scratch = {}
+@@ -275,6 +325,19 @@
+         self.v = torch.zeros(self.shape_r, dtype = torch.half, device = device) if self.shape_r else None
+         self.k_idx = torch.zeros(self.shape_i, dtype = torch.half, device = device) if self.shape_i else None
+         self.k_pool = torch.zeros(self.shape_p, dtype = torch.half, device = device) if self.shape_p else None
++        if self.index_ring_enabled:
++            assert (self.k_idx is not None) == self.index_ring_shadow and self.index_ring is not None
++            if self.index_ring_shadow:
++                from .mla_index_shadow import RingShadow
++                self.shadow = RingShadow(self)
++            print(f" -- EXL3_DSA_INDEX_RING: layer {self.index_ring_layer} on {self.k_pool.device}: "
++                  f"paged_bytes_removed={0 if self.index_ring_shadow else self.index_plane_bytes_saved} "
++                  f"ring_bytes={self.index_ring.storage_size()} "
++                  f"net_bytes_saved={(0 if self.index_ring_shadow else self.index_plane_bytes_saved) - self.index_ring.storage_size() - (self.shadow.pool.numel() * 2 if self.shadow is not None else 0)} "
++                  f"oracle_pool_bytes={self.shadow.pool.numel() * 2 if self.shadow is not None else 0} "
++                  f"shadow={int(self.index_ring_shadow)} "
++                  f"slots={self.index_ring.max_batch_size} rows={self.index_ring.rows} "
++                  f"max_chunk={self.index_ring.max_chunk_size}", flush=True)
+ 
+ 
+     @override
+@@ -285,6 +348,7 @@
+         self.v = None
+         self.k_idx = None
+         self.k_pool = None
++        self.shadow = None
+         self._scratch = {}
+ 
+ 
+@@ -337,16 +401,31 @@
+ 
+ 
+     def update_idx_direct(self, cache_seqlens: torch.Tensor, block_table: torch.Tensor,
+-                          k_idx: torch.Tensor, length: int):
++                          k_idx: torch.Tensor, length: int, slots=None):
+         """Append new indexer-key rows, shaped (bsz, length, index_head_dim), roped."""
+         from ..modules.attention_fn.mla_triton import mla_plane_append
++        if self.index_ring is not None:
++            if length > self.index_ring.max_chunk_size:
++                raise ValueError("Forward exceeds the index ring's configured chunk")
++            if slots is None or len(slots) != k_idx.shape[0] or len(set(slots)) != len(slots):
++                raise ValueError("Index ring append requires distinct active slots")
++            for b, slot in enumerate(slots):
++                if not 0 <= slot < self.index_ring.max_batch_size:
++                    raise ValueError("Invalid index ring slot")
++                mla_plane_append(k_idx[b:b+1], self.get_idx(slot), block_table[b:b+1],
++                                 cache_seqlens[b:b+1], ring_rows=self.index_ring.rows)
++            if self.shadow is not None:
++                mla_plane_append(k_idx, self.k_idx, block_table, cache_seqlens)
++            return
+         mla_plane_append(
+             k_idx.reshape(k_idx.shape[0], length, self.shape_i[-1]),
+             self.k_idx, block_table, cache_seqlens,
+         )
+ 
+ 
+-    def get_idx(self) -> torch.Tensor:
++    def get_idx(self, slot=None) -> torch.Tensor:
++        if self.index_ring is not None:
++            return self.index_ring.ring if slot is None else self.index_ring.ring[slot:slot+1]
+         return self.k_idx
+ 
+ 
+@@ -371,11 +450,14 @@
+         if self.k_pool is not None:
+             n_pool = -(-num_tokens // self.kpool)
+             self.k_pool[to_page, :n_pool, :].copy_(source.k_pool[from_page, :n_pool, :], non_blocking = True)
++            if self.shadow is not None:
++                self.shadow.pool[to_page, :n_pool].copy_(source.shadow.pool[from_page, :n_pool], non_blocking=True)
+ 
+ 
+     @override
+     def get_tensors(self):
+-        return [t for t in [self.qk, self.sk, self.v, self.k_idx, self.k_pool] if t is not None]
++        return [t for t in [self.qk, self.sk, self.v, self.k_idx, self.k_pool,
++                           self.shadow.pool if self.shadow is not None else None] if t is not None]
+ 
+ 
+     @override
+@@ -384,7 +466,7 @@
+             np.prod(self.qshape) * torch.int.itemsize +
+             np.prod(self.sshape) * torch.half.itemsize +
+             (np.prod(self.shape_r) + (np.prod(self.shape_i) if self.shape_i else 0) +
+-             (np.prod(self.shape_p) if self.shape_p else 0)) * torch.half.itemsize
++             (np.prod(self.shape_p) * (2 if self.index_ring_shadow else 1) if self.shape_p else 0)) * torch.half.itemsize
+         )
+ 
+ 
+diff -ruN base/exllamav3/cache/mla_index_ring.py src/exllamav3/cache/mla_index_ring.py
+--- base/exllamav3/cache/mla_index_ring.py	1970-01-01 01:00:00
++++ src/exllamav3/cache/mla_index_ring.py	2026-10-08 14:00:48
+@@ -0,0 +1,113 @@
++"""Lossless residue of the GLM pooled indexer; never a paged cache tensor."""
++import os
++import torch
++from ..constants import PAGE_SIZE
++
++INDEX_RING = os.environ.get("EXL3_DSA_INDEX_RING", "0") == "1"
++INDEX_RING_SHADOW = os.environ.get("EXL3_DSA_INDEX_RING_SHADOW", "0") == "1"
++if INDEX_RING_SHADOW and not INDEX_RING:
++    raise ValueError("EXL3_DSA_INDEX_RING_SHADOW requires EXL3_DSA_INDEX_RING=1")
++
++
++def ring_slots(params, batch_size):
++    slots = params.get("_index_ring_slots")
++    if slots is None:
++        states = params.get("recurrent_states")
++        if states is None or len(states) != batch_size:
++            raise ValueError("Index ring requires one target job slot per sequence")
++        slots = tuple(r.slot for r in states)
++    if len(slots) != batch_size or len(set(slots)) != batch_size:
++        raise ValueError("Index ring requires distinct target job slots")
++    return tuple(slots)
++
++
++class MLAIndexRingState:
++    is_index_ring = True
++    def __init__(self, module, max_batch_size, max_history, cache_id,
++                 max_chunk_size=2048):
++        self.module = module
++        self.cache_id = cache_id
++        self.max_batch_size = max_batch_size
++        self.max_history = max_history
++        self.peers = ()  # MTP ring tails follow the target job's checkpoint/slot lifecycle.
++        self.device = None
++        self.configure(max_chunk_size)
++
++    def configure(self, max_chunk_size):
++        if self.device is not None:
++            raise RuntimeError("Configure index rings before model load")
++        self.max_chunk_size = max(max_chunk_size, self.max_history + 1)
++        # Retain the incoming window, its pre-existing tail, and speculative rollback.
++        P = self.module.index_kpool
++        assert P > 0 and PAGE_SIZE % P == 0
++        n = self.max_chunk_size + self.max_history + P - 1
++        self.rows = -(-n // PAGE_SIZE) * PAGE_SIZE
++        self.ring = torch.zeros((self.max_batch_size, self.rows,
++                                 self.module.idx_plane_dim), dtype=torch.half, device="meta")
++
++    def storage_size(self):
++        return self.ring.numel() * self.ring.element_size()
++
++    def get_checkpoint_size(self):
++        return ((self.module.index_kpool - 1) * self.module.idx_plane_dim * 2 +
++                sum(p.get_checkpoint_size() for p in self.peers))
++
++    def checkpoint_parts(self):
++        return 1 + sum(p.checkpoint_parts() for p in self.peers)
++
++    def alloc(self, device):
++        self.device = device
++        self.ring = torch.zeros_like(self.ring, device=device)
++
++    def free(self):
++        self.device = None
++        self.ring = torch.zeros_like(self.ring, device="meta")
++
++    def clear(self, slot):
++        self.ring[slot].zero_()
++        for peer in self.peers:
++            peer.clear(slot)
++
++    def rewind(self, slot, last_history, num_tokens):
++        # Positions determine addressing. A recorded verify window and its initial
++        # incomplete pool remain in the ring after a supported speculative rewind.
++        if not 0 <= num_tokens <= min(last_history, self.max_history):
++            raise ValueError("Index ring rewind requires a checkpoint and replay")
++        if INDEX_RING_SHADOW:
++            from .mla_index_shadow import STATS
++            STATS.event("rewind" if num_tokens else "accept")
++
++    def stash(self, slot, position=0):
++        n = position % self.module.index_kpool
++        ids = torch.arange(position - n, position, device=self.ring.device) % self.rows
++        if INDEX_RING_SHADOW:
++            from .mla_index_shadow import STATS
++            STATS.event("checkpoint_stash")
++        # Disk checkpoint serialization expects a flat tuple of CPU tensors.
++        return (self.ring[slot, ids].cpu().clone(),) + tuple(
++            t for p in self.peers for t in p.stash(slot, position))
++
++    def unstash(self, slot, stashed, position=0):
++        if len(stashed) != self.checkpoint_parts():
++            raise ValueError("Invalid pooled-indexer checkpoint peers")
++        tail = stashed[0]
++        n = position % self.module.index_kpool
++        if tail.shape != (n, self.module.idx_plane_dim) or tail.dtype != torch.half:
++            raise ValueError("Invalid pooled-indexer checkpoint tail")
++        self.clear(slot)
++        ids = torch.arange(position - n, position, device=self.ring.device) % self.rows
++        self.ring[slot, ids] = tail.to(self.ring.device)
++        offset = 1
++        for peer in self.peers:
++            end = offset + peer.checkpoint_parts()
++            peer.unstash(slot, stashed[offset:end], position)
++            offset = end
++        if INDEX_RING_SHADOW:
++            from .mla_index_shadow import STATS
++            STATS.event("checkpoint_restore")
++
++    def tp_export(self, plan):
++        return {"cls": MLAIndexRingState, "args": {
++            "cache_id": self.cache_id, "max_batch_size": self.max_batch_size,
++            "max_history": self.max_history, "max_chunk_size": self.max_chunk_size,
++        }}
+diff -ruN base/exllamav3/cache/mla_index_shadow.py src/exllamav3/cache/mla_index_shadow.py
+--- base/exllamav3/cache/mla_index_shadow.py	1970-01-01 01:00:00
++++ src/exllamav3/cache/mla_index_shadow.py	2026-10-08 16:04:23
+@@ -0,0 +1,221 @@
++"""In-invocation oracle for pooled DSA. Never writes served tensors or shared scratch."""
++import atexit
++from collections import Counter
++import json
++import time
++import torch
++from .mla_index_ring import INDEX_RING_SHADOW
++from ..constants import PAGE_SIZE
++
++
++class ShadowStats:
++    def __init__(self):
++        self.active = False  # Loader/autosplit probes do not count as served coverage.
++        self.calls = self.compared_rows = self.mismatches = 0  # mismatches counts bytes.
++        self.coverage = Counter()
++        self.layers = Counter()
++        self.kinds = Counter()
++        self.last_summary = time.monotonic()
++
++    def event(self, name, n=1):
++        if self.active:
++            self.coverage[name] += n
++
++    def summary(self, reason):
++        if INDEX_RING_SHADOW and self.active:
++            print(f"[RING-SHADOW] calls={self.calls} compared_rows={self.compared_rows} "
++                  f"mismatches={self.mismatches} layers={len(self.layers)} "
++                  f"coverage={json.dumps(dict(self.coverage), separators=(',', ':'))} "
++                  f"kinds={json.dumps(dict(self.kinds), separators=(',', ':'))} "
++                  f"layer_calls={json.dumps(dict(self.layers), separators=(',', ':'))} "
++                  f"reason={reason} mismatch_unit=bytes compared_row_unit=tensor_rows", flush=True)
++            self.last_summary = time.monotonic()
++
++
++STATS = ShadowStats()
++atexit.register(STATS.summary, "shutdown")
++
++
++class RingShadow:
++    # Implements the pool builder's cache-layer interface for the independent paged oracle.
++    index_ring = None
++
++    def __init__(self, layer):
++        self.layer = layer
++        self.pool = torch.zeros_like(layer.k_pool)
++        self.context = {}
++
++    def get_idx(self):
++        return self.layer.k_idx
++
++    def update_pool_direct(self, seq, table, keys):
++        from ..modules.attention_fn.mla_triton import mla_plane_append
++        mla_plane_append(keys, self.pool, table, seq)
++
++    def begin(self, module, table, starts, length, slots, backend, params):
++        self.context = dict(layer=module.key, layer_idx=module.layer_idx,
++                            slots=list(slots), positions=list(starts), length=length,
++                            backend=backend, pool_size=module.index_kpool)
++        if not STATS.active:
++            return
++        STATS.calls += 1
++        STATS.layers[module.key] += 1
++        STATS.event(backend)
++        STATS.event(f"c{len(slots)}")
++        STATS.event("prefill" if length > 2 else "decode")
++        if params.get("recurrent_history") and length == 2:
++            STATS.event("verify2")
++        if ".layers.45." in module.key:
++            STATS.event("mtp_draft")
++        if len(set(starts)) > 1:
++            STATS.event("ragged")
++        if params.get("indexed_embeddings"):
++            STATS.event("vision")
++        self.members(module, table, starts, length, slots)
++        if STATS.calls % 100 == 0 or time.monotonic() - STATS.last_summary >= 30:
++            STATS.summary("periodic")
++
++    def compare(self, kind, served, oracle, detail=None, row_context=None):
++        if not STATS.active:
++            return
++        if served.shape != oracle.shape or served.dtype != oracle.dtype:
++            raise RuntimeError(f"RING-SHADOW invalid comparison {kind}: {served.shape}/{oracle.shape}")
++        # Compare bytes, including signed zero / NaN payloads. All reductions use private results.
++        a = served.detach().contiguous().view(torch.uint8)
++        b = oracle.detach().contiguous().view(torch.uint8)
++        different = a != b
++        count = int(torch.count_nonzero(different).item())
++        rows = served.shape[0] if served.ndim else 1
++        STATS.compared_rows += rows
++        STATS.kinds[kind] += rows
++        if count:
++            STATS.mismatches += count
++            if STATS.coverage["mismatch_logs"] < 8:
++                byte_index = int(different.reshape(-1).int().argmax().item())
++                element_index = byte_index // served.element_size()
++                coords, remainder = [], element_index
++                for size in reversed(served.shape):
++                    coords.insert(0, remainder % size)
++                    remainder //= size
++                row = coords[0] if coords else 0
++                batch = (detail or {}).get("batch", 0)
++                slots, starts = self.context.get("slots", []), self.context.get("positions", [])
++                query_row = row
++                if kind in ("pool_topk", "topk") and detail is None and starts and rows % len(starts) == 0:
++                    batch, query_row = divmod(row, rows // len(starts))
++                first = dict(layer=self.context.get("layer"), layer_idx=self.context.get("layer_idx"),
++                             slot=slots[batch] if batch < len(slots) else None,
++                             batch=batch, row_index=row, index=coords, element_index=element_index,
++                             byte_index=byte_index, byte_in_element=byte_index % served.element_size(),
++                             served_byte=int(a.reshape(-1)[byte_index].item()),
++                             oracle_byte=int(b.reshape(-1)[byte_index].item()),
++                             dtype=str(served.dtype), served=served[tuple(coords)].item(),
++                             oracle=oracle[tuple(coords)].item())
++                if kind in ("scores", "pool_topk", "topk") and batch < len(starts):
++                    first["query_row"] = (detail or {}).get("row", 0) + query_row
++                    first["position"] = starts[batch] + first["query_row"]
++                    if kind == "scores" and len(coords) > 1:
++                        first["pool_index"] = (detail or {}).get("tile", 0) + coords[1]
++                        first["pool_position"] = first["pool_index"] * self.context["pool_size"]
++                if row_context is not None:
++                    first.update(row_context(row))
++                # Identical -inf padding gives NaN when subtracted; it must not inflate
++                # the diagnostic delta for a different, finite element elsewhere.
++                elements = different.reshape(-1, served.element_size()).int().sum(dim=1) != 0
++                delta = (served.detach().float().reshape(-1)[elements] -
++                         oracle.detach().float().reshape(-1)[elements]).abs()
++                delta = torch.nan_to_num(delta, nan=float("inf"), posinf=float("inf"))
++                max_delta = float(delta.max().item()) if delta.numel() else 0.0
++                print(f"[RING-SHADOW-MISMATCH] kind={kind} bytes={count} "
++                      f"max_abs_delta={max_delta} context={json.dumps(self.context)} "
++                      f"detail={json.dumps(detail)} first={json.dumps(first)}", flush=True)
++                STATS.event("mismatch_logs")
++
++    def members(self, module, table, starts, length, slots):
++        P, D = module.index_kpool, module.index_head_dim
++        ring = self.layer.index_ring
++        for b, start in enumerate(starts):
++            tok = torch.arange(start // P * P, start + length, device=self.pool.device)
++            physical = table[b, tok // PAGE_SIZE].long() * PAGE_SIZE + tok % PAGE_SIZE
++            full = self.layer.k_idx.view(-1, 2 * D)[physical]
++            candidate = ring.ring[slots[b], tok % ring.rows]
++            location = lambda row: dict(slot=slots[b], position=start // P * P + row,
++                                       ring_row_index=(start // P * P + row) % ring.rows,
++                                       paged_row_index=int(physical[row].item()))
++            self.compare("keys", candidate[:, :D], full[:, :D], dict(batch=b, slot=slots[b], start=int(start)), location)
++            self.compare("gates", candidate[:, D:], full[:, D:], dict(batch=b, slot=slots[b], start=int(start)), location)
++
++    def pools(self, module, table, starts, length, partial=False):
++        if not STATS.active:
++            return
++        P, D = module.index_kpool, module.index_head_dim
++        epp = PAGE_SIZE // P
++        for b, start in enumerate(starts):
++            end = (start + length + (P - 1 if partial else 0)) // P
++            ids = torch.arange(start // P, end, device=self.pool.device)
++            physical = table[b, ids // epp].long() * epp + ids % epp
++            self.compare("pools", self.layer.k_pool.view(-1, D)[physical],
++                         self.pool.view(-1, D)[physical], dict(batch=b, start=int(start)),
++                         lambda row: dict(position=(start // P + row) * P, pool_index=start // P + row,
++                                          served_row_index=int(physical[row].item()),
++                                          oracle_row_index=int(physical[row].item())))
++
++    def scoring_pools(self, module, table, starts, length):
++        D, P = module.index_head_dim, module.index_kpool
++        epp = PAGE_SIZE // P
++        for b, start in enumerate(starts):
++            ids = torch.arange((start + length) // P, device=self.pool.device)
++            physical = table[b, ids // epp].long() * epp + ids % epp
++            self.compare("scored_pools", self.layer.k_pool.view(-1, D)[physical],
++                         self.pool.view(-1, D)[physical], dict(batch=b, start=int(start)),
++                         lambda row: dict(position=row * P, pool_index=row,
++                                          served_row_index=int(physical[row].item()),
++                                          oracle_row_index=int(physical[row].item())))
++
++    def native(self, module, buffers, table, seq, starts, length, slots, backend, params):
++        # C++ BC.run restores its caller's current device. JIT oracle launches must use
++        # this layer's device/stream explicitly, especially for layers on cuda:1.
++        with torch.cuda.device(self.pool.device):
++            self._native(module, buffers, table, seq, starts, length, slots, backend, params)
++
++    def _native(self, module, buffers, table, seq, starts, length, slots, backend, params):
++        from ..modules.attention_fn.mla_triton import mla_plane_append
++        from ..modules.attention_fn.dsa_triton import (
++            _dsa_pool_update_kernel, _dsa_indexer_fewq_kernel, _dsa_pool_expand_kernel)
++        from ..ext import exllamav3_ext as ext
++        P, D, H = module.index_kpool, module.index_head_dim, module.index_n_heads
++        # These are the exact norm/rope/GEMM outputs from the just-completed served graph.
++        # No projections are repeated, no served buffer is used as a destination.
++        k, g, q, w, scores, indices, pool_idx = buffers
++        packed = torch.cat((k, g[:length]), dim=-1).view(1, length, 2 * D)
++        mla_plane_append(packed, self.layer.k_idx, table, seq)
++        _dsa_pool_update_kernel[(1, length // P + 1)](
++            self.layer.k_idx, self.pool, module.idx_kpool_ape, table, seq,
++            table.shape[1], length, page_size=PAGE_SIZE, P=P, D=D,
++            MAXPOOLS=length // P + 1, RING_ROWS=0, num_warps=2, num_stages=1)
++        self.begin(module, table, starts, length, slots, backend, params)
++        self.pools(module, table, starts, length, partial=True)
++        if scores is None or not STATS.active:
++            return
++        STATS.event("scoring")
++        self.scoring_pools(module, table, starts, length)
++        T = (starts[0] + length) // P
++        oracle = torch.full_like(scores, -float("inf"))
++        _dsa_indexer_fewq_kernel[(length, scores.shape[1] // 128)](
++            q, w, self.pool.view(-1, D), oracle, T, length, starts[0], T, table, 0,
++            H_i=H, H_pad=max(16, 1 << (H - 1).bit_length()), D_i=D,
++            S_stride=scores.shape[1], compress_rate=P, scale=D ** -0.5 * H ** -0.5,
++            BLOCK_N=128, SEQ=length, MULTIROW=0, EPP=PAGE_SIZE // P,
++            DEBUG_BOUNDS=0, DEBUG_PAGES=0, SHARED_BOUNDS=0, num_warps=8, num_stages=2)
++        self.compare("scores", scores[:, :T], oracle[:, :T])
++        chosen = torch.empty_like(pool_idx)
++        # The first native eager call scans the static capacity, subsequent graph calls scan T.
++        scan = oracle if backend == "native_eager" else oracle[:, :T]
++        ext.dsa_topk_shadow(scan, chosen, module.index_topk // P, scores.shape[1])
++        self.compare("pool_topk", pool_idx, chosen)
++        expanded = torch.empty_like(indices)
++        _dsa_pool_expand_kernel[(length, -(-indices.shape[1] // 256))](
++            chosen, expanded, starts[0], P=P, SEL=module.index_topk // P,
++            K_pad=indices.shape[1], KP_pool=chosen.shape[1], TAIL=module.index_kpool_tail,
++            SEQ=length, MULTIROW=0, BLOCK=256, num_warps=4, num_stages=1)
++        self.compare("topk", indices, expanded)
+diff -ruN base/exllamav3/exllamav3_ext/bindings.cpp src/exllamav3/exllamav3_ext/bindings.cpp
+--- base/exllamav3/exllamav3_ext/bindings.cpp	2026-09-27 12:31:50
++++ src/exllamav3/exllamav3_ext/bindings.cpp	2026-10-08 13:52:34
+@@ -116,6 +116,7 @@
+     m.def("dsv4_pool_quant_scatter", &dsv4_pool_quant_scatter, "dsv4_pool_quant_scatter");
+     m.def("dsv4_ring_append", &dsv4_ring_append, "dsv4_ring_append");
+     m.def("dsa_topk", &dsa_topk, "dsa_topk");
++    m.def("dsa_topk_shadow", &dsa_topk_shadow, "dsa_topk_shadow");
+     m.def("dsa_topk_tile", &dsa_topk_tile, "dsa_topk_tile");
+     m.def("dsa_topk_merge_tiles", &dsa_topk_merge_tiles, "dsa_topk_merge_tiles");
+     m.def("hc_mix", &hc_mix, "hc_mix");
+diff -ruN base/exllamav3/exllamav3_ext/dsa_topk.cu src/exllamav3/exllamav3_ext/dsa_topk.cu
+--- base/exllamav3/exllamav3_ext/dsa_topk.cu	2026-09-27 12:31:50
++++ src/exllamav3/exllamav3_ext/dsa_topk.cu	2026-10-08 13:52:34
+@@ -688,7 +688,9 @@
+     int k,
+     Graph* graph,
+     const c10::optional<at::Tensor>& t_ptr,
+-    int t_seq
++    int t_seq,
++    const c10::optional<at::Tensor>& private_ws,
++    int geometry_T
+ )
+ {
+     const at::cuda::OptionalCUDAGuard device_guard(scores.device());
+@@ -711,15 +713,16 @@
+     // split each row into G span-local selections and merge. EXL3_DSA_TOPK_SPLIT=0 forces
+     // the legacy path (A/B testing)
+     static const bool allow_split = [](){ const char* e = getenv("EXL3_DSA_TOPK_SPLIT"); return !(e && *e == '0'); }();
++    int selection_T = geometry_T > 0 ? geometry_T : T;
+     bool split = allow_split && vec && t_seq == 0 &&
+-        R <= TOPK_SPLIT_MAX_R && T >= TOPK_SPLIT_MIN_T && k_pad <= TOPK_SPLIT_MAX_KPAD;
++        R <= TOPK_SPLIT_MAX_R && selection_T >= TOPK_SPLIT_MIN_T && k_pad <= TOPK_SPLIT_MAX_KPAD;
+     if (split)
+     {
+         // Enough spans to cut the candidate count well below T, few enough that the merge
+         // stays cheap. Computed from the launch-time T: graphs capture at full static width,
+         // so replays with a smaller patched T just leave trailing spans empty
+-        int G = min(TOPK_SPLIT_G, max(2, T / (8 * max(k, 1))));
+-        at::Tensor& ws = dsa_topk_ws(scores.device().index());
++        int G = min(TOPK_SPLIT_G, max(2, selection_T / (8 * max(k, 1))));
++        const at::Tensor& ws = private_ws ? private_ws.value() : dsa_topk_ws(scores.device().index());
+         int* ws_idx = (int*) ws.data_ptr();
+         int* ws_cnt = ws_idx + (size_t) TOPK_SPLIT_MAX_R * TOPK_SPLIT_G * TOPK_SPLIT_MAX_KPAD;
+         half* ws_scr = (half*) (ws_cnt + (size_t) TOPK_SPLIT_MAX_R * TOPK_SPLIT_G);
+@@ -932,4 +935,23 @@
+ )
+ {
+     dsa_topk_gr(scores, indices, (int) k, nullptr, t_ptr, (int) t_seq);
++}
++
++void dsa_topk_shadow
++(
++    const at::Tensor& scores,
++    at::Tensor indices,
++    int64_t k,
++    int64_t geometry_T
++)
++{
++    // Allocated on this call's stream, never entered in dsa_topk_ws's per-device map.
++    // Allocate the identical fixed layout so pointer arithmetic and kernels stay identical.
++    const at::cuda::OptionalCUDAGuard device_guard(scores.device());
++    at::Tensor ws = at::empty
++    (
++        {(int64_t) TOPK_SPLIT_MAX_R * TOPK_SPLIT_G * TOPK_SPLIT_MAX_KPAD * 3 / 2 + TOPK_SPLIT_MAX_R * TOPK_SPLIT_G},
++        scores.options().dtype(at::kInt)
++    );
++    dsa_topk_gr(scores, indices, (int) k, nullptr, {}, 0, ws, (int) geometry_T);
+ }
+diff -ruN base/exllamav3/exllamav3_ext/dsa_topk.cuh src/exllamav3/exllamav3_ext/dsa_topk.cuh
+--- base/exllamav3/exllamav3_ext/dsa_topk.cuh	2026-09-27 12:31:50
++++ src/exllamav3/exllamav3_ext/dsa_topk.cuh	2026-10-08 13:52:34
+@@ -11,7 +11,9 @@
+     int k,
+     Graph* graph,
+     const c10::optional<at::Tensor>& t_ptr = {},
+-    int t_seq = 0
++    int t_seq = 0,
++    const c10::optional<at::Tensor>& private_ws = {},
++    int geometry_T = 0
+ );
+ 
+ void dsa_topk
+@@ -21,6 +23,16 @@
+     int64_t k,
+     const c10::optional<at::Tensor>& t_ptr,
+     int64_t t_seq
++);
++
++// Test-only oracle: identical selector with owned scratch, optionally matching a graph's
++// captured scan geometry while scores.size(1) supplies its live patched scan bound.
++void dsa_topk_shadow
++(
++    const at::Tensor& scores,
++    at::Tensor indices,
++    int64_t k,
++    int64_t geometry_T
+ );
+ 
+ void dsa_topk_tile
+diff -ruN base/exllamav3/generator/generator.py src/exllamav3/generator/generator.py
+--- base/exllamav3/generator/generator.py	2026-10-08 10:24:34
++++ src/exllamav3/generator/generator.py	2026-10-08 13:28:49
+@@ -34,8 +34,13 @@
+ from ..tokenizer import MMEmbedding
+ from ..util import profile_opt
+ from ..util import mtp_phase
++from ..cache.mla_index_ring import INDEX_RING, INDEX_RING_SHADOW
+ 
++def draft_rings_enabled(cache):
++    return INDEX_RING and cache is not None and any(
++        getattr(s, "index_ring_enabled", False) for s in cache.layers.values())
+ 
++
+ # Round-4 decode ports. All are literal opt-ins so an unset environment follows
+ # the served branches and preserves served output bytes.
+ _DRAFT_PINNED_STAGING = os.environ.get("EXL3_DRAFT_PINNED_STAGING", "0") == "1"
+@@ -289,6 +294,16 @@
+         # Chunking/partitioning
+         self.max_batch_size = max_batch_size
+         self.max_chunk_size = max_chunk_size
++        from ..cache.mla_index_ring import MLAIndexRingState
++        target_rings = [s for s in cache.get_all_recurrent_layers().values() if isinstance(s, MLAIndexRingState)]
++        draft_rings = [s for s in draft_cache.get_all_recurrent_layers().values() if isinstance(s, MLAIndexRingState)] if draft_cache else []
++        for state in target_rings + draft_rings:
++            if max(max_chunk_size, self.max_num_draft_tokens + 1) > state.max_chunk_size:
++                raise ValueError("Generator chunk/verify exceeds model.load ring bound; reload with a larger chunk")
++        if draft_rings:
++            if not target_rings or any(s.max_batch_size < cache.num_slots for s in draft_rings):
++                raise ValueError("MTP rings require target slots and sufficient draft ring capacity")
++            target_rings[0].peers = tuple(draft_rings)
+ 
+         # Job queues
+         self.job_serial = 0
+@@ -445,7 +460,13 @@
+         if _EMBED_GPU_PRUNED:
+             self._pruned_embed = self._prepare_pruned_embed()
+ 
++        from ..cache.mla_index_ring import INDEX_RING_SHADOW
++        if INDEX_RING_SHADOW:
++            from ..cache.mla_index_shadow import STATS
++            STATS.active = True
++            STATS.summary("generator_ready")
+ 
++
+     def num_remaining_jobs(self):
+         return len(self.pending_jobs) + len(self.active_jobs)
+ 
+@@ -738,6 +759,11 @@
+ 
+         results = []
+         self.iterate_start_jobs(results)
++        if INDEX_RING_SHADOW:
++            from ..cache.mla_index_shadow import STATS
++            ready = [job.is_prefill_done() for job in self.active_jobs]
++            if any(ready) and not all(ready):
++                STATS.event("mixed_prefill_decode")
+ 
+         # Perform one round of prefill
+         for job in list(self.active_jobs):
+@@ -837,6 +863,9 @@
+         glibc is retaining from stash/offload churn (issue #277) — sub-threshold residue would otherwise sit
+         in the arenas for the whole idle period.
+         """
++        if INDEX_RING_SHADOW:
++            from ..cache.mla_index_shadow import STATS
++            STATS.summary("idle")
+         if self.disk_page_cache is not None:
+             self.disk_page_cache.on_busy()
+         if self.recurrent_cache is not None:
+@@ -1328,6 +1357,7 @@
+                 "block_table": draft_block_index,
+                 "cache": self.draft_cache,
+                 "cache_seqlens": step_seqlens,
++                "_index_ring_slots": tuple(job.recurrent_state.slot for job in batch_row_jobs) if draft_rings_enabled(self.draft_cache) else None,
+                 "draft_step": idx,   # heads specialized per depth pick their head from this
+             })
+             if cal is not None:
+@@ -2232,6 +2262,7 @@
+                         "cache": self.draft_cache,
+                         "cache_seqlens": accept_seqlens,
+                         "target_hidden": target_hidden[group_rows, :seq_w],
++                        "_index_ring_slots": tuple(batch_row_jobs[r].recurrent_state.slot for r in group_rows) if draft_rings_enabled(self.draft_cache) else None,
+                     }
+                     if _DRAFT_PINNED_STAGING:
+                         accept_params["pinned_staging_slot"] = f"mtp_accept_{g}"
+diff -ruN base/exllamav3/generator/job.py src/exllamav3/generator/job.py
+--- base/exllamav3/generator/job.py	2026-10-08 10:24:34
++++ src/exllamav3/generator/job.py	2026-10-08 13:28:49
+@@ -1483,6 +1483,7 @@
+                         input_ids = prefill_ids,
+                         params = {
+                             "target_hidden": shifted_hidden,
++                            "_index_ring_slots": (self.recurrent_state.slot,) if self.recurrent_state is not None else None,
+                             "attn_mode": "flash_attn",
+                             "block_table": draft_block_table if draft_block_table is not None else seq.block_index_tensor,
+                             "cache": self.generator.draft_cache,
+@@ -1584,6 +1585,10 @@
+                     self.last_recurrent_checkpoint_pos = self.recurrent_state.position
+ 
+             # Metrics
++            from ..cache.mla_index_ring import INDEX_RING_SHADOW
++            if INDEX_RING_SHADOW and cached_pages:
++                from ..cache.mla_index_shadow import STATS
++                STATS.event("prefix_hit", cached_pages)
+             self.cached_pages += cached_pages
+             self.total_pages += allocated_pages
+             self.non_sequential_pages += non_sequential_pages
+diff -ruN base/exllamav3/generator/pagetable.py src/exllamav3/generator/pagetable.py
+--- base/exllamav3/generator/pagetable.py	2026-10-01 16:05:00
++++ src/exllamav3/generator/pagetable.py	2026-10-08 14:04:02
+@@ -1,4 +1,5 @@
+ from __future__ import annotations
++from ..cache.mla_index_ring import INDEX_RING_SHADOW
+ from exllamav3 import cache_trace as r823_trace
+ import os
+ from functools import lru_cache
+@@ -136,6 +137,9 @@
+     # Increase reference count and clear page
+     def add_ref_clear(self, serial, newhash):
+         assert self.ref_count == 0
++        if INDEX_RING_SHADOW and getattr(self, "_ring_was_freed", False):
++            from ..cache.mla_index_shadow import STATS
++            STATS.event("page_reuse")
+         del self.pagetable.unreferenced_pages[self.phash]
+         self.phash = newhash
+         assert self.phash not in self.pagetable.referenced_pages
+@@ -150,6 +154,9 @@
+     def add_ref_unique(self, serial):
+         self.backup()
+         assert self.ref_count == 0
++        if INDEX_RING_SHADOW and getattr(self, "_ring_was_freed", False):
++            from ..cache.mla_index_shadow import STATS
++            STATS.event("page_reuse")
+         del self.pagetable.unreferenced_pages[self.phash]
+         self.phash = _randomhash()
+         assert self.phash not in self.pagetable.referenced_pages
+@@ -163,6 +170,8 @@
+     def sub_ref(self):
+         self.ref_count -= 1
+         if self.ref_count == 0:
++            if INDEX_RING_SHADOW and self.kv_position > 0:
++                self._ring_was_freed = True
+             del self.pagetable.referenced_pages[self.phash]
+             if self.can_revert:
+                 self.revert()
+diff -ruN base/exllamav3/model/model.py src/exllamav3/model/model.py
+--- base/exllamav3/model/model.py	2026-09-27 12:31:50
++++ src/exllamav3/model/model.py	2026-10-08 13:20:59
+@@ -536,6 +536,14 @@
+             "Cannot specify both memory usage and memory reserve."
+ 
+         assert max_chunk_size >= 1, "max_chunk_size must be positive"
++        # Size index rings before autosplit/TP storage accounting and allocations.
++        from ..cache.mla_index_ring import MLAIndexRingState
++        for ref in self.cache_weakrefs.values():
++            cache = ref()
++            if cache is not None:
++                for state in cache.get_all_recurrent_layers().values():
++                    if isinstance(state, MLAIndexRingState):
++                        state.configure(max_chunk_size)
+         assert max_output_size >= 1, "max_output_size must be positive"
+         assert max_output_factor >= 1, "max_output_factor must be positive"
+ 
+diff -ruN base/exllamav3/model/model_ls.py src/exllamav3/model/model_ls.py
+--- base/exllamav3/model/model_ls.py	2026-10-08 10:24:34
++++ src/exllamav3/model/model_ls.py	2026-10-08 13:29:18
+@@ -146,7 +146,7 @@
+                 })
+                 prepare_for_attn(torch.zeros((1, max_chunk_size), dtype = torch.long), params)
+                 rl = [m for m in self if m.caps.get("recurrent_cache")]
+-                if rl:
++                if rl and cache.recurrent_state_cls is not None:
+                     prepare_for_recurrence(None, params, self)
+ 
+         recurrent_states = params.get("recurrent_states")
+@@ -445,4 +445,3 @@
+                 mtp_phase.active().stop(device_phase)
+             ctx.restore()
+         return x
+-
+diff -ruN base/exllamav3/modules/attention_fn/bc_attn.py src/exllamav3/modules/attention_fn/bc_attn.py
+--- base/exllamav3/modules/attention_fn/bc_attn.py	2026-09-27 12:31:50
++++ src/exllamav3/modules/attention_fn/bc_attn.py	2026-10-08 13:20:59
+@@ -523,8 +523,8 @@
+             k_raw_append = _compile_kernel(dev, _mla_plane_update_kernel,
+                 {"rows_new": "*fp16", "plane_cache": "*fp16", "block_table": "*i32",
+                  "cache_seqlens": "*i32", "num_pages_per_seq": "i32", "append_len": "i32"}
+-                | {n: "constexpr" for n in ("page_size", "D", "DST_D", "DST_OFF")},
+-                dict(page_size = PAGE_SIZE, D = Di, DST_D = 0, DST_OFF = 0), 2, 2)
++                | {n: "constexpr" for n in ("page_size", "D", "DST_D", "DST_OFF", "RING_ROWS")},
++                dict(page_size = PAGE_SIZE, D = Di, DST_D = 0, DST_OFF = 0, RING_ROWS = 0), 2, 2)
+ 
+             k_pool_update = _compile_kernel(dev, _qsa_pool_update_kernel,
+                 {"raw_plane": "*fp16", "pool_plane": "*fp16", "k_norm_w": "*fp16",
+diff -ruN base/exllamav3/modules/attention_fn/bc_mla.py src/exllamav3/modules/attention_fn/bc_mla.py
+--- base/exllamav3/modules/attention_fn/bc_mla.py	2026-09-27 12:31:50
++++ src/exllamav3/modules/attention_fn/bc_mla.py	2026-10-08 13:27:40
+@@ -28,10 +28,17 @@
+     collects the projection/norm/rope/cache/flat handles at construction and compiles +
+     registers the per-slot kernels lazily."""
+ 
+-    def __init__(self, module, layer):
++    def __init__(self, module, layer, ring_slot=None):
+         from ...cache.mla import CacheLayer_MLA_quant
+ 
+         self.module = module
++        self.shadow = layer.shadow
++        self.ring_slot = ring_slot
++        self.shadow_buffers = {}
++        self.shadow_runs = {}
++        self.ring_rows = layer.index_ring.rows if layer.index_ring is not None else 0
++        if self.ring_rows and ring_slot is None:
++            raise ValueError("Native index ring needs an explicit slot")
+         # module.device may be a plain string or int; normalize (torch.device is idempotent)
+         self.device = torch.device(module.device)
+         m = module
+@@ -127,7 +134,7 @@
+         # pooled keys in a second plane; only full-indexer layers do kpool work
+         self.index_kpool = m.index_kpool if m.indexer_mode == "full" else 0
+         if m.indexer_mode == "full":
+-            self.cache_kidx = layer.get_idx()
++            self.cache_kidx = layer.get_idx(ring_slot)
+             self.idx_norm_eps = m.idx_k_norm.layernorm_eps
+             if self.index_kpool:
+                 self.cache_kpool = layer.get_pool()
+@@ -365,10 +372,10 @@
+                 dict(eps = float(self.idx_norm_eps), D = Di), 2, 1)
+             plane_sig = {"rows_new": "*fp16", "plane_cache": "*fp16", "block_table": "*i32",
+                  "cache_seqlens": "*i32", "num_pages_per_seq": "i32", "append_len": "i32"} \
+-                | {n: "constexpr" for n in ("page_size", "D", "DST_D", "DST_OFF")}
++                | {n: "constexpr" for n in ("page_size", "D", "DST_D", "DST_OFF", "RING_ROWS")}
+             k_plane_append = _compile_kernel(dev, _mla_plane_update_kernel, plane_sig,
+                 dict(page_size = PAGE_SIZE, D = Di,
+-                     DST_D = 2 * Di if P else 0, DST_OFF = 0), 2, 2)
++                     DST_D = 2 * Di if P else 0, DST_OFF = 0, RING_ROWS = self.ring_rows), 2, 2)
+ 
+         gidx = pool_idx = None
+         k_gate_append = k_pool_update = k_pool_expand = None
+@@ -377,13 +384,15 @@
+             gidx = sbuf("bcm_gidx", R_pad, Di)
+             gidx.zero_()
+             k_gate_append = _compile_kernel(dev, _mla_plane_update_kernel, plane_sig,
+-                dict(page_size = PAGE_SIZE, D = Di, DST_D = 2 * Di, DST_OFF = Di), 2, 2)
++                dict(page_size = PAGE_SIZE, D = Di, DST_D = 2 * Di, DST_OFF = Di,
++                     RING_ROWS = self.ring_rows), 2, 2)
+             k_pool_update = _compile_kernel(dev, _dsa_pool_update_kernel,
+                 {"plane": "*fp16", "pool_plane": "*fp16", "ape": "*fp32",
+                  "block_table": "*i32", "cache_seqlens": "*i32",
+                  "num_pages_per_row": "i32", "append_len": "i32"}
+-                | {n: "constexpr" for n in ("page_size", "P", "D", "MAXPOOLS")},
+-                dict(page_size = PAGE_SIZE, P = P, D = Di, MAXPOOLS = q_len // P + 1), 2, 1)
++                | {n: "constexpr" for n in ("page_size", "P", "D", "MAXPOOLS", "RING_ROWS")},
++                dict(page_size = PAGE_SIZE, P = P, D = Di, MAXPOOLS = q_len // P + 1,
++                     RING_ROWS = self.ring_rows), 2, 1)
+ 
+         indices = dsa_arr = ws_ml = ws_acc = None
+         k_dsa_split = k_dsa_combine = None
+@@ -498,6 +507,8 @@
+             )
+             k_dsa_combine = _compile_kernel(dev, _dsa_attn_combine_kernel, sig_c, consts_c, 4, 2)
+ 
++        if self.shadow is not None and full and P:
++            self.shadow_buffers[(bsz, q_len, regime)] = (kidx_n, gidx, qidx, wts, scores, indices, pool_idx)
+         self.bc.configure_slot_dsa(
+             bsz, q_len, regime, x_st, kidx, kidx_n, qidx, wts, scores, indices,
+             dsa_arr, ws_ml, ws_acc, k_idx_norm, k_plane_append, k_fewq,
+@@ -551,6 +562,13 @@
+         y = torch.empty((bsz, q_len, self.hidden_size), dtype = self.o_dtype, device = x.device)
+         self.bc.run(bsz, q_len, x, y, cache_seqlens, block_table, position, positions,
+                     position_ids, regime, t_total, ext_indices)
++        if self.shadow is not None:
++            shape = (bsz, q_len, regime)
++            previous = self.shadow_runs.get(shape, 0)
++            self.shadow.native(self.module, self.shadow_buffers[shape], block_table, cache_seqlens,
++                               params["_mla_host_seqlens"], q_len, (self.ring_slot,),
++                               "native_eager" if previous == 0 else "cuda_graph", params)
++            self.shadow_runs[shape] = previous + 1
+         if regime and self.indexer_mode == "full":
+             params["dsa_topk_indices"] = self.slot_indices[(bsz, q_len)]
+         return y
+@@ -567,7 +585,7 @@
+     )
+ 
+ 
+-def build_bc_mla(module, layer):
++def build_bc_mla(module, layer, ring_slot=None):
+     """Build a BCMLA for the module/cache-layer pair, or return None when the configuration is
+     not supported (caller falls back to the dispatch path)."""
+     from ...cache.mla import CacheLayer_MLA_fp16, CacheLayer_MLA_quant
+@@ -634,6 +652,6 @@
+     ):
+         _trace_build(m, None, "mla")
+         return None
+-    bcm = BCMLA(m, layer)
++    bcm = BCMLA(m, layer, ring_slot)
+     _trace_build(m, bcm, "mla")
+     return bcm
+diff -ruN base/exllamav3/modules/attention_fn/dsa_triton.py src/exllamav3/modules/attention_fn/dsa_triton.py
+--- base/exllamav3/modules/attention_fn/dsa_triton.py	2026-09-27 12:31:50
++++ src/exllamav3/modules/attention_fn/dsa_triton.py	2026-10-08 13:20:59
+@@ -749,6 +749,7 @@
+     P: tl.constexpr,     # tokens per pool
+     D: tl.constexpr,
+     MAXPOOLS: tl.constexpr,   # grid height: append_len // P + 1
++    RING_ROWS: tl.constexpr = 0,
+ ):
+     """(Re)build the pooled keys touched by this append: softmax(gate + ape) over the
+     pool's present members, weighted mean of their keys. Branch-free w.r.t. pool
+@@ -771,8 +772,11 @@
+     for j in range(P):
+         tok = pool * P + j
+         if tok < t_end:
+-            phys = tl.load(bt + tok // page_size)
+-            row = phys * page_size + tok % page_size
++            if RING_ROWS:
++                row = b * RING_ROWS + tok % RING_ROWS
++            else:
++                phys = tl.load(bt + tok // page_size)
++                row = phys * page_size + tok % page_size
+             gv = tl.load(plane + row * (2 * D) + D + offs_d).to(tl.float32) \
+                + tl.load(ape + j * D + offs_d).to(tl.float32)
+             m = tl.maximum(m, gv)
+@@ -781,8 +785,11 @@
+     for j in range(P):
+         tok = pool * P + j
+         if tok < t_end:
+-            phys = tl.load(bt + tok // page_size)
+-            row = phys * page_size + tok % page_size
++            if RING_ROWS:
++                row = b * RING_ROWS + tok % RING_ROWS
++            else:
++                phys = tl.load(bt + tok // page_size)
++                row = phys * page_size + tok % page_size
+             gv = tl.load(plane + row * (2 * D) + D + offs_d).to(tl.float32) \
+                + tl.load(ape + j * D + offs_d).to(tl.float32)
+             e = tl.exp(gv - m)
+diff -ruN base/exllamav3/modules/attention_fn/mla_triton.py src/exllamav3/modules/attention_fn/mla_triton.py
+--- base/exllamav3/modules/attention_fn/mla_triton.py	2026-09-27 12:31:50
++++ src/exllamav3/modules/attention_fn/mla_triton.py	2026-10-08 13:20:59
+@@ -159,6 +159,7 @@
+     D: tl.constexpr,
+     DST_D: tl.constexpr = 0,   # plane row width when packing (0 = D); rows land at DST_OFF
+     DST_OFF: tl.constexpr = 0,
++    RING_ROWS: tl.constexpr = 0,
+ ):
+     """Single-plane variant of _mla_kv_update_kernel, for the per-token indexer-key rows
+     of DSA-on-MLA layers (GLM-5.2). The DST_D/DST_OFF variant packs a D-wide source into
+@@ -168,10 +169,13 @@
+     pos = row - batch * append_len
+ 
+     abs_pos = tl.load(cache_seqlens + batch) + pos
+-    page = abs_pos // page_size
+-    page_off = abs_pos - page * page_size
+-    phys = tl.load(block_table + batch * num_pages_per_seq + page)
+-    tok = phys * page_size + page_off
++    if RING_ROWS:
++        tok = batch * RING_ROWS + abs_pos % RING_ROWS
++    else:
++        page = abs_pos // page_size
++        page_off = abs_pos - page * page_size
++        phys = tl.load(block_table + batch * num_pages_per_seq + page)
++        tok = phys * page_size + page_off
+ 
+     offs = tl.arange(0, D)
+     dst_d = DST_D if DST_D > 0 else D
+@@ -815,6 +819,7 @@
+     plane_cache: torch.Tensor,  # (pages, page_size, D) or any layout flattening to that
+     block_table: torch.Tensor,
+     cache_seqlens: torch.Tensor,
++    ring_rows: int = 0,
+ ):
+     """Append per-token rows to a paged fp16 side plane (DSA indexer keys)."""
+     bsz, length, D = rows_new.shape
+@@ -824,7 +829,7 @@
+     with torch.cuda.device(rows_new.device):
+         _mla_plane_update_kernel[(bsz * length,)](
+             rows_new.contiguous(), plane_cache, block_table, cache_seqlens,
+-            block_table.shape[1], length, page_size, D,
++            block_table.shape[1], length, page_size, D, RING_ROWS=ring_rows,
+             num_warps = 2, num_stages = 2,
+         )
+     _dbg_sync("mla_plane_append", rows_new.device)
+diff -ruN base/exllamav3/modules/gated_delta_net.py src/exllamav3/modules/gated_delta_net.py
+--- base/exllamav3/modules/gated_delta_net.py	2026-10-08 10:24:34
++++ src/exllamav3/modules/gated_delta_net.py	2026-10-08 13:30:11
+@@ -97,6 +97,12 @@
+ 
+ def cached_rewind_jobs(state, layers, num_tokens):
+     layers = tuple(layers)
++    # Rings only validate the retained window. Keep the daily's cached GDN descriptors.
++    rings = tuple(l for l in layers if getattr(l, "is_index_ring", False))
++    if rings:
++        for l in rings:
++            l.rewind(state.slot, state.last_history, num_tokens)
++        layers = tuple(l for l in layers if not getattr(l, "is_index_ring", False))
+     if not all(isinstance(l, GDNLayerState) for l in layers):
+         return _collect_rewind_jobs(layers, state.slot, state.last_history, num_tokens)
+     tensors = tuple(t for l in layers for t in (l.conv_state, l.recurrent_state))
+@@ -207,10 +213,10 @@
+         }
+         if not self.cache.model.loaded_tp:
+             for k, l in self.cache.get_all_recurrent_layers().items():
+-                stashed[k] = l.stash(self.slot)
++                stashed[k] = l.stash(self.slot, self.position)
+         else:
+             cp_handle = new_checkpoint_handle()
+-            self.cache.model.tp_dispatch_all(mp_cache_recurrent_stash, (id(self.cache), cp_handle, self.slot))
++            self.cache.model.tp_dispatch_all(mp_cache_recurrent_stash, (id(self.cache), cp_handle, self.slot, self.position))
+             stashed["tp_handle"] = cp_handle
+         return stashed
+ 
+@@ -220,10 +226,10 @@
+         _pm.wait_stash(stashed)   # an EXL3_STASH_ASYNC stash may still be filling; a no-op for any other stash
+         if not self.cache.model.loaded_tp:
+             for k, l in self.cache.get_all_recurrent_layers().items():
+-                l.unstash(self.slot, stashed[k])
++                l.unstash(self.slot, stashed[k], self.position)
+         else:
+             cp_handle = stashed["tp_handle"]
+-            self.cache.model.tp_dispatch_all(mp_cache_recurrent_unstash, (id(self.cache), cp_handle, self.slot))
++            self.cache.model.tp_dispatch_all(mp_cache_recurrent_unstash, (id(self.cache), cp_handle, self.slot, self.position))
+ 
+ 
+     def post_advance(self):
+diff -ruN base/exllamav3/modules/mla_attn.py src/exllamav3/modules/mla_attn.py
+--- base/exllamav3/modules/mla_attn.py	2026-09-27 12:31:50
++++ src/exllamav3/modules/mla_attn.py	2026-10-08 13:52:34
+@@ -182,6 +182,8 @@
+         self.idx_k_norm = None
+         self.idx_weights = None
+ 
++        self.recurrent_layers = []
++        self.tp_recurrent_lookup = {}
+         self.cache_layers = []
+         self.tp_cache_lookup = {}
+         self.has_split_cache = False
+@@ -275,9 +277,13 @@
+                 qmap = None, out_dtype = torch.half, pad_to = 1,
+             ))
+ 
+-        self.caps.update({
+-            "kv_cache": True
+-        })
++        self.caps.update({"kv_cache": True})
++        from ..cache.mla_index_ring import INDEX_RING, INDEX_RING_SHADOW, MLAIndexRingState
++        self.index_ring_enabled = INDEX_RING and indexer_mode == "full" and bool(index_kpool)
++        self.index_ring_shadow = self.index_ring_enabled and INDEX_RING_SHADOW
++        if self.index_ring_enabled:
++            self.layer_state_cls = MLAIndexRingState
++            self.caps["recurrent_cache"] = True
+ 
+ 
+ 
+@@ -331,6 +337,8 @@
+         if self.num_q_heads == 0:
+             return
+ 
++        for rl in self.recurrent_layers:
++            rl.alloc(device)
+         for cl in self.cache_layers:
+             cl.alloc(device)
+ 
+@@ -418,6 +426,8 @@
+         super().unload()
+         for cl in self.cache_layers:
+             cl.free()
++        for rl in self.recurrent_layers:
++            rl.free()
+         self.rope = None
+         self.w_uk_flat = None
+         self.w_uv_flat = None
+@@ -600,7 +610,7 @@
+         return indices
+ 
+ 
+-    def _update_pool_plane(self, idx_layer, block_table, host_seqlens, seqlen):
++    def _update_pool_plane(self, idx_layer, block_table, host_seqlens, seqlen, slots=None):
+         """
+         Incrementally extend the pooled-key plane with the pools completed by this chunk's
+         append. A pool's key is the (gate_scores + APE)-softmax-weighted mean of its
+@@ -622,7 +632,10 @@
+                 continue
+             bt = block_table[b]
+             tok = torch.arange(first_pool * P, last_pool * P, device = plane.device)
+-            rows = bt[tok // epp].long() * epp + tok % epp
++            if idx_layer.index_ring is not None:
++                rows = slots[b] * epp + tok % epp
++            else:
++                rows = bt[tok // epp].long() * epp + tok % epp
+             members = flat[rows].view(n_new, P, 2 * D_i).float()
+             keys, gates = members[..., :D_i], members[..., D_i:]
+             probs = torch.softmax(gates + ape.unsqueeze(0), dim = 1)
+@@ -636,7 +649,7 @@
+ 
+     def _indexer_topk_kpool(self, x, params, q_resid, bsz, seqlen, host_seqlens,
+                             k_idx_chunk = None, idx_pool = None, pool_plane = None,
+-                            block_table = None):
++                            block_table = None, _shadow=None, _shadow_replay=None):
+         """
+         K-pool indexer selection (GLM5.3): scoring and top-k run over pooled keys
+         (index_kpool consecutive tokens per entry), selections expand back to raw indices,
+@@ -651,8 +664,17 @@
+         from ..util.tensor import g_tensor_cache
+ 
+         H_i, D_i, P = self.index_n_heads, self.index_head_dim, self.index_kpool
+-        q_idx = self.idx_wq_b.forward(q_resid, params).view(bsz, seqlen, H_i, D_i).contiguous()
+-        w = self.idx_weights.forward(x, params)
++        if _shadow_replay is None:
++            q_idx = self.idx_wq_b.forward(q_resid, params).view(bsz, seqlen, H_i, D_i).contiguous()
++            w = self.idx_weights.forward(x, params)
++        else:
++            q_idx, w, _recorded = _shadow_replay
++        from ..cache.mla_index_shadow import STATS
++        checking = _shadow is not None and STATS.active
++        score_images = []
++        if checking and _shadow_replay is None:
++            STATS.event("scoring")
++            _shadow.scoring_pools(self, block_table, host_seqlens, seqlen)
+ 
+         t_max = max(host_seqlens) + seqlen
+         sel_pools_max = min(self.index_topk // P, t_max // P)
+@@ -699,26 +721,37 @@
+                         bt = block_table[b]
+                         if t0:
+                             bt = bt[t0 // epp : -(-t1 // epp)]
+-                        return dsa_indexer_scores(
++                        result = dsa_indexer_scores(
+                             q_idx[b, r0:r1], wf[b, r0:r1], pool_plane.view(-1, D_i),
+                             pos0 - t0 * P, P, t1 - t0, scores = scores_out,
+                             block_table = bt, epp = epp,
+                         )
++                        if checking:
++                            if _shadow_replay is None:
++                                score_images.append(result.clone())
++                            else:
++                                _shadow.compare("scores", next(_recorded), result, dict(batch=b, row=r0, tile=t0))
++                        return result
+ 
+                     dev = x.device
+                     # Fixed score-row stride (see _indexer_topk): a constexpr in the kernel
+                     s_stride = -(-t_tile // 128) * 128
+-                    s_backing = g_tensor_cache.get(dev, (slab * s_stride,), torch.half, "dsa_stile")
++                    s_backing = (torch.empty((slab * s_stride,), dtype=torch.half, device=dev) if _shadow_replay is not None
++                                 else g_tensor_cache.get(dev, (slab * s_stride,), torch.half, "dsa_stile"))
+                     kp_sel = -(-k_sel // 32) * 32
+ 
+                     if pools_slab <= t_tile:
+                         sc = tile_scores(0, pools_slab,
+                                          s_backing[: rows * s_stride].view(rows, s_stride))
+                         pool_idx = torch.empty((rows, kp_sel), dtype = torch.int32, device = dev)
+-                        ext.dsa_topk(sc, pool_idx, k_sel, None, 0)
++                        if _shadow_replay is not None:
++                            ext.dsa_topk_shadow(sc, pool_idx, k_sel, 0)
++                        else:
++                            ext.dsa_topk(sc, pool_idx, k_sel, None, 0)
+                         pool_idx = pool_idx[:, :k_sel]
+                     else:
+-                        i_backing = g_tensor_cache.get(dev, (slab * kp_sel,), torch.int32, "dsa_itile")
++                        i_backing = (torch.empty((slab * kp_sel,), dtype=torch.int32, device=dev) if _shadow_replay is not None
++                                     else g_tensor_cache.get(dev, (slab * kp_sel,), torch.int32, "dsa_itile"))
+                         run_scr = torch.full((rows, k_sel), -float("inf"), dtype = torch.half, device = dev)
+                         run_idx = torch.full((rows, k_sel), -1, dtype = torch.int32, device = dev)
+                         for t0 in range(0, pools_slab, t_tile):
+@@ -727,7 +760,10 @@
+                             k_t = min(k_sel, t1 - t0)
+                             kp_t = -(-k_t // 32) * 32
+                             ti = i_backing[: rows * kp_t].view(rows, kp_t)
+-                            ext.dsa_topk(sc, ti, k_t, None, 0)
++                            if _shadow_replay is not None:
++                                ext.dsa_topk_shadow(sc, ti, k_t, 0)
++                            else:
++                                ext.dsa_topk(sc, ti, k_t, None, 0)
+                             t_scr = sc.gather(1, ti.clamp_min(0).long())
+                             t_scr = t_scr.masked_fill(ti < 0, -float("inf"))
+                             t_idx = torch.where(ti >= 0, ti + t0, ti)
+@@ -747,6 +783,12 @@
+                     out_slab[:, : exp.shape[1]] = exp
+                     base_cols = max(base_cols, exp.shape[1])
+                 append_tail(b, base_cols)
++            if checking and _shadow_replay is None:
++                oracle = self._indexer_topk_kpool(
++                    x, params, q_resid, bsz, seqlen, host_seqlens, pool_plane=_shadow.pool,
++                    block_table=block_table, _shadow=_shadow,
++                    _shadow_replay=(q_idx, w, iter(score_images)))
++                _shadow.compare("topk", indices, oracle)
+             return indices
+ 
+         # Cache-less eager path (parity/compare): pools built from the packed chunk rows
+@@ -871,9 +913,18 @@
+         if self.indexer_mode == "full":
+             k_idx = self._indexer_keys(x, params, position, positions, position_ids, inv_freq)
+             if idx_layer is not None:
+-                idx_layer.update_idx_direct(cache_seqlens, block_table, k_idx, seqlen)
++                slots = None
++                if idx_layer.index_ring is not None:
++                    from ..cache.mla_index_ring import ring_slots
++                    slots = ring_slots(params, bsz)
++                idx_layer.update_idx_direct(cache_seqlens, block_table, k_idx, seqlen, slots)
+                 if self.index_kpool:
+-                    self._update_pool_plane(idx_layer, block_table, host_seqlens, seqlen)
++                    self._update_pool_plane(idx_layer, block_table, host_seqlens, seqlen, slots)
++                    if idx_layer.shadow is not None:
++                        shadow = idx_layer.shadow
++                        self._update_pool_plane(shadow, block_table, host_seqlens, seqlen)
++                        shadow.begin(self, block_table, host_seqlens, seqlen, slots, "dispatch", params)
++                        shadow.pools(self, block_table, host_seqlens, seqlen)
+ 
+         if sparse:
+             if self.indexer_mode == "full":
+@@ -883,6 +934,7 @@
+                         k_idx_chunk = k_idx if idx_layer is None else None,
+                         pool_plane = idx_layer.get_pool() if idx_layer is not None else None,
+                         block_table = block_table,
++                        _shadow = idx_layer.shadow if idx_layer is not None else None,
+                     )
+                 else:
+                     indices = self._indexer_topk(
+@@ -1049,11 +1101,24 @@
+     def bc_mla_step(self, x, params, layer, block_table, cache_seqlens):
+         """Graph-captured decode block, or None when the module/cache-layer pair is not
+         supported (caller falls back to the dispatch path)."""
+-        key = ("bcm", id(layer))
++        ring_slot = None
++        if layer.index_ring is not None:
++            # The native pooled path is single-sequence. Bind each graph to that
++            # recurrent slot's ring view; c2+ uses the existing eager fallback.
++            from ..cache.mla_index_ring import ring_slots
++            slots = ring_slots(params, x.shape[0])
++            if x.shape[0] != 1:
++                return None
++            if x.shape[1] > layer.index_ring.max_chunk_size:
++                raise ValueError("Forward exceeds the index ring's configured chunk")
++            ring_slot = slots[0]
++            if not 0 <= ring_slot < layer.index_ring.max_batch_size:
++                raise ValueError("Invalid native index ring slot")
++        key = ("bcm", id(layer), ring_slot) if ring_slot is not None else ("bcm", id(layer))
+         bcm = self.dispatch_cache.get(key)
+         if bcm is None:
+             from .attention_fn.bc_mla import build_bc_mla
+-            bcm = self.dispatch_cache[key] = ((build_bc_mla(self, layer) if _bc_mla_enable else None) or False)
++            bcm = self.dispatch_cache[key] = ((build_bc_mla(self, layer, ring_slot) if _bc_mla_enable else None) or False)
+         if bcm is False:
+             return None
+         if self.indexer_mode is not None:
+@@ -1134,11 +1199,12 @@
+         # Decode statics: every buffer the (bsz <= MAX_BSZ, q_len <= 16) slot family can
+         # request, both regimes. Backings are bucketed and shared across slots and layers,
+         # so configuring the largest and smallest shapes bounds the whole family
+-        key = ("bcm", id(layer))
++        ring_slot = 0 if layer.index_ring is not None else None
++        key = ("bcm", id(layer), ring_slot) if ring_slot is not None else ("bcm", id(layer))
+         bcm = self.dispatch_cache.get(key)
+         if bcm is None:
+             from .attention_fn.bc_mla import build_bc_mla
+-            bcm = build_bc_mla(self, layer)
++            bcm = build_bc_mla(self, layer, ring_slot)
+         if bcm:
+             from .attention_fn.bc_attn import MAX_BSZ
+             regimes = (0, 1) if self.indexer_mode is not None else (0,)
+@@ -1215,6 +1281,8 @@
+                 storage += sum(stc.get_tensor_sizes(f"{self.key}.{self.key_indexer}.{n}"))
+         for cl in self.cache_layers:
+             storage += cl.storage_size()
++        for rl in self.recurrent_layers:
++            storage += rl.storage_size()
+         overhead_d = self.hidden_size * (self.out_dtype or torch.half).itemsize
+         overhead_s = 0
+         for cl in self.cache_layers:
+@@ -1283,6 +1351,7 @@
+             **{name: (producer.send(t) if (t := getattr(self, name)) is not None else None)
+                for name in self._tp_tensors},
+             "cache_layers": [cl.tp_export(plan) for cl in self.cache_layers],
++            "recurrent_layers": [rl.tp_export(plan) for rl in self.recurrent_layers],
+             "device": self.device,
+         }
+ 
+@@ -1325,6 +1394,11 @@
+                     cli = cl["cls"](None, module, **cl["args"])
+                     module.cache_layers.append(cli)
+                     module.tp_cache_lookup[cl["args"]["cache_id"]] = cli
++            for rl in exported.get("recurrent_layers", []):
++                rli = rl["cls"](module, **rl["args"])
++                module.recurrent_layers.append(rli)
++                module.tp_recurrent_lookup[rli.cache_id] = rli
++                module.tp_cache_lookup[rli.cache_id].index_ring = rli
+ 
+         if not kwargs.get("skip_reduction"):
+             module.tp_reduce = True

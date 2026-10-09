@@ -1,0 +1,40 @@
+GPU lock held; results /srv/qwen5090/results/2026-10-09-r929-glm53-ring-splitdev-061402; pinned daily tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2 (100,104)
+K test_kernels cuda:0 rc=0 PASS slots=8 chunk=2048 ring_rows=2304
+K test_graph_shadow cuda:0 rc=0 [RING-SHADOW] calls=24 compared_rows=8052 mismatches=252 layers=1 coverage={"native_eager":12,"c1":24,"decode":24,"verify2":24,"mtp_draft":24,"scoring":24,"cuda
+K test_dispatch_shadow cuda:0 rc=0 [RING-SHADOW] calls=6 compared_rows=36296 mismatches=0 layers=1 coverage={"dispatch":6,"c4":6,"prefill":5,"decode":1,"verify2":1,"ragged":1,"scoring":4} kinds={
+K test_kernels cuda:1 rc=0 PASS slots=8 chunk=2048 ring_rows=2304
+K test_graph_shadow cuda:1 rc=0 [RING-SHADOW] calls=24 compared_rows=8052 mismatches=252 layers=1 coverage={"native_eager":12,"c1":24,"decode":24,"verify2":24,"mtp_draft":24,"scoring":24,"cuda
+K test_dispatch_shadow cuda:1 rc=0 [RING-SHADOW] calls=6 compared_rows=36296 mismatches=0 layers=1 coverage={"dispatch":6,"c4":6,"prefill":5,"decode":1,"verify2":1,"ragged":1,"scoring":4} kinds={
+VERDICT R929 kernel PASS on both GPUs
+SH TRY: image=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2_ring3 split=108,112 ring=1 shadow=1 pool=262144
+SH free MiB (warmup): GPU0=1703 GPU1=61
+SH 108,112 warm headroom REJECT (1703/61 MiB); trying next pair
+SH TRY: image=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2_ring3 split=108,116 ring=1 shadow=1 pool=262144
+SH free MiB (warmup): GPU0=1701 GPU1=579
+SH selected 108,116 (warm headroom 1701/579 MiB)
+SH traffic: serve_workload --mode shadow --minutes 15, pool=262144
+SH workload rc=0 stop rc=0 check rc=0; verdict /srv/qwen5090/results/2026-10-09-r929-glm53-ring-splitdev-061402/SH/verdict.json
+VERDICT R929 shadow PASS: zero mismatched bytes and all required served paths/layers
+A1 TRY: image=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2 split=100,104 ring=0 shadow=0 pool=262144
+A1 free MiB (warmup): GPU0=847 GPU1=365
+A1 c1 score 64.4 t/s: code 60.0 (acc 0.87); prose 68.9 (acc 0.63); chat 72.2 (acc 0.68); html 66.0 (acc 0.74); edit 54.7 (acc 0.95)
+A1 server step rc=0: c1 n=10 ms/step=27.57 tok/step=1.758 ms/tok=15.68
+A1 free MiB (final): GPU0=839 GPU1=363
+A1 measurement rc=0; c1 score /srv/qwen5090/results/2026-10-09-r929-glm53-ring-splitdev-061402/A1/c1-score.txt, distinct /srv/qwen5090/results/2026-10-09-r929-glm53-ring-splitdev-061402/A1/dec.jsonl
+B-96-100 TRY: image=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2_ring3 split=96,100 ring=1 shadow=0 pool=262144
+B-96-100 free MiB (warmup): GPU0=1073 GPU1=549
+B-96-100 selected: first pair with warm headroom >=450/300 MiB
+B-96-100 c1 score 66.3 t/s: code 63.8 (acc 0.86); prose 70.4 (acc 0.64); chat 73.4 (acc 0.69); html 66.4 (acc 0.65); edit 57.6 (acc 0.89)
+B-96-100 server step rc=0: c1 n=10 ms/step=26.28 tok/step=1.723 ms/tok=15.25
+B-96-100 free MiB (final): GPU0=1061 GPU1=545
+B-96-100 measurement rc=0; c1 score /srv/qwen5090/results/2026-10-09-r929-glm53-ring-splitdev-061402/B-96-100/c1-score.txt, distinct /srv/qwen5090/results/2026-10-09-r929-glm53-ring-splitdev-061402/B-96-100/dec.jsonl
+B capacity: lowest boot=96,100, lowest warm headroom=96,100; pool=262144
+A2 TRY: image=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2 split=100,104 ring=0 shadow=0 pool=262144
+A2 free MiB (warmup): GPU0=847 GPU1=365
+A2 c1 score 64.6 t/s: code 61.3 (acc 0.85); prose 68.3 (acc 0.62); chat 72.5 (acc 0.67); html 65.3 (acc 0.64); edit 55.7 (acc 0.93)
+A2 server step rc=0: c1 n=10 ms/step=26.80 tok/step=1.715 ms/tok=15.63
+A2 free MiB (final): GPU0=833 GPU1=357
+A2 measurement rc=0; c1 score /srv/qwen5090/results/2026-10-09-r929-glm53-ring-splitdev-061402/A2/c1-score.txt, distinct /srv/qwen5090/results/2026-10-09-r929-glm53-ring-splitdev-061402/A2/dec.jsonl
+VERDICT R929 ABA COMPLETE: A1(100,104/off), B-96-100(96,100/on), A2(100,104/off); see aba.json
+unit used 40 min after build; daily restoration is arms_init's EXIT cleanup
+No automatic promotion. Compare c1 scores/server steps and B vs both daily controls; exactness is SH verdict.

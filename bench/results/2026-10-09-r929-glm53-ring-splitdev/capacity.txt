@@ -1,0 +1,4 @@
+lowest_boot=96,100
+lowest_warm_headroom=96,100
+B_tag=B-96-100
+B_rc=0

@@ -1,0 +1,1 @@
+D1 c1 score 64.7 t/s: code 62.9 (acc 0.89); prose 68.3 (acc 0.65); chat 70.8 (acc 0.67); html 66.2 (acc 0.82); edit 55.3 (acc 0.97)

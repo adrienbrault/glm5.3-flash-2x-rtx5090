@@ -1,0 +1,14 @@
+{
+  "try_96_100": false,
+  "baseline_free_mib": [
+    1073,
+    549
+  ],
+  "current_free_mib": [
+    827,
+    323
+  ],
+  "required_baseline_mib": 768,
+  "required_current_mib": 512,
+  "reason": "~480MiB incremental ring/workspace +256MiB reserve; otherwise 96,102"
+}

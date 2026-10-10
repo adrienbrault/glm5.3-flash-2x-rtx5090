@@ -1,0 +1,24 @@
+{
+  "passed": true,
+  "effective_environment": {
+    "EXL3_DSA_INDEX_RING": "1",
+    "EXL3_DSA_INDEX_RING_SHADOW": "0",
+    "EXL3_MOE_CPU_SPLIT_BY_DEVICE": "96,102"
+  },
+  "ring_max_chunks": [
+    4096,
+    4096,
+    4096,
+    4096,
+    4096,
+    4096,
+    4096,
+    4096,
+    4096,
+    4096,
+    4096,
+    4096,
+    4096
+  ],
+  "actual_image_id": "sha256:27c0f1ad0420f8c9cd0ecd73634cb2bad2699149f6068f7330a9ff5ed20e1d9e"
+}

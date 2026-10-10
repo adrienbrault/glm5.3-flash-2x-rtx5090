@@ -1,0 +1,33 @@
+README.md
+  s_8432b005b3709b::t_c358d8e74447e7 65,68,79
+THIRD_PARTY.md
+  s_8432b005b3709b::t_659ca4405f2395 55
+docker/tabby-livemetrics-r3/Dockerfile
+  s_8432b005b3709b::t_987d53878343f9 1-14
+docker/tabby-livemetrics-r3/README.md
+  s_8432b005b3709b::t_a6e134b4c46c72 1-19
+docker/tabby-livemetrics-r3/app/backends/exllamav3/model.py
+  s_8432b005b3709b::t_93503fffa06ec0 1-1725
+docker/tabby-livemetrics-r3/app/common/metrics.py
+  s_8432b005b3709b::t_297fb44df19bb7 1-612
+docker/tabby-livemetrics-r3/app/tests/test_metrics_live.py
+  s_8432b005b3709b::t_331f07bbbc546c 1-804
+scripts/glm-daily.env
+  s_8432b005b3709b::t_9ee2a2ca3686ae 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6b645f39c031607a65e9434972d20b24713a0c36",
+  "prompts": {},
+  "sessions": {
+    "s_8432b005b3709b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "s_8432b005b3709b",
+        "model": "unknown"
+      },
+      "human_author": "Adrien Brault <adrienbrault@users.noreply.github.com>"
+    }
+  }
+}

@@ -1,0 +1,17 @@
+[SWAP-OWNER] owner=model.language_model.layers.3.mlp component=text modules=43 text_clock=1 mode=exchange policy=histogram cadence=exact
+ -- exchange sweep: 64 swaps wall_ms=67.218 fence_ms=0.386
+ -- exchange sweep: 55 swaps wall_ms=67.543 fence_ms=0.480
+ -- exchange sweep: 0 swaps wall_ms=24.606 fence_ms=0.482
+ -- exchange sweep: 0 swaps wall_ms=24.353 fence_ms=0.472
+ -- exchange sweep: 1 swaps wall_ms=25.847 fence_ms=0.501
+ -- exchange sweep: 1 swaps wall_ms=27.751 fence_ms=0.533
+ -- exchange sweep: 17 swaps wall_ms=37.810 fence_ms=0.496
+ -- exchange sweep: 22 swaps wall_ms=41.693 fence_ms=0.501
+ -- exchange sweep: 31 swaps wall_ms=49.796 fence_ms=0.546
+ -- exchange sweep: 40 swaps wall_ms=57.519 fence_ms=0.553
+ -- exchange sweep: 27 swaps wall_ms=45.596 fence_ms=0.487
+ -- exchange sweep: 16 swaps wall_ms=38.085 fence_ms=0.519
+ -- exchange sweep: 6 swaps wall_ms=29.131 fence_ms=0.498
+ -- exchange sweep: 23 swaps wall_ms=43.329 fence_ms=0.525
+ -- exchange sweep: 22 swaps wall_ms=42.305 fence_ms=0.512
+ -- exchange sweep: 1 swaps wall_ms=25.321 fence_ms=0.500

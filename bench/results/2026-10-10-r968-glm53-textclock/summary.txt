@@ -1,0 +1,33 @@
+Expected 50-70 min excluding queue/drain; results /srv/qwen5090/results/2026-10-10-r968-glm53-textclock-131424; waiting for GPU lock
+gateway_wait_idle: waiting for flan-glm53(healthy, 0 in flight) 
+built tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2_ring3_livemetrics2_draftchunk1_textclock1 FROM tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2_ring3_livemetrics2_draftchunk1 with --network=none
+Bdebug fresh boot image=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2_ring3_livemetrics2_draftchunk1_textclock1 text_clock=1 debug=1
+Bdebug [SWAP-OWNER] owner=model.language_model.layers.3.mlp component=text modules=43 text_clock=1 mode=exchange policy=histogram cadence=exact
+Bdebug c4 sweeps=16 clock_sweeps=16
+A1 fresh boot image=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2_ring3_livemetrics2_draftchunk1 text_clock=0 debug=off
+A1 measurements complete
+B1 fresh boot image=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2_ring3_livemetrics2_draftchunk1_textclock1 text_clock=1 debug=off
+B1 measurements complete
+B2 fresh boot image=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2_ring3_livemetrics2_draftchunk1_textclock1 text_clock=1 debug=off
+B2 measurements complete
+A2 fresh boot image=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2_ring3_livemetrics2_draftchunk1 text_clock=0 debug=off
+A2 measurements complete
+A1: c4 cold=77.28 c1 median=65.72 c4 after=94.38 tok/s
+A1 fingerprint hashes: code=6c47d9c007e090951aee9013a1d814e33e765fe303fa33cf942b7f1be4cab351 prose=34a85c98c14bf55c5ecd4043bcc569076897a11bbafe3ac30546cbd97545d0b5 chat=ba9ebea78f5546895f87cb3ea9e58f7b4f8656b368e8243c60965def754d648d html=0000f7ae5776c68f7130ec9ec852c8f599d08a0869f1362837f493b4d473b43d edit=fb042ada23b1b0fa46082e70dabfadc10d1514b3fc1421fb6bf31164a459187a
+B1: c4 cold=84.12 c1 median=64.07 c4 after=96.74 tok/s
+B1 fingerprint hashes: code=5027e81bb7225dbba972f3c5f2bbe8831d66756a2f84a22db9221cb0ffb56e41 prose=584cc035b13b1967da5bfc0d46b9ce57570a81d22da99b20690001d626b701bb chat=d98cbf980c2c350f33702ebb37b3b9bd0b833b584e3eb1f37a99112ab80d082e html=36b3bab2996e0ab7e7a587cae523edb0a4fd26986799a3d3d283658b966ffbcf edit=bf3c4c97d53875bdad02e85698fe509d6e45cb643caacde78da9c8075d90bfce
+B2: c4 cold=85.63 c1 median=64.71 c4 after=96.19 tok/s
+B2 fingerprint hashes: code=cf26d905e453256b6be25424f742f6def1594e39815c4424fa0b36f4f11c3bbe prose=704b84dfa19e0762a84ffd15562547459099ad4f48a93d4d97a970a286d4e8b7 chat=0b1c396cda8c7a39b2ff678afacb7c69cc961d5c9d1202a6118f2f2a5808d8eb html=a8ff0186dd0362cde667a7d88a0ed77d0e2cd888672798bb6c19705c4bc99296 edit=de304e153057d1fd208e7bbfe546db4647cbe84c37010b16770b492577f7b745
+A2: c4 cold=75.81 c1 median=65.56 c4 after=90.09 tok/s
+A2 fingerprint hashes: code=1e22f53562d81373ef4179e3c767058e1d57fdd39937477e3ec37caa70982544 prose=e5fa256cec5ccfb8c33b109f2abcaed0e2b3c03b0243280bd1dc8fb2ea5889ae chat=7ef73aac20aa3dc5ebf9a9ca7440be892342c45a3bebfb1d24241f81202c68bf html=55fa55f2421026766067969b3b0cf2d3c829acc9c7601600879b9d3bec0e5d77 edit=3947a0d7f3c4501d838e2e14ed4f436d2b76b93b8659ed61632796229e2c785b
+INFO fingerprints_identical=False
+Aggregation: median of the two arm medians per A/B (order A1 B1 B2 A2)
+A medians={'c4_cold': 76.54321197603562, 'c1_median': 65.64218207357864, 'c4_after': 92.23394970490259}; B medians={'c4_cold': 84.87393594096304, 'c1_median': 64.39353251720968, 'c4_after': 96.46273660266306}
+B/A cold c4=1.1088 (+10.88%); c1=0.9810 (-1.90%)
+GATE cold_c4_gain_at_least_10_percent: PASS
+GATE c1_within_2_percent: PASS
+GATE no_FATAL_lines: PASS
+OVERALL: PASS
+R968 complete; gate result above; daily restore follows
+restoring current daily: DRAFT=1 DRAFT_N=1 MTP_FAST=1 OFFLOAD_N=104 VISION_OFFLOAD=1 GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2_ring3_livemetrics2_draftchunk1 INDEX_RING=1 GPU_SPLIT=31.8,31 EXL3_EXTRA=EXL3_MTP_MAX_BATCH=1;EXL3_DRAFT_PINNED_STAGING=1;EXL3_MTP_GPU_DRAFT=1;EXL3_MTP_GREEDY_ACCEPT=1;EXL3_MTP_CACHED_REWIND=1;EXL3_MOE_CPU_SPLIT_BY_DEVICE=96,102 PINNED_ARENA=1 SWAP_MODE=exchange SWAP_POLICY=histogram SWAP_INIT_STATS=/srv/qwen5090/glm-daily-tools/split-stats-broad-r869.json SWAP_CADENCE=exact SWAP_INTERVAL=64 SWAP_MAX=64 SWAP_SCOPE=global SWAP_FLOOR=4 SWAP_HYST=2.0 AGENT=1 KEEP_THINKING=1 CHUNK=4096
+SERVING on :8029: restored (DRAFT=1 DRAFT_N=1 MTP_FAST=1 OFFLOAD_N=104 VISION_OFFLOAD=1 GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2_ring3_livemetrics2_draftchunk1 INDEX_RING=1 GPU_SPLIT=31.8,31 EXL3_EXTRA=EXL3_MTP_MAX_BATCH=1;EXL3_DRAFT_PINNED_STAGING=1;EXL3_MTP_GPU_DRAFT=1;EXL3_MTP_GREEDY_ACCEPT=1;EXL3_MTP_CACHED_REWIND=1;EXL3_MOE_CPU_SPLIT_BY_DEVICE=96,102 PINNED_ARENA=1 SWAP_MODE=exchange SWAP_POLICY=histogram SWAP_INIT_STATS=/srv/qwen5090/glm-daily-tools/split-stats-broad-r869.json SWAP_CADENCE=exact SWAP_INTERVAL=64 SWAP_MAX=64 SWAP_SCOPE=global SWAP_FLOOR=4 SWAP_HYST=2.0 AGENT=1 KEEP_THINKING=1 CHUNK=4096)

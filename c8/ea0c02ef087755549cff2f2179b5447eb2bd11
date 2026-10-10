@@ -1,0 +1,112 @@
+bench/RESULTS.md
+  h_b695dc27e1fb07 5
+bench/results/2026-10-10-r969-glm53-textclock/A1/c1.jsonl
+  h_b695dc27e1fb07 1-10
+bench/results/2026-10-10-r969-glm53-textclock/A1/c2.jsonl
+  h_b695dc27e1fb07 1-7
+bench/results/2026-10-10-r969-glm53-textclock/A1/c3.jsonl
+  h_b695dc27e1fb07 1-9
+bench/results/2026-10-10-r969-glm53-textclock/A1/c4.jsonl
+  h_b695dc27e1fb07 1-11
+bench/results/2026-10-10-r969-glm53-textclock/A1/effective-env.json
+  h_b695dc27e1fb07 1-29
+bench/results/2026-10-10-r969-glm53-textclock/A1/vram-boot.csv
+  h_b695dc27e1fb07 1-3
+bench/results/2026-10-10-r969-glm53-textclock/A2/c1.jsonl
+  h_b695dc27e1fb07 1-10
+bench/results/2026-10-10-r969-glm53-textclock/A2/c2.jsonl
+  h_b695dc27e1fb07 1-7
+bench/results/2026-10-10-r969-glm53-textclock/A2/c3.jsonl
+  h_b695dc27e1fb07 1-9
+bench/results/2026-10-10-r969-glm53-textclock/A2/c4.jsonl
+  h_b695dc27e1fb07 1-11
+bench/results/2026-10-10-r969-glm53-textclock/A2/effective-env.json
+  h_b695dc27e1fb07 1-29
+bench/results/2026-10-10-r969-glm53-textclock/A2/vram-boot.csv
+  h_b695dc27e1fb07 1-3
+bench/results/2026-10-10-r969-glm53-textclock/A3/c1.jsonl
+  h_b695dc27e1fb07 1-10
+bench/results/2026-10-10-r969-glm53-textclock/A3/c2.jsonl
+  h_b695dc27e1fb07 1-7
+bench/results/2026-10-10-r969-glm53-textclock/A3/c3.jsonl
+  h_b695dc27e1fb07 1-9
+bench/results/2026-10-10-r969-glm53-textclock/A3/c4.jsonl
+  h_b695dc27e1fb07 1-11
+bench/results/2026-10-10-r969-glm53-textclock/A3/effective-env.json
+  h_b695dc27e1fb07 1-29
+bench/results/2026-10-10-r969-glm53-textclock/A3/vram-boot.csv
+  h_b695dc27e1fb07 1-3
+bench/results/2026-10-10-r969-glm53-textclock/B1/c1.jsonl
+  h_b695dc27e1fb07 1-10
+bench/results/2026-10-10-r969-glm53-textclock/B1/c2.jsonl
+  h_b695dc27e1fb07 1-7
+bench/results/2026-10-10-r969-glm53-textclock/B1/c3.jsonl
+  h_b695dc27e1fb07 1-9
+bench/results/2026-10-10-r969-glm53-textclock/B1/c4.jsonl
+  h_b695dc27e1fb07 1-11
+bench/results/2026-10-10-r969-glm53-textclock/B1/effective-env.json
+  h_b695dc27e1fb07 1-29
+bench/results/2026-10-10-r969-glm53-textclock/B1/vram-boot.csv
+  h_b695dc27e1fb07 1-3
+bench/results/2026-10-10-r969-glm53-textclock/B2/c1.jsonl
+  h_b695dc27e1fb07 1-10
+bench/results/2026-10-10-r969-glm53-textclock/B2/c2.jsonl
+  h_b695dc27e1fb07 1-7
+bench/results/2026-10-10-r969-glm53-textclock/B2/c3.jsonl
+  h_b695dc27e1fb07 1-9
+bench/results/2026-10-10-r969-glm53-textclock/B2/c4.jsonl
+  h_b695dc27e1fb07 1-11
+bench/results/2026-10-10-r969-glm53-textclock/B2/effective-env.json
+  h_b695dc27e1fb07 1-29
+bench/results/2026-10-10-r969-glm53-textclock/B2/vram-boot.csv
+  h_b695dc27e1fb07 1-3
+bench/results/2026-10-10-r969-glm53-textclock/B3/c1.jsonl
+  h_b695dc27e1fb07 1-10
+bench/results/2026-10-10-r969-glm53-textclock/B3/c2.jsonl
+  h_b695dc27e1fb07 1-7
+bench/results/2026-10-10-r969-glm53-textclock/B3/c3.jsonl
+  h_b695dc27e1fb07 1-9
+bench/results/2026-10-10-r969-glm53-textclock/B3/c4.jsonl
+  h_b695dc27e1fb07 1-11
+bench/results/2026-10-10-r969-glm53-textclock/B3/effective-env.json
+  h_b695dc27e1fb07 1-29
+bench/results/2026-10-10-r969-glm53-textclock/B3/vram-boot.csv
+  h_b695dc27e1fb07 1-3
+bench/results/2026-10-10-r969-glm53-textclock/Bdebug/c1.jsonl
+  h_b695dc27e1fb07 1-10
+bench/results/2026-10-10-r969-glm53-textclock/Bdebug/c2.jsonl
+  h_b695dc27e1fb07 1-7
+bench/results/2026-10-10-r969-glm53-textclock/Bdebug/effective-env.json
+  h_b695dc27e1fb07 1-29
+bench/results/2026-10-10-r969-glm53-textclock/Bdebug/sweeps-c1.txt
+  h_b695dc27e1fb07 1-113
+bench/results/2026-10-10-r969-glm53-textclock/Bdebug/sweeps-c2.txt
+  h_b695dc27e1fb07 1-33
+bench/results/2026-10-10-r969-glm53-textclock/Bdebug/vram-boot.csv
+  h_b695dc27e1fb07 1-3
+bench/results/2026-10-10-r969-glm53-textclock/daily.env
+  h_b695dc27e1fb07 1
+bench/results/2026-10-10-r969-glm53-textclock/gate.json
+  h_b695dc27e1fb07 1-520
+bench/results/2026-10-10-r969-glm53-textclock/phases.jsonl
+  h_b695dc27e1fb07 1-26
+bench/results/2026-10-10-r969-glm53-textclock/summary.txt
+  h_b695dc27e1fb07 1-35
+bench/results/r969-glm53-textclock.md
+  h_b695dc27e1fb07 1-49
+docs/GOTCHAS.md
+  h_b695dc27e1fb07 49
+docs/HISTORY.md
+  h_b695dc27e1fb07 67-68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c8ea0c02ef087755549cff2f2179b5447eb2bd11",
+  "prompts": {},
+  "humans": {
+    "h_b695dc27e1fb07": {
+      "author": "Adrien Brault <adrienbrault@users.noreply.github.com>"
+    }
+  }
+}

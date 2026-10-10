@@ -1,0 +1,42 @@
+THIRD_PARTY.md
+  h_b695dc27e1fb07 20,57
+docker/textclock-r1/ANALYSIS.md
+  h_b695dc27e1fb07 1-244
+docker/textclock-r1/BRIEF-r2.md
+  h_b695dc27e1fb07 1-28
+docker/textclock-r1/BRIEF.md
+  h_b695dc27e1fb07 1-30
+docker/textclock-r1/CHANGES.md
+  h_b695dc27e1fb07 1-69
+docker/textclock-r1/CPU-TESTS.txt
+  h_b695dc27e1fb07 1-46
+docker/textclock-r1/Dockerfile
+  h_b695dc27e1fb07 1-5
+docker/textclock-r1/README.md
+  h_b695dc27e1fb07 1-23
+docker/textclock-r1/REVIEW-r2.md
+  h_b695dc27e1fb07 1-46
+docker/textclock-r1/SHA256SUMS
+  h_b695dc27e1fb07 1-12
+docker/textclock-r1/test_gpu_unit.py
+  h_b695dc27e1fb07 1-179
+docker/textclock-r1/test_textclock.py
+  h_b695dc27e1fb07 1-246
+docker/textclock-r1/textclock.patch
+  h_b695dc27e1fb07 1-116
+docker/textclock-r1/textclock/model/moe_exchange.py
+  h_b695dc27e1fb07 1-294
+docker/textclock-r1/textclock/modules/block_sparse_mlp_cpu.py
+  h_b695dc27e1fb07 1-927
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1482850901732f2e381ad538cf130af444018432",
+  "prompts": {},
+  "humans": {
+    "h_b695dc27e1fb07": {
+      "author": "Adrien Brault <adrienbrault@users.noreply.github.com>"
+    }
+  }
+}

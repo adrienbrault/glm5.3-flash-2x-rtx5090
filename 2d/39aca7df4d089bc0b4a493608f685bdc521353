@@ -1,0 +1,16 @@
+scripts/r969-glm53-textclock-c1.sh
+  h_b695dc27e1fb07 1-148
+scripts/r969_summary.py
+  h_b695dc27e1fb07 1-277
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2d39aca7df4d089bc0b4a493608f685bdc521353",
+  "prompts": {},
+  "humans": {
+    "h_b695dc27e1fb07": {
+      "author": "Adrien Brault <adrienbrault@users.noreply.github.com>"
+    }
+  }
+}

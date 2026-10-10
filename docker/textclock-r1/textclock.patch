@@ -1,0 +1,116 @@
+--- a/modules/block_sparse_mlp_cpu.py
++++ b/modules/block_sparse_mlp_cpu.py
+@@ -2,6 +2,26 @@
+ from typing_extensions import override
+ import os
+ import torch
++
++TEXT_CLOCK_PATCH_VERSION = 1
++_text_clock_enabled = os.environ.get("EXL3_MOE_CPU_SWAP_TEXT_CLOCK", "0") == "1"
++if _text_clock_enabled:
++    _clock_config = {
++        "MODE": os.environ.get("EXL3_MOE_CPU_SWAP_MODE", "checkpoint"),
++        "POLICY": os.environ.get("EXL3_MOE_CPU_SWAP_POLICY", "histogram"),
++        "CADENCE": os.environ.get("EXL3_MOE_CPU_SWAP_CADENCE", "exact"),
++    }
++    if _clock_config != {"MODE": "exchange", "POLICY": "histogram", "CADENCE": "exact"}:
++        raise ValueError("EXL3_MOE_CPU_SWAP_TEXT_CLOCK=1 requires MODE=exchange, "
++                         "POLICY=histogram, CADENCE=exact; got " + repr(_clock_config))
++
++
++def swap_clock_owner(reg):
++    """Resolve against the current registry, including draft-only load/rollback states."""
++    if _text_clock_enabled:
++        return next((m for m in reg if m.cpu_component == "text"), reg[0])
++    return reg[0]
++
+ 
+ _exchange_mode = os.environ.get("EXL3_MOE_CPU_SWAP_MODE", "checkpoint") == "exchange"
+ _score_mode = _exchange_mode and os.environ.get("EXL3_MOE_CPU_SWAP_POLICY", "histogram") == "score"
+@@ -219,7 +239,7 @@
+                     perm_t.to(self.per_expert_scale.device)].contiguous()
+         # Dynamic placement state: router->physical-slot map (identity start), decayed
+         # selection counts, and the shared module registry the sweep walks. The first
+-        # registered module owns the step counter
++        # registered module owns the step counter by default (opt-in: first text module)
+         if self.cpu_split_first is not None and getattr(self, "_split_dynamic", False):
+             dev = torch.device(self.device)
+             self._split_map = torch.arange(self.num_experts, dtype = torch.long, device = dev)
+@@ -245,6 +265,11 @@
+                 reg = []
+                 ip2.moe_cpu_swap_modules = reg
+             reg.append(self)
++            if _text_clock_enabled:
++                owner = swap_clock_owner(reg)
++                print(f"[SWAP-OWNER] owner={owner.key} component={owner.cpu_component} "
++                      f"modules={len(reg)} text_clock=1 mode=exchange policy=histogram "
++                      f"cadence=exact", flush = True)
+         if split_check.ENABLED and self.cpu_split_first is not None:
+             split_check.module_layout(self)
+             print(f"[SPLIT-CHECK] layer={self.key} device={self.device} "
+@@ -725,14 +750,15 @@
+ 
+ 
+     def _split_swap_tick(self):
+-        """Dynamic placement sweep trigger: the first registered module counts decode
+-        steps; every EXL3_MOE_CPU_SWAP_INTERVAL steps, quiesce (one full synchronize,
++        """Dynamic placement sweep trigger: the clock owner counts split invocations
++        (registry zero by default, first text module when opted in). Every
++        EXL3_MOE_CPU_SWAP_INTERVAL steps, quiesce (one full synchronize,
+         every issued worker job's collect is already enqueued, so after the sync the ring is
+         drained and the child idle) and let each split layer promote its hottest CPU experts
+         into the slots of its coldest GPU experts."""
+         ip = self.config.infer_params
+         reg = ip.moe_cpu_swap_modules
+-        if reg[0] is not self:
++        if swap_clock_owner(reg) is not self:
+             return
+         if _exchange_mode:
+             if torch.cuda.is_current_stream_capturing():
+@@ -753,6 +779,13 @@
+                     else:
+                         run_pending_swap_sweeps(ip)
+                 self._swap_tick_count += 1
++                if _text_clock_enabled and os.environ.get("EXL3_MOE_CPU_SWAP_DEBUG"):
++                    ip._text_clock_ticks = getattr(ip, "_text_clock_ticks", 0) + 1
++                    if self._swap_tick_count == 1 or self._swap_tick_count % interval == 0:
++                        print(f"[SWAP-CLOCK] owner={self.key} component={self.cpu_component} "
++                              f"owner_tick={self._swap_tick_count} ticks={ip._text_clock_ticks} "
++                              f"pending={int(getattr(ip, 'moe_cpu_swap_pending', False))} "
++                              f"sweeps={getattr(ip, '_text_clock_sweeps', 0)}", flush = True)
+                 return
+         self._swap_tick_count += 1
+         interval = int(os.environ.get("EXL3_MOE_CPU_SWAP_INTERVAL", 128))
+--- a/model/moe_exchange.py
++++ b/model/moe_exchange.py
+@@ -1,5 +1,6 @@
+ """Opt-in, in-place CPU/GPU expert exchange. No checkpoint access or native ABI changes."""
+ import os
++TEXT_CLOCK_PATCH_VERSION = 1
+ from ..util import mtp_phase
+ from . import moe_split_check as split_check
+ 
+@@ -263,7 +264,8 @@
+         budget=int(os.environ.get("EXL3_MOE_CPU_SWAP_MAX",64))
+         scope=os.environ.get("EXL3_MOE_CPU_SWAP_BUDGET_SCOPE","global")
+         if scope not in ("global","layer"): raise ValueError("swap budget scope must be global or layer")
+-        reg[0]._split_sweep_layer_reset()
++        from ..modules.block_sparse_mlp_cpu import swap_clock_owner, _text_clock_enabled
++        swap_clock_owner(reg)._split_sweep_layer_reset()
+         import time
+         started=time.perf_counter(); fence_s=0.; total=0
+         with torch.inference_mode():
+@@ -280,6 +282,13 @@
+                 require_healthy(m.cpu_host)
+         if os.environ.get("EXL3_MOE_CPU_SWAP_DEBUG"):
+             print(f" -- exchange sweep: {total} swaps wall_ms={(time.perf_counter()-started)*1000:.3f} fence_ms={fence_s*1000:.3f}",flush=True)
++            if _text_clock_enabled:
++                ip._text_clock_sweeps = getattr(ip, "_text_clock_sweeps", 0) + 1
++                owner = swap_clock_owner(reg)
++                print(f"[SWAP-CLOCK] owner={owner.key} component={owner.cpu_component} "
++                      f"owner_tick={owner._swap_tick_count} ticks={getattr(ip, '_text_clock_ticks', 0)} "
++                      f"pending={int(getattr(ip, 'moe_cpu_swap_pending', False))} "
++                      f"sweeps={ip._text_clock_sweeps} event=sweep", flush=True)
+     except BaseException:
+         for host in hosts: poison(host)
+         raise

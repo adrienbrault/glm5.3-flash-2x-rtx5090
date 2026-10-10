@@ -1,0 +1,46 @@
+CPU module tests: complete modules, fake Torch/native dependencies; no GPU executed.
+test_capture_does_not_tick_or_reset (__main__.ClockTests.test_capture_does_not_tick_or_reset) ... ok
+test_debug_counters_and_startup (__main__.ClockTests.test_debug_counters_and_startup) ... ok
+test_draft_fallback_current_registry_and_rollback (__main__.ClockTests.test_draft_fallback_current_registry_and_rollback) ... ok
+test_flag_off_identical_trace_and_log_to_daily (__main__.ClockTests.test_flag_off_identical_trace_and_log_to_daily) ... ok
+test_mtp_first_off_and_default (__main__.ClockTests.test_mtp_first_off_and_default) ... ok
+test_mtp_first_on (__main__.ClockTests.test_mtp_first_on) ... ok
+test_queue_drained_reset_same_owner (__main__.ClockTests.test_queue_drained_reset_same_owner) ... ok
+test_reset_same_owner_not_every_call_after_64 (__main__.ClockTests.test_reset_same_owner_not_every_call_after_64) ... ok
+test_text_first_on_and_off (__main__.ClockTests.test_text_first_on_and_off) ... ok
+test_validation_off_accepts_legacy_settings (__main__.ClockTests.test_validation_off_accepts_legacy_settings) ... ok
+test_validation_rejects_each_unsupported_setting (__main__.ClockTests.test_validation_rejects_each_unsupported_setting) ... ok
+
+----------------------------------------------------------------------
+Ran 11 tests in 0.110s
+
+OK
+MUTATION CAUGHT: gate uses registry zero; failures=4 errors=1
+MUTATION CAUGHT: reset uses registry zero; failures=5 errors=0
+MUTATION CAUGHT: last text instead of first; failures=1 errors=0
+MUTATION CAUGHT: no draft-only fallback; failures=0 errors=6
+MUTATION CAUGHT: flag ignored when off; failures=2 errors=0
+MUTATION CAUGHT: default flag on; failures=1 errors=0
+MUTATION CAUGHT: no configuration validation; failures=7 errors=0
+MUTATION CAUGHT: startup line missing; failures=1 errors=0
+MUTATION CAUGHT: debug sweep counter missing; failures=1 errors=0
+MUTATION CAUGHT: capture tick allowed; failures=1 errors=0
+Mutation result: 10/10 caught
+CPU-only orchestration fixtures: fake Docker/launcher/probe; no daemon, network or GPU.
+test_abba_cold_first_debug_isolated_restore_and_gates (__main__.UnitTests.test_abba_cold_first_debug_isolated_restore_and_gates) ... ok
+test_each_gate_fails_independently (__main__.UnitTests.test_each_gate_fails_independently) ... ok
+test_failed_probe_restores_daily (__main__.UnitTests.test_failed_probe_restores_daily) ... ok
+test_summary_rejects_missing_or_bad_fingerprint (__main__.UnitTests.test_summary_rejects_missing_or_bad_fingerprint) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 17.904s
+
+OK
+
+Packaging checks: PASS
+- textclock.patch applied with patch --batch -p1 to a temporary copy of the two exact daily source files.
+- Applied bytes matched out/textclock/modules/block_sparse_mlp_cpu.py and out/textclock/model/moe_exchange.py.
+- All delivered Python files compiled; bash -n passed for the GPU unit and glm_arms.sh.
+- Docker RUN assertion compiled; original and patched SHA-256 guards match the packaged files.
+- src/exllamav3 remains unchanged (git diff empty).
+- Real Docker build/import and GPU throughput/output checks were not executed locally.

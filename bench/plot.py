@@ -25,9 +25,12 @@ import matplotlib.pyplot as plt  # noqa: E402
 ROOT = Path(__file__).resolve().parent.parent
 RESULTS = ROOT / "bench" / "results"
 OUT = ROOT / "docs" / "img"
-SERVED = RESULTS / "2026-10-10-r959d-glm53-chunk-confirm" / "C4a"  # the configuration README.md describes (R959d arm C4a)
+# The configuration README.md describes: R969's arms B1, B2 and B3, three fresh boots of the served image, single-stream
+# requests first, then 2, 3 and 4 streams; every figure is the median of the three boots.
+SERVED_ARMS = [RESULTS / "2026-10-10-r969-glm53-textclock" / a for a in ("B1", "B2", "B3")]
 MEMORY = RESULTS / "2026-10-08-r900-glm53-memory-layout" / "memory.json"  # memory layout of the configuration served before R915c (R900)
-PREFILL_SRC = SERVED  # cold prefill at 32k and 128k prompt tokens on the served configuration (R959d arm C4a)
+# R969 did not measure prefill: cold prefill at 32k and 128k prompt tokens on the image before the text clock (R959d arm C4a)
+PREFILL_SRC = RESULTS / "2026-10-10-r959d-glm53-chunk-confirm" / "C4a"
 
 DECODE, AGG, PREFILL, AGG_ONE = "#0969da", "#cf222e", "#8250df", "#f0a8ad"
 plt.rcParams.update({
@@ -58,7 +61,8 @@ HISTORY = [
     ("R914", 64.2, 87.7, "distinct", "r914-glm53-promote-combo.md"),   # MTP depth 1 at c1 only, 104 on the CPU
     ("R915c", 64.9, 90.0, "distinct", "r915c-glm53-splitdev2.md"),     # 100 on the CPU for GPU0's layers, 104 for GPU1's
     ("R929c", 66.3, 91.4, "distinct", "r929-glm53-ring-splitdev.md"),  # DSA indexer ring, 96 for GPU0's layers, 100 for GPU1's
-    ("R959d", 64.6, 92.7, "distinct", "r959-glm53-prefill-chunk.md"),  # prefill chunk 4096, 96 for GPU0's layers, 102 for GPU1's (served; arm C4a)
+    ("R959d", 64.6, 92.7, "distinct", "r959-glm53-prefill-chunk.md"),  # prefill chunk 4096, 96 for GPU0's layers, 102 for GPU1's (arm C4a)
+    ("R969", 62.9, 98.0, "distinct", "r969-glm53-textclock.md"),  # text clock (served from R968); median of arms B1 B2 B3, c1 first on fresh boots
 ]
 
 
@@ -81,23 +85,34 @@ def style(ax):
 
 
 def served():
-    """c1 by kind (median over runs), concurrency summaries (median over rounds) and cold prefill points."""
-    kinds = {}
-    for line in open(SERVED / "c1.jsonl"):
-        r = json.loads(line)
-        kinds.setdefault(r["kind"], []).append(r["tps"])
-    kinds = {k: st.median(v) for k, v in kinds.items()}
-    conc, prefill = {}, []
-    # R927 ran the concurrencies as two invocations (dec4.jsonl, then dec12.jsonl); earlier rounds wrote one dec.jsonl;
-    # R959d wrote the one-stream round to c1distinct.jsonl and the four-stream round to dec.jsonl (no two-stream round).
-    for path in sorted(SERVED.glob("dec*.jsonl")) + sorted(SERVED.glob("c1distinct.jsonl")):
-        for line in open(path):
-            r = json.loads(line)
-            if r.get("phase") == "decode-summary":
-                for s in r["summaries"]:
-                    assert s.get("distinct"), "the README concurrency figure uses distinct prompts per stream"
-                    assert s["c"] not in conc, f"concurrency {s['c']} measured twice"
-                    conc[s["c"]] = (s["ss_per_stream_tps_median"], s["ss_agg_tps_median"])
+    """c1 by kind, concurrency summaries and cold prefill points.
+
+    Per boot: c1 by kind is the median of its 2 runs, the one-stream point the median of its ten c1-score requests,
+    the 2- to 4-stream points the median of 2 rounds; the figures take the median of the three boots.
+    """
+    per_kind, per_conc = {}, {}
+    for arm in SERVED_ARMS:
+        rows = [json.loads(line) for line in open(arm / "c1.jsonl")]
+        rows = [r for r in rows if r.get("phase") == "c1-decode"]
+        assert len(rows) == 10 and all(r["finish_reason"] == "length" for r in rows), arm
+        kinds = {}
+        for r in rows:
+            kinds.setdefault(r["kind"], []).append(r["tps"])
+        for k, v in kinds.items():
+            per_kind.setdefault(k, []).append(st.median(v))
+        one = st.median(r["tps"] for r in rows)
+        per_conc.setdefault(1, []).append((one, one))
+        for c in (2, 3, 4):
+            for line in open(arm / f"c{c}.jsonl"):
+                r = json.loads(line)
+                if r.get("phase") == "decode-summary":
+                    (s,) = r["summaries"]
+                    assert s["c"] == c and s.get("distinct"), "the README concurrency figure uses distinct prompts per stream"
+                    per_conc.setdefault(c, []).append((s["ss_per_stream_tps_median"], s["ss_agg_tps_median"]))
+    kinds = {k: st.median(v) for k, v in per_kind.items()}
+    conc = {c: (st.median(p for p, _ in v), st.median(a for _, a in v)) for c, v in per_conc.items()}
+    assert all(len(v) == len(SERVED_ARMS) for v in list(per_kind.values()) + list(per_conc.values()))
+    prefill = []
     for line in open(PREFILL_SRC / "prefill.jsonl"):
         r = json.loads(line)
         u = r.get("usage") or {}
@@ -122,9 +137,10 @@ def figure_decode_concurrency(conc):
         a.set_ylim(0, max(ys) * 1.25)
         a.set_xticks(xs)
         style(a)
-    fig.suptitle("Decode rate after the first token against concurrency, distinct prompts per stream, served configuration (R959d, arm C4a)",
+    fig.suptitle("Decode rate after the first token against concurrency, served configuration (R969, median of three fresh boots)\n"
+                 "1 stream: median of the ten c1-score requests; 2 to 4 streams: a different prompt per stream, median of 2 rounds",
                  fontsize=11, fontweight="bold")
-    print("decode by concurrency (R959d C4a, distinct prompts, median of 2 rounds):", {c: tuple(round(v, 1) for v in conc[c]) for c in xs})
+    print("decode by concurrency (R969 B1 B2 B3, median of boots):", {c: tuple(round(v, 1) for v in conc[c]) for c in xs})
     save(fig, "decode-concurrency.svg", "Decode rate after the first token against concurrency, sum over streams and per stream")
 
 
@@ -135,12 +151,12 @@ def figure_c1_by_kind(kinds):
     ax.barh(order[::-1], vals[::-1], color=DECODE, height=0.55)
     for y, v in enumerate(vals[::-1]):
         ax.annotate(f"{v:.1f}", (v, y), textcoords="offset points", xytext=(5, -3), fontsize=8.5, color=DECODE)
-    ax.set_title("Single-stream decode by content kind, MTP depth 1, served configuration (R959d, arm C4a)")
-    ax.set_xlabel("decode tokens per second, median of 2 runs")
+    ax.set_title("Single-stream decode by content kind, MTP depth 1, served configuration (R969, median of three fresh boots)")
+    ax.set_xlabel("decode tokens per second, per boot the median of 2 runs, then the median of the boots")
     ax.set_xlim(0, max(vals) * 1.15)
     ax.grid(axis="x", color="#eaeef2")
     ax.set_axisbelow(True)
-    print("c1 by kind (R959d C4a):", {k: round(kinds[k], 1) for k in order}, "mean", round(st.mean(vals), 1))
+    print("c1 by kind (R969 B1 B2 B3, median of boots):", {k: round(kinds[k], 1) for k in order}, "mean", round(st.mean(vals), 1))
     save(fig, "c1-by-kind.svg", "Single-stream decode by content kind")
 
 
@@ -150,7 +166,7 @@ def figure_prefill(points):
     fig, ax = plt.subplots(figsize=(8.4, 3.6))
     ax.plot(toks, rate, marker="o", color=PREFILL, linewidth=2)
     annotate(ax, toks, rate, PREFILL, fmt="{:,.0f}", dy=-16)
-    ax.set_title("Cold prefill rate against prompt length, served configuration (R959d, arm C4a, 2026-10-10)")
+    ax.set_title("Cold prefill rate against prompt length, image before the text clock (R959d, arm C4a, 2026-10-10)")
     ax.set_xlabel("prompt tokens")
     ax.set_ylabel("prompt tokens per second, prefill")
     ax.set_xlim(0, 262144)
@@ -176,6 +192,7 @@ def figure_history():
         a.set_ylabel("decode tokens per second")
         a.set_ylim(0, max(vals) * (1.2 if idx == 1 else 1.45))  # room for the legend above the bars
         style(a)
+        plt.setp(a.get_xticklabels(), rotation=30, ha="right", rotation_mode="anchor")  # eleven round names
     ax2.legend(handles=[Patch(color=AGG_ONE, label="same prompt in every stream"),
                         Patch(color=AGG, label="a different prompt per stream")], fontsize=8, loc="upper left", frameon=False)
     fig.suptitle("Served configurations, 2026-10-06 to 2026-10-10 (docs/HISTORY.md)", fontsize=11, fontweight="bold")

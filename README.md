@@ -26,35 +26,41 @@ How it got here: [`docs/HISTORY.md`](docs/HISTORY.md). Credits: [`THIRD_PARTY.md
 
 ## Speed
 
-Measured 2026-10-10 from 06:19 UTC on the configuration served before the text clock, image `..._draftchunk1` with the same settings ([R959d](bench/results/r959-glm53-prefill-chunk.md), arms C4a and C4b, one boot each, results directory `2026-10-10-r959d-glm53-chunk-confirm-HoWhmg`). R968 compared the served image with it on fresh boots (2026-10-10 from 13:17 UTC, results directory `2026-10-10-r968-glm53-textclock-131424`, [write-up](bench/results/r968-glm53-textclock.md)): single stream, the shape most real traffic has, median of ten c1 requests 64.1 and 64.7 against 65.7 and 65.6 tok/s (−1.2 to −1.9 %, cause not measured); 4-stream sum after those requests 96.7 and 96.2 against 94.4 and 90.1 tok/s, and on a fresh boot 84.1 and 85.6 against 77.3 and 75.8. Every decode stream is a chat request forced to 1,024 tokens (html 2,048), temperature 0. In the concurrency figures each stream gets a different prompt (code, prose, chat, html); at 4 streams no token is drafted. R959d did not measure 2 streams. The charts show arm C4a.
+Decode measured 2026-10-10 from 17:08 UTC on the served configuration ([R969](bench/results/r969-glm53-textclock.md), arms B1, B2 and B3, three fresh boots, results directory `2026-10-10-r969-glm53-textclock-170158`). On each boot the requests ran in the order 1, 2, 3, 4 streams, starting right after the launcher's boot warmup; each figure is the median of the three boots. 1 stream: the ten c1-score requests (code, prose, chat, html, edit, 2 runs each). 2 to 4 streams: a different prompt per stream (code, prose, chat, html, in that order), sum of the stream rates over the common decode window, median of 2 rounds per boot; with two or more streams no token is drafted. Every decode stream is a chat request forced to 1,024 tokens (html 2,048), temperature 0. Prefill and the server-side counters are from R959d (2026-10-10 from 06:19 UTC, arm C4a, results directory `2026-10-10-r959d-glm53-chunk-confirm-HoWhmg`), on the image before the text clock with the same settings otherwise; R969 did not measure them.
 
-![Decode rate at 1 and 4 concurrent streams with a different prompt per stream: per stream 65.7 and 23.2 tok/s; sum of the streams 65.7 and 92.7 tok/s](docs/img/decode-concurrency.svg)
+![Decode rate at 1 to 4 concurrent streams: per stream 64.8, 37.2, 30.7 and 24.5 tok/s; sum of the streams 64.8, 74.4, 92.0 and 98.0 tok/s](docs/img/decode-concurrency.svg)
 
-![Single-stream decode by content kind with the MTP draft: code 62.9, prose 68.3, chat 70.5, html 66.0, edit 55.1 tok/s](docs/img/c1-by-kind.svg)
+![Single-stream decode by content kind with the MTP draft: code 59.9, prose 66.7, chat 68.5, html 64.8, edit 53.9 tok/s](docs/img/c1-by-kind.svg)
 
-![Cold prefill rate: 1,973 tok/s at 32,738 prompt tokens, 2,023 tok/s at 131,051](docs/img/prefill.svg)
+![Cold prefill rate on the image before the text clock: 1,973 tok/s at 32,738 prompt tokens, 2,023 tok/s at 131,051](docs/img/prefill.svg)
 
 <details><summary>The same numbers as tables</summary>
 
-| | arm C4a | arm C4b |
+| R969, served configuration | median of B1, B2, B3 | range over the three boots |
 |---|---|---|
-| decode, 1 stream | 65.7 tok/s | 67.3 tok/s |
-| decode, 4 streams, per stream | 23.2 tok/s | 23.0 tok/s |
-| decode, 4 streams, sum of the streams | 92.7 tok/s | 92.1 tok/s |
-| time to the first token (median per round), 1 / 4 streams | 0.43 / 1.65 to 1.68 s | 0.43 / 1.65 to 1.67 s |
-| c1 score (mean of the five kinds) | 64.6 tok/s | 64.5 tok/s |
-| cold prefill, about 32,700 prompt tokens | 1,973 tok/s (32,738) | 1,977 tok/s (32,683) |
-| cold prefill, 131,051 prompt tokens | 2,023 tok/s | not measured |
+| decode, 1 stream, median of the ten c1-score requests | 64.8 tok/s | 63.7 to 65.6 tok/s |
+| c1 score (mean of the five kinds' medians) | 62.9 tok/s | 62.2 to 63.2 tok/s |
+| decode, 2 streams, per stream / sum | 37.2 / 74.4 tok/s | 37.2 to 37.7 / 74.3 to 75.5 tok/s |
+| decode, 3 streams, per stream / sum | 30.7 / 92.0 tok/s | 30.1 to 30.8 / 90.3 to 92.5 tok/s |
+| decode, 4 streams, per stream / sum | 24.5 / 98.0 tok/s | 23.9 to 24.7 / 95.6 to 98.8 tok/s |
+| time to the first token, 1 stream (median per boot) | 0.48 s | 0.47 to 0.49 s |
+| time to the first token, 2 / 3 / 4 streams (median per round) | | 0.75 to 0.82 / 1.11 to 1.21 / 1.57 to 1.70 s |
 
-| code | prose | chat | html | edit |
-|---|---|---|---|---|
-| 62.9 tok/s | 68.3 tok/s | 70.5 tok/s | 66.0 tok/s | 55.1 tok/s |
+| R969, 1 stream by kind | code | prose | chat | html | edit |
+|---|---|---|---|---|---|
+| median of B1, B2, B3 | 59.9 tok/s | 66.7 tok/s | 68.5 tok/s | 64.8 tok/s | 53.9 tok/s |
+
+| R959d arm C4a, image before the text clock | |
+|---|---|
+| cold prefill, 32,738 prompt tokens | 1,973 tok/s |
+| cold prefill, 131,051 prompt tokens | 2,023 tok/s |
 
 </details>
 
-- Single stream, server side (the engine's per-request counters over the 10 c1-score requests): 15.61 ms per token, 27.19 ms per MTP step at 1.741 tokens per step (C4b: 15.66, 26.59, 1.697); draft acceptance 0.55 to 0.96 per run over both arms, highest on edits and code. Four streams: 11.01 ms per generated token (C4b 11.04), the longest stream's generation time over the 4 streams' tokens, median of 2 rounds.
+- Draft acceptance at 1 stream 0.59 to 0.97 per request over the three boots, highest on edits and code (R969).
+- Single stream, server side (R959d arm C4a, the engine's per-request counters over its 10 c1-score requests): 15.61 ms per token, 27.19 ms per MTP step at 1.741 tokens per step. Four streams: 11.01 ms per generated token, the longest stream's generation time over the 4 streams' tokens, median of 2 rounds.
 - Prefill: engine-timed (`usage.prompt_time`) on a cold prompt (`cached_tokens` 0) of real text, in chunks of 4,096 tokens.
-- Spread: the two boots differ by 0.2 % on the c1 score and 0.7 % on the 4-stream sum; their distinct-prompt c1 rounds differ by 2.5 %. The change from 2,048-token chunks and its cost at 4 streams are in [`docs/HISTORY.md`](docs/HISTORY.md).
+- Spread: the three boots differ by up to 3.0 % on the 1-stream median and 3.4 % on the 4-stream sum. The comparison with the clock served before, on the same image in the same session, is in the [R969 write-up](bench/results/r969-glm53-textclock.md) and [`docs/HISTORY.md`](docs/HISTORY.md).
 
 Method and run-to-run spread: [`bench/RESULTS.md`](bench/RESULTS.md). The charts are drawn from the raw records by [`bench/plot.py`](bench/plot.py) (`uv run bench/plot.py`).
 

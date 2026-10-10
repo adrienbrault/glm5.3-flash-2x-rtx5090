@@ -1,0 +1,18 @@
+scripts/glm-daily.env
+  h_b695dc27e1fb07 1
+scripts/r968-glm53-textclock.sh
+  h_b695dc27e1fb07 1-161
+scripts/textclock_summary.py
+  h_b695dc27e1fb07 1-129
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "cadf5646c4c6f97e333a1f25408d33319dc31cea",
+  "prompts": {},
+  "humans": {
+    "h_b695dc27e1fb07": {
+      "author": "Adrien Brault <adrienbrault@users.noreply.github.com>"
+    }
+  }
+}

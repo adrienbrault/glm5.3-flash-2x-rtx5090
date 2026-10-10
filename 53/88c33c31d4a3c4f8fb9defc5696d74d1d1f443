@@ -1,0 +1,14 @@
+README.md
+  h_b695dc27e1fb07 13,29,63,71,75,87-88,101
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5388c33c31d4a3c4f8fb9defc5696d74d1d1f443",
+  "prompts": {},
+  "humans": {
+    "h_b695dc27e1fb07": {
+      "author": "Adrien Brault <adrienbrault@users.noreply.github.com>"
+    }
+  }
+}

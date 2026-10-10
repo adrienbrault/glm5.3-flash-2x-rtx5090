@@ -1,0 +1,29 @@
+{
+  "image": "tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2_ring3_livemetrics2_draftchunk1_textclock1",
+  "image_id": "sha256:f761883c72d44ab389329531c6a0f2641c6695c21748f639447bea5507079b16",
+  "effective_environment": {
+    "EXL3_DRAFT_PINNED_STAGING": "1",
+    "EXL3_DSA_INDEX_RING": "1",
+    "EXL3_MOE_CPU_SPLIT_BY_DEVICE": "96,102",
+    "EXL3_MOE_CPU_SPLIT_STATS": "/app/split-stats.json",
+    "EXL3_MOE_CPU_SWAP": "1",
+    "EXL3_MOE_CPU_SWAP_BUDGET_SCOPE": "global",
+    "EXL3_MOE_CPU_SWAP_CADENCE": "exact",
+    "EXL3_MOE_CPU_SWAP_DEBUG": "1",
+    "EXL3_MOE_CPU_SWAP_FLOOR": "4",
+    "EXL3_MOE_CPU_SWAP_HYST": "2.0",
+    "EXL3_MOE_CPU_SWAP_INTERVAL": "64",
+    "EXL3_MOE_CPU_SWAP_MAX": "64",
+    "EXL3_MOE_CPU_SWAP_MODE": "exchange",
+    "EXL3_MOE_CPU_SWAP_POLICY": "histogram",
+    "EXL3_MOE_CPU_SWAP_TEXT_CLOCK": "1",
+    "EXL3_MOE_CPU_THREADS": "8",
+    "EXL3_MOE_PINNED_ARENA": "1",
+    "EXL3_MTP_CACHED_REWIND": "1",
+    "EXL3_MTP_FAST": "1",
+    "EXL3_MTP_GPU_DRAFT": "1",
+    "EXL3_MTP_GREEDY_ACCEPT": "1",
+    "EXL3_MTP_MAX_BATCH": "1"
+  },
+  "source": "container Config.Env merged with the /usr/bin/env arguments of Config.Cmd (-u removes a name), EXL3_* only"
+}

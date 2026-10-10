@@ -1,0 +1,35 @@
+Expected 85-115 min excluding queue/drain; results /srv/qwen5090/results/2026-10-10-r969-glm53-textclock-170158; waiting for GPU lock
+gateway_wait_idle: waiting for flan-glm53(healthy, 0 in flight) 
+Bdebug fresh boot image=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2_ring3_livemetrics2_draftchunk1_textclock1 text_clock=1 debug=1
+INFO Bdebug c1: {'sweeps': 112, 'clock_sweeps': 112, 'swaps': 2292, 'wall_ms': 4594.477, 'fence_ms': 85.88}
+INFO Bdebug c2: {'sweeps': 32, 'clock_sweeps': 32, 'swaps': 261, 'wall_ms': 995.914, 'fence_ms': 15.721}
+A1 fresh boot image=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2_ring3_livemetrics2_draftchunk1_textclock1 text_clock=0 debug=off
+A1 measurements complete
+B1 fresh boot image=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2_ring3_livemetrics2_draftchunk1_textclock1 text_clock=1 debug=off
+B1 measurements complete
+B2 fresh boot image=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2_ring3_livemetrics2_draftchunk1_textclock1 text_clock=1 debug=off
+B2 measurements complete
+A2 fresh boot image=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2_ring3_livemetrics2_draftchunk1_textclock1 text_clock=0 debug=off
+A2 measurements complete
+B3 fresh boot image=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2_ring3_livemetrics2_draftchunk1_textclock1 text_clock=1 debug=off
+B3 measurements complete
+A3 fresh boot image=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2_ring3_livemetrics2_draftchunk1_textclock1 text_clock=0 debug=off
+A3 measurements complete
+A1: c1=63.54 c2=72.68 c3=85.52 c4=92.09 tok/s
+B1: c1=63.69 c2=74.41 c3=91.99 c4=98.83 tok/s
+B2: c1=64.77 c2=74.33 c3=90.33 c4=95.57 tok/s
+A2: c1=64.24 c2=74.54 c3=89.01 c4=92.76 tok/s
+B3: c1=65.57 c2=75.47 c3=92.49 c4=98.02 tok/s
+A3: c1=63.76 c2=71.71 c3=86.58 c4=93.49 tok/s
+INFO Bdebug c1: {'sweeps': 112, 'clock_sweeps': 112, 'swaps': 2292, 'wall_ms': 4594.477, 'fence_ms': 85.88} (excluded from gates)
+INFO Bdebug c2: {'sweeps': 32, 'clock_sweeps': 32, 'swaps': 261, 'wall_ms': 995.914, 'fence_ms': 15.721} (excluded from gates)
+Aggregation: median of three boot medians per A/B; order A1 B1 B2 A2 B3 A3; c1 first
+A medians={'c1': 63.756835590301, 'c2': 72.67704302235272, 'c3': 86.57667649241652, 'c4': 92.75522705962915}; B medians={'c1': 64.77195715527131, 'c2': 74.4061185940455, 'c3': 91.9948139494353, 'c4': 98.02350814467071}
+GATE c1 B/A=1.015922 (+1.59%); every B below every A=False
+INFO c2 B/A=1.023791 (+2.38%)
+INFO c3 B/A=1.062582 (+6.26%)
+INFO c4 B/A=1.056798 (+5.68%)
+DECISION: KEEP
+R969 complete; summary rc=0; daily restore follows; operator decides any rollback
+restoring current daily: DRAFT=1 DRAFT_N=1 MTP_FAST=1 OFFLOAD_N=104 VISION_OFFLOAD=1 GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2_ring3_livemetrics2_draftchunk1_textclock1 INDEX_RING=1 GPU_SPLIT=31.8,31 EXL3_EXTRA=EXL3_MTP_MAX_BATCH=1;EXL3_DRAFT_PINNED_STAGING=1;EXL3_MTP_GPU_DRAFT=1;EXL3_MTP_GREEDY_ACCEPT=1;EXL3_MTP_CACHED_REWIND=1;EXL3_MOE_CPU_SPLIT_BY_DEVICE=96,102;EXL3_MOE_CPU_SWAP_TEXT_CLOCK=1 PINNED_ARENA=1 SWAP_MODE=exchange SWAP_POLICY=histogram SWAP_INIT_STATS=/srv/qwen5090/glm-daily-tools/split-stats-broad-r869.json SWAP_CADENCE=exact SWAP_INTERVAL=64 SWAP_MAX=64 SWAP_SCOPE=global SWAP_FLOOR=4 SWAP_HYST=2.0 AGENT=1 KEEP_THINKING=1 CHUNK=4096
+SERVING on :8029: restored (DRAFT=1 DRAFT_N=1 MTP_FAST=1 OFFLOAD_N=104 VISION_OFFLOAD=1 GLM_IMG=tabbyapi:cheapswap-r3-agent-r2_mtpfast1_overhead-r2_splitdev2_ring3_livemetrics2_draftchunk1_textclock1 INDEX_RING=1 GPU_SPLIT=31.8,31 EXL3_EXTRA=EXL3_MTP_MAX_BATCH=1;EXL3_DRAFT_PINNED_STAGING=1;EXL3_MTP_GPU_DRAFT=1;EXL3_MTP_GREEDY_ACCEPT=1;EXL3_MTP_CACHED_REWIND=1;EXL3_MOE_CPU_SPLIT_BY_DEVICE=96,102;EXL3_MOE_CPU_SWAP_TEXT_CLOCK=1 PINNED_ARENA=1 SWAP_MODE=exchange SWAP_POLICY=histogram SWAP_INIT_STATS=/srv/qwen5090/glm-daily-tools/split-stats-broad-r869.json SWAP_CADENCE=exact SWAP_INTERVAL=64 SWAP_MAX=64 SWAP_SCOPE=global SWAP_FLOOR=4 SWAP_HYST=2.0 AGENT=1 KEEP_THINKING=1 CHUNK=4096)
